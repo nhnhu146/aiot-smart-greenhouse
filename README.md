@@ -1,4 +1,4 @@
-# AIOT-Smart-Greenhouse
+# AIoT-Smart-Greenhouse
 ## DESCRIPTION
 This is an AIOT project about Smart Greenhous with voice control.
 
