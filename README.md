@@ -1,6 +1,6 @@
 # AIoT-Smart-Greenhouse
 ## DESCRIPTION
-This is an AIOT project about Smart Greenhous with voice control.
+This is an AIoT project about Smart Greenhous with voice control.
 
 ##  MEMBERS
 1. Nguyen Van Le Ba Thanh - 22127390
