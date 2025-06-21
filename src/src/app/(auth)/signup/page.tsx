@@ -6,6 +6,7 @@ import { useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth';
 import { auth } from '@/app/firebase/config';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import styles from './signup.module.scss';
 
 const SignUp = () => {
     const router = useRouter();
@@ -13,6 +14,7 @@ const SignUp = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [createUserWithEmailAndPassword, user, loading, firebaseError] = useCreateUserWithEmailAndPassword(auth);
 
@@ -47,27 +49,8 @@ const SignUp = () => {
     }, [user, router]);
 
     return (
-        <div
-            className="min-vh-80 d-flex"
-            style={{
-                backgroundImage: "url('/background.svg')",
-                backgroundSize: 'cover',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-                width: '100vw',
-                height: '100vh',
-            }}
-        >
-            <Card
-                style={{
-                    backgroundColor: 'white',
-                    borderTopRightRadius: '30px',
-                    borderBottomRightRadius: '30px',
-                    borderTopLeftRadius: '0',
-                    borderBottomLeftRadius: '0',
-                    border: 'none',
-                }}
-            >
+        <div className={styles.container}>
+            <Card className={styles.card}>
                 <Card.Body className="d-flex flex-column justify-content-center align-items-center">
                     <Image className="mb-3" src="/logo.svg" alt="GreenHouse Logo" width={250} height={150} />
 
@@ -82,17 +65,13 @@ const SignUp = () => {
                             placeholder="Enter email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="form-control mb-3"
-                            style={{
-                                backgroundColor: 'rgba(87, 174, 9, 0.25)',
-                                width: '500px',
-                            }}
+                            className={`form-control mb-3 ${styles.input}`}
                             required
                         />
                     </div>
 
                     {/* Password Input */}
-                    <div style={{ position: 'relative', width: '500px' }}>
+                    <div className={styles.passwordContainer}>
                         <label htmlFor="password" className="form-label">
                             Password
                         </label>
@@ -102,25 +81,13 @@ const SignUp = () => {
                             placeholder="Enter password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="form-control mb-3"
-                            style={{
-                                backgroundColor: 'rgba(87, 174, 9, 0.25)',
-                            }}
+                            className={`form-control mb-3 ${styles.input}`}
                             required
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            style={{
-                                position: 'absolute',
-                                top: '50%',
-                                right: '10px',
-                                transform: 'translateY(-20%)',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontWeight: 'bold',
-                            }}
+                            className={styles.eyeButton}
                         >
                             {showPassword ? (
                                 <Image
@@ -143,28 +110,47 @@ const SignUp = () => {
                     </div>
 
                     {/* Confirm Password Input */}
-                    <div>
+                    <div className={styles.passwordContainer}>
                         <label htmlFor="confirmPassword" className="form-label">
                             Confirm Password
                         </label>
                         <input
                             id="confirmPassword"
-                            type="password"
+                            type={showConfirmPassword ? 'text' : 'password'}
                             placeholder="Confirm Password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="form-control mb-3"
-                            style={{
-                                backgroundColor: 'rgba(87, 174, 9, 0.25)',
-                                width: '500px',
-                            }}
+                            className={`form-control mb-3 ${styles.input}`}
                             required
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className={styles.eyeButton}
+                        >
+                            {showConfirmPassword ? (
+                                <Image
+                                    className="mx-1 my-1"
+                                    src="/close-eye.svg"
+                                    alt="Hide password"
+                                    width={20}
+                                    height={20}
+                                />
+                            ) : (
+                                <Image
+                                    className="mx-1 my-1"
+                                    src="/open-eye.svg"
+                                    alt="Show password"
+                                    width={19}
+                                    height={19}
+                                />
+                            )}
+                        </button>
                     </div>
 
                     {/* Error Message */}
-                    {error && <p style={{ color: 'red', marginBottom: '15px' }}>{error}</p>}
-                    {firebaseError && <p style={{ color: 'red', marginBottom: '15px' }}>{firebaseError.message}</p>}
+                    {error && <p className={styles.errorMessage}>{error}</p>}
+                    {firebaseError && <p className={styles.errorMessage}>{firebaseError.message}</p>}
 
                     {/* Loading State */}
                     {loading && <p>Loading...</p>}
@@ -173,13 +159,7 @@ const SignUp = () => {
                     <Button
                         type="button"
                         variant="success"
-                        style={{
-                            backgroundColor: '#57AE09',
-                            border: 'none',
-                            width: '120px',
-                            borderRadius: '20px',
-                            boxShadow: '0px 4px 4px rgba(0, 0, 0, 0.25)',
-                        }}
+                        className={styles.submitButton}
                         onClick={handleSubmit}
                         disabled={loading}
                     >
