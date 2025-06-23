@@ -1,9 +1,7 @@
 'use client'
 import { Inter } from 'next/font/google'
-import AppSidebar from '@/components/app.sidebar'
+import AppSidebar from '@/components/AppSidebar/AppSidebar'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,17 +17,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className} style={{ margin: 0, padding: 0, overflowX: 'auto', overflowY: 'hidden' }}>
-        <Row style={{ margin: 0, width: '100vw', height: '100vh' }}>
-          <Col xs="auto" style={{ height: '100vh', overflowY: 'auto' }}>
+      <body className={inter.className} style={{ margin: 0, padding: 0 }}>
+        <div style={{ display: 'flex', height: '100vh', width: '100%' }}>
+          <div style={{ flex: '0 0 240px' }}>
             <AppSidebar />
-          </Col>
-          <Col xs={8} md={10} style={{ background: '#DCEECB', height: '100vh', overflowX: 'auto' }}>
+          </div>
+          <div style={{ flex: 1, background: '#DCEECB', overflowY: 'auto' }}>
             {children}
-          </Col>
-        </Row>
+          </div>
+        </div>
       </body>
     </html>
-
   )
 }

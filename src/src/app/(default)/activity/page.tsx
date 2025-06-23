@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
-import ActivityCard from '../../../components/ActivityCard';
+import ActivityCard from '../../../components/ActivityCard/ActivityCard';
 import publishMessage from '@/hooks/publishMQTT';
 import useMQTT from '@/hooks/useMQTT';
 import pushNoti from '@/hooks/pushNoti';
+import styles from './activity.module.scss';
+
 
 var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0;
 var noti_sent = false, last_water_state = false;
@@ -208,22 +210,28 @@ const Activity = () => {
   }
 
   return (
-    <Container className="py-4">  
-      <h3 className="mb-4 px-2">Let’s check your GreenHouse activity</h3>
-      <Row>
-        {activities.map((activity, index) => (
-          <Col key={index} xs={12} md={6} lg={4} className="d-flex justify-content-center mb-3">
-            <ActivityCard
-              title={activity.title}
-              icon={activity.icon}
-              switchId={`switch-${activity.title}`}
-              switchState={switchStates.get(activity.topic) || false}
-              onSwitchChange={(state) => handleSwitchChange(activity.topic, state)}
-            />
-          </Col>
-        ))}
-      </Row>
-    </Container>
+  <Container className={styles["activity-container"]}>
+    <h3 className={styles["activity-title"]}>Let’s check your GreenHouse activity</h3>
+    <Row className={styles["activity-row"]}>
+      {activities.map((activity, index) => (
+        <Col
+          key={index}
+          xs={12}
+          md={6}
+          lg={4}
+          className={styles["activity-card-wrapper"]}
+        >
+          <ActivityCard
+            title={activity.title}
+            icon={activity.icon}
+            switchId={`switch-${activity.title}`}
+            switchState={switchStates.get(activity.topic) || false}
+            onSwitchChange={(state) => handleSwitchChange(activity.topic, state)}
+          />
+        </Col>
+      ))}
+    </Row>
+  </Container>
   );
 };
 

@@ -1,0 +1,43 @@
+.card {
+  width: 100%;
+  max-width: 380px;
+  height: 6rem;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border: none;
+
+  &:hover {
+    background-color: #e3f2fd; 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.active {
+  background-color: #64b5f6; 
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4); 
+}
+
+.cardBody {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  width: 100%;
+}
+
+.icon {
+  font-size: 1.8rem;
+  margin-right: 1rem;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
