@@ -1,0 +1,38 @@
+.dashboardContainer {
+  padding: 1.5rem;
+
+  h3 {
+    font-size: 1.8rem;
+    color: #2b512b;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.chartCard {
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(87, 174, 9, 0.1);
+  padding: 1rem;
+  background-color: #f8fff3;
+
+  .chartTitle {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.chartRow {
+  margin-top: 1rem;
+}
+
+.doughnutCard {
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(87, 174, 9, 0.15);
+  padding: 1rem;
+  background-color: #ffffff;
+
+  .chartTitle {
+    font-weight: 500;
+    font-size: 1.1rem;
+  }
+}

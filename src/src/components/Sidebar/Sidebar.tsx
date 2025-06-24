@@ -7,7 +7,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/app/firebase/config';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import styles from './AppSidebar.module.scss';
+import styles from './Sidebar.module.scss';
 
 const navItems = [
   { label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },

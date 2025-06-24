@@ -3,10 +3,11 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Card from 'react-bootstrap/Card';
-import AppLineChart from '@/components/app.linechart';
-import AppSemiDoughnutChart from '@/components/app.semidoughnutchart';
+import AppLineChart from '@/components/LineChart/LineChart';
+import AppSemiDoughnutChart from '@/components/SemiDoughnutChart/SemiDoughnutChart';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import styles from './dashboard.module.scss';
 
 const Dashboard = () => {
     const [data, setData] = useState<{ humidity: number; moisture: number; temperature: number } | null>(null);
@@ -29,22 +30,23 @@ const Dashboard = () => {
         return <div>Loading...</div>;
     }
     return (
-        <Container className='my-3'>
-            <h3>Welcome to GreenHouse.</h3>
-            <Row className='my-3 align-items-center justify-content-center'>
+        <Container className={styles.dashboardContainer}>
+            <h3>Welcome to GreenHouse</h3>
+            <Row className={`my-3 align-items-center justify-content-center ${styles.chartRow}`}>
                 <Col sm={8}>
-                    <Card>
-                        <Card.Body>Development Prediction Chart</Card.Body>
+                    <Card className={styles.chartCard}>
+                        <Card.Body className={styles.chartTitle}>Development Prediction Chart</Card.Body>
                         <div className='my-3'>
                             <AppLineChart />
                         </div>
                     </Card>
                 </Col>
             </Row>
-            <Row className='my-3'>
+
+            <Row className={`my-3 ${styles.chartRow}`}>
                 <Col>
-                    <Card>
-                        <Card.Body>Humidity</Card.Body>
+                    <Card className={styles.doughnutCard}>
+                        <Card.Body className={styles.chartTitle}>Humidity</Card.Body>
                         <AppSemiDoughnutChart
                             label="Humidity"
                             value={data.humidity}
@@ -54,8 +56,8 @@ const Dashboard = () => {
                     </Card>
                 </Col>
                 <Col>
-                    <Card>
-                        <Card.Body>Soil moisture</Card.Body>
+                    <Card className={styles.doughnutCard}>
+                        <Card.Body className={styles.chartTitle}>Soil moisture</Card.Body>
                         <AppSemiDoughnutChart
                             label="Moisture"
                             value={(4095 - data.moisture) / 4095 * 100}
@@ -65,8 +67,8 @@ const Dashboard = () => {
                     </Card>
                 </Col>
                 <Col>
-                    <Card>
-                        <Card.Body>Temperature</Card.Body>
+                    <Card className={styles.doughnutCard}>
+                        <Card.Body className={styles.chartTitle}>Temperature</Card.Body>
                         <AppSemiDoughnutChart
                             label="Temperature"
                             value={data.temperature}
