@@ -1,31 +1,32 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Container, Card } from 'react-bootstrap';
-import axios from 'axios';
+import mockDataService, { type ChartDataPoint } from '@/services/mockDataService';
 
 const History = () => {
-	const [data, setData] = useState<any[]>([]);
+	const [data, setData] = useState<ChartDataPoint[]>([]);
+	const [isUsingMockData, setIsUsingMockData] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 
 	// Fetch data when component is mounted
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-				const response = await axios.get('/api/sensors/history?limit=50');
+				// Get chart data using mockDataService (handles real/mock fallback)
+				const result = await mockDataService.getChartData();
 
-				if (response.status === 200) {
-					let fetchedData = response.data;
+				setData(result.data);
+				setIsUsingMockData(result.isMock);
+				setIsLoading(false);
 
-					if (Array.isArray(fetchedData)) {
-						// Sort data by entryId in descending order
-						fetchedData.sort((a, b) => (b.entryId || 0) - (a.entryId || 0));
-						setData(fetchedData);
-					} else {
-						console.error('Data is not an array', fetchedData);
-						setData([]);
-					}
+				if (result.isMock) {
+					console.log('🎭 Using mock history data');
+				} else {
+					console.log('✅ Using real history data');
 				}
 			} catch (error) {
-				console.error('Error fetching data:', error);
+				console.error('Failed to fetch history data:', error);
+				setIsLoading(false);
 			}
 		};
 		fetchData();
@@ -34,22 +35,27 @@ const History = () => {
 	return (
 		<Container className="my-3">
 			<h3 className="mb-4 mx-2">Let&apos;s check your Cloud!</h3>
-			{Array.isArray(data) && data.length === 0 ? (
+			{isUsingMockData && (
+				<div className="alert alert-info mb-3">
+					🎭 Using mock data for development
+				</div>
+			)}
+			{isLoading ? (
 				<p>Loading data...</p>
+			) : data.length === 0 ? (
+				<p>No data available</p>
 			) : (
-				Array.isArray(data) && data.map((entry: any, index: number) => (
+				data.map((entry: ChartDataPoint, index: number) => (
 					<Card
 						key={index}
 						style={{ width: '100%', height: '100px', borderRadius: '15px', margin: '10px 0', boxShadow: '0 0 10px rgba(87, 174, 9, 0.3)' }}
 					>
 						<Card.Body>
-							<p><b>DateTime:</b> {entry.timestamp || 'N/A'}</p>
+							<p><b>Time:</b> {entry.time}</p>
 							<p>
-								<b> Light Level:</b> {entry.lightLevel || 'N/A'}
-								<b> Water Level:</b> {entry.waterLevel || 'N/A'}
-								<b> Soil Moisture:</b> {entry.soilMoisture || 'N/A'}
-								<b> Temperature:</b> {entry.temperature || 'N/A'}°C
-								<b> Humidity:</b> {entry.humidity || 'N/A'}%
+								<b> Temperature:</b> {entry.temperature?.toFixed(1) || 'N/A'}°C
+								<b> Humidity:</b> {entry.humidity?.toFixed(1) || 'N/A'}%
+								<b> Soil Moisture:</b> {entry.soilMoisture?.toFixed(1) || 'N/A'}%
 							</p>
 						</Card.Body>
 					</Card>

@@ -32,8 +32,8 @@ class MockDataService {
 		const data: ChartDataPoint[] = [];
 		const now = new Date();
 
-		// Generate data for last 24 hours (every 2 hours)
-		for (let i = 23; i >= 0; i -= 2) {
+		// Generate data for last 24 hours (every hour for more detailed history)
+		for (let i = 23; i >= 0; i--) {
 			const time = new Date(now.getTime() - i * 60 * 60 * 1000);
 			data.push({
 				time: time.toLocaleTimeString('en-US', {
