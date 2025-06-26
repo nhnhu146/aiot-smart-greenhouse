@@ -1,0 +1,130 @@
+interface User {
+	id: string;
+	email: string;
+	token?: string;
+}
+
+interface AuthResponse {
+	success: boolean;
+	user?: User;
+	token?: string;
+	message?: string;
+}
+
+class AuthService {
+	private API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+	private currentUser: User | null = null;
+
+	constructor() {
+		// Initialize from localStorage if available
+		if (typeof window !== 'undefined') {
+			const storedUser = localStorage.getItem('user');
+			const storedToken = localStorage.getItem('token');
+			if (storedUser && storedToken) {
+				try {
+					const parsedUser = JSON.parse(storedUser);
+					this.currentUser = { ...parsedUser, token: storedToken };
+					console.log('User loaded from storage:', this.currentUser);
+				} catch (error) {
+					console.error('Error parsing stored user:', error);
+					this.clearStorage();
+				}
+			}
+		}
+	}
+
+	async signIn(email: string, password: string): Promise<AuthResponse> {
+		try {
+			const response = await fetch(`${this.API_BASE_URL}/api/auth/signin`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email, password }),
+			});
+
+			const data = await response.json();
+			console.log('Sign in response:', data);
+
+			if (data.success && data.user && data.token) {
+				this.currentUser = { ...data.user, token: data.token };
+				this.saveToStorage(data.user, data.token);
+				console.log('User signed in successfully:', this.currentUser);
+			}
+
+			return data;
+		} catch (error) {
+			console.error('Sign in error:', error);
+			return { success: false, message: 'Network error occurred' };
+		}
+	}
+
+	async signUp(email: string, password: string): Promise<AuthResponse> {
+		try {
+			const response = await fetch(`${this.API_BASE_URL}/api/auth/signup`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email, password }),
+			});
+
+			const data = await response.json();
+
+			if (data.success && data.user) {
+				this.currentUser = { ...data.user, token: data.token };
+				this.saveToStorage(data.user, data.token);
+			}
+
+			return data;
+		} catch (error) {
+			console.error('Sign up error:', error);
+			return { success: false, message: 'Network error occurred' };
+		}
+	}
+
+	async signOut(): Promise<void> {
+		this.currentUser = null;
+		this.clearStorage();
+	}
+
+	getCurrentUser(): User | null {
+		return this.currentUser;
+	}
+
+	isAuthenticated(): boolean {
+		const hasCurrentUser = this.currentUser !== null;
+		const hasToken = this.currentUser?.token !== undefined;
+		const hasStoredToken = typeof window !== 'undefined' && localStorage.getItem('token') !== null;
+
+		console.log('Authentication check:', {
+			hasCurrentUser,
+			hasToken,
+			hasStoredToken,
+			currentUser: this.currentUser
+		});
+
+		return hasCurrentUser && (hasToken || hasStoredToken);
+	}
+
+	getToken(): string | null {
+		return this.currentUser?.token || localStorage.getItem('token');
+	}
+
+	private saveToStorage(user: User, token: string): void {
+		localStorage.setItem('user', JSON.stringify(user));
+		localStorage.setItem('token', token);
+		// Also save to cookies for middleware
+		document.cookie = `token=${token}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
+	}
+
+	private clearStorage(): void {
+		localStorage.removeItem('user');
+		localStorage.removeItem('token');
+		// Clear cookie
+		document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+	}
+}
+
+export default new AuthService();
+export type { User, AuthResponse };

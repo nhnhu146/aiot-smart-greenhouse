@@ -1,21 +1,33 @@
 import mqtt from 'mqtt';
 
 const brokerUrl = "ws://broker.hivemq.com:8000/mqtt"; // URL Mosquitto
-const topic = ["HKT_greenhouse/Photonresistor", "HKT_greenhouse/UltraSonic", "HKT_greenhouse/Temperature", "HKT_greenhouse/Humidity", "HKT_greenhouse/RainSensor", "HKT_greenhouse/PIRIn", "HKT_greenhouse/FloatSwitch", "HKT_greenhouse/Moisture"];
+const topics = [
+	"greenhouse/sensors/temperature",
+	"greenhouse/sensors/humidity",
+	"greenhouse/sensors/soil",
+	"greenhouse/sensors/water",
+	"greenhouse/sensors/light",
+	"greenhouse/sensors/rain",
+	"greenhouse/devices/light/control",
+	"greenhouse/devices/pump/control",
+	"greenhouse/devices/door/control",
+	"greenhouse/devices/window/control",
+	"greenhouse/devices/fan/control"
+];
 
 const client = mqtt.connect(brokerUrl);
 
 client.on("connect", () => {
-  console.log("Connected to Mosquitto Broker");
-  for (var i = 0; i < topic.length; ++i) {
-    client.subscribe(topic[i], (err) => {
-      if (err) {
-        console.error("Failed to subscribe:", err);
-      } else {
-        console.log(`Subscribed to topic: ${topic}`);
-      }
-    });
-  }
+	console.log("Connected to MQTT Broker");
+	topics.forEach(topic => {
+		client.subscribe(topic, (err: any) => {
+			if (err) {
+				console.error(`Failed to subscribe to ${topic}:`, err);
+			} else {
+				console.log(`Subscribed to topic: ${topic}`);
+			}
+		});
+	});
 });
 
 export default client;

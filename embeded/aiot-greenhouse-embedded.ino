@@ -4,10 +4,6 @@
 #include <DHT.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include "ThingSpeak.h"
-
-#define CHANNEL_ID 2785830
-#define CHANNEL_API_KEY "7JULKS8VKUSB30ZS"
 
 // Thông tin Wi-Fi
 const char* ssid = "47/52/11";
@@ -19,18 +15,24 @@ const char* password = "12345789";
 const char* mqttServer = "broker.hivemq.com";
 const int mqttPort = 1883;
 
-// Topic to subscribe to
-const char* lights_topic = "HKT_greenhouse/lights"; 
-const char* window_topic = "HKT_greenhouse/window";
-const char* fan_topic = "HKT_greenhouse/fan";
-const char* watering_topic = "HKT_greenhouse/watering";
-const char* door_topic = "HKT_greenhouse/door";
-const char* lcd_topic = "HKT_greenhouse/lcd";
+// MQTT Topics for device control (subscribe)
+const char* lights_topic = "greenhouse/devices/light/control"; 
+const char* window_topic = "greenhouse/devices/window/control";
+const char* fan_topic = "greenhouse/devices/fan/control";
+const char* watering_topic = "greenhouse/devices/pump/control";
+const char* door_topic = "greenhouse/devices/door/control";
+const char* lcd_topic = "greenhouse/devices/lcd/control";
+
+// MQTT Topics for sensor data (publish)
+const char* temp_topic = "greenhouse/sensors/temperature";
+const char* humidity_topic = "greenhouse/sensors/humidity";
+const char* soil_moisture_topic = "greenhouse/sensors/soil";
+const char* light_level_topic = "greenhouse/sensors/light";
+const char* water_level_topic = "greenhouse/sensors/water";
 
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 WiFiClient espClient;
-WiFiClient thingSpeakClient;
 PubSubClient client(espClient);
 
 // Constant and pins
@@ -62,9 +64,6 @@ Servo doorServo;
 void setup() {
   dht.begin();
   Serial.begin(115200);
-  
-  // Initialize ThingSpeak with a separate client
-  ThingSpeak.begin(thingSpeakClient);
 
   setup_wifi();
 
@@ -114,28 +113,17 @@ void loop() {
 
   lcd.backlight();
 
-  if (millis() - lastSendTime1 > 3000) {
-    sendPIRValue(PIRValue);
-    lastSendTime1 = millis();
-    ThingSpeak.writeFields(CHANNEL_ID, CHANNEL_API_KEY);
-  }
-
-  // Gửi tin nhắn mỗi 5 giây
-  if (millis() - lastSendTime2 > 10000) {
+  // Gửi dữ liệu sensor qua MQTT mỗi 5 giây
+  if (millis() - lastSendTime2 > 5000) {
     lastSendTime2 = millis();
+    
+    // Gửi dữ liệu sensor theo topics của backend
     sendTemperatureValue(t);
     sendHumidityValue(h);
+    sendSoilMoistureValue(moisture);
+    sendWaterLevelValue(FloatSwitchValue);
+    sendLightLevelValue(Photon_value);
     sendRainSensorValue(rainvalue);
-    sendPhotonresistorValue(Photon_value);
-    ThingSpeak.writeFields(CHANNEL_ID, CHANNEL_API_KEY);
-  }
-
-  if (millis() - lastSendTime3 > 15000) {
-    lastSendTime3 = millis();
-    sendMoistureValue(moisture);
-    sendFloatSwitchValue(FloatSwitchValue);
-    sendUltraSonicValue(distanceCm);
-    ThingSpeak.writeFields(CHANNEL_ID, CHANNEL_API_KEY);
   }
 }
 
@@ -190,59 +178,52 @@ long getDistance() {
 }
 
 void sendPhotonresistorValue(int Photon_value) {
-  String payload = "Photonresistor value " + String(Photon_value);
-  ThingSpeak.setField(1, Photon_value);
-  client.publish("HKT_greenhouse/Photonresistor", payload.c_str());
-  Serial.println("Sent: " + payload);
+  String payload = String(Photon_value);
+  client.publish(light_level_topic, payload.c_str());
+  Serial.println("Sent light level: " + payload);
 }
 
 void sendUltraSonicValue(long distance) {
-  ThingSpeak.setField(2, distance);
-  String payload = "UltraSonic value " + String(distance);
-  client.publish("HKT_greenhouse/UltraSonic", payload.c_str());
-  Serial.println("Sent: " + payload);
+  String payload = String(distance);
+  client.publish(water_level_topic, payload.c_str());
+  Serial.println("Sent water level: " + payload);
 }
 
-void sendTemperatureValue(float Temperature) {
-  String payload = "Temperature value " + String(Temperature);
-  ThingSpeak.setField(4, Temperature);
-  client.publish("HKT_greenhouse/Temperature", payload.c_str());
-  Serial.println("Sent: " + payload);
+void sendTemperatureValue(float temperature) {
+  String payload = String(temperature);
+  client.publish(temp_topic, payload.c_str());
+  Serial.println("Sent temperature: " + payload);
 }
 
-void sendHumidityValue(float Humidity) {
-  String payload = "Humidity value " + String(Humidity);
-  ThingSpeak.setField(5, Humidity);
-  client.publish("HKT_greenhouse/Humidity", payload.c_str());
-  Serial.println("Sent: " + payload);
+void sendHumidityValue(float humidity) {
+void sendHumidityValue(float humidity) {
+  String payload = String(humidity);
+  client.publish(humidity_topic, payload.c_str());
+  Serial.println("Sent humidity: " + payload);
 }
 
-void sendRainSensorValue(int Rain) {
-  String payload = "Rain value " + String(Rain);
-  ThingSpeak.setField(8, Rain);
-  client.publish("HKT_greenhouse/RainSensor", payload.c_str());
-  Serial.println("Sent: " + payload);
+void sendSoilMoistureValue(int moisture) {
+  String payload = String(moisture);
+  client.publish(soil_moisture_topic, payload.c_str());
+  Serial.println("Sent soil moisture: " + payload);
 }
 
-void sendMoistureValue(int Moisture) {
-  ThingSpeak.setField(3, Moisture);
-  String payload = "Moisture value " + String(Moisture);
-  client.publish("HKT_greenhouse/Moisture", payload.c_str());
-  Serial.println("Sent: " + payload);
+void sendWaterLevelValue(int waterLevel) {
+  String payload = String(waterLevel);
+  client.publish(water_level_topic, payload.c_str());
+  Serial.println("Sent water level: " + payload);
 }
 
-void sendPIRValue(int PIRvalueIn) {
-  ThingSpeak.setField(6, PIRvalueIn);
-  String payload = "PIR value " + String(PIRvalueIn);
-  client.publish("HKT_greenhouse/PIRIn", payload.c_str());
-  Serial.println("Sent: " + payload);
+void sendLightLevelValue(int lightLevel) {
+  String payload = String(lightLevel);
+  client.publish(light_level_topic, payload.c_str());
+  Serial.println("Sent light level: " + payload);
 }
 
-void sendFloatSwitchValue(int FloatSwitch) {
-  ThingSpeak.setField(7, FloatSwitch);
-  String payload = "Float switch value " + String(FloatSwitch);
-  client.publish("HKT_greenhouse/FloatSwitch", payload.c_str());
-  Serial.println("Sent: " + payload);
+void sendRainSensorValue(int rain) {
+  String payload = String(rain);
+  client.publish("greenhouse/sensors/rain", payload.c_str());
+  Serial.println("Sent rain: " + payload);
 }
 
 void controlLights(char* value) {
@@ -340,32 +321,22 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   message[length] = '\0'; // Null-terminate the string
   Serial.println(message);
 
-  // Extract the last segment of the topic
-  const char* lastSegment = strrchr(topic, '/');
-  if (lastSegment != nullptr) {
-    lastSegment++; // Move past the '/'
+  // Check topic for device control
+  if (strcmp(topic, lights_topic) == 0) {
+    controlLights(message);
   }
-
-  // Check if the last segment matches "lights"
-  if (strcmp(lastSegment, "lights") == 0) { // Compare strings properly
-    controlLights(message); // Pass the message to the control function
-  }
-
-  else if (strcmp(lastSegment, "window") == 0) {
+  else if (strcmp(topic, window_topic) == 0) {
     controlWindow(message);
   }
-
-  else if (strcmp(lastSegment, "door") == 0) {
+  else if (strcmp(topic, door_topic) == 0) {
     Serial.print("Door activity");
     controlDoor(message);
   }
-
-  else if (strcmp(lastSegment, "fan") == 0) {
+  else if (strcmp(topic, fan_topic) == 0) {
     Serial.print("Fan activity");
     controlFan(message);
   }
-
-  else if (strcmp(lastSegment, "watering") == 0) {
+  else if (strcmp(topic, watering_topic) == 0) {
     Serial.print("Pump activity");
     controlPump(message);
   }
