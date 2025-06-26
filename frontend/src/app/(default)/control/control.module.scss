@@ -11,10 +11,96 @@
 .activity-row {
   display: flex;
   flex-wrap: wrap;
+  margin-bottom: 2rem;
 }
 
 .activity-card-wrapper {
   display: flex;
   justify-content: center;
   margin-bottom: 1rem;
+}
+
+.threshold-card {
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(87, 174, 9, 0.1);
+  background-color: #ffffff;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.threshold-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.threshold-item {
+  margin-bottom: 1.5rem;
+}
+
+.threshold-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.threshold-value {
+  font-weight: 600;
+  color: #2b512b;
+}
+
+.log-card {
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(87, 174, 9, 0.1);
+  background-color: #ffffff;
+  padding: 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.log-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.log-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.log-timestamp {
+  font-size: 0.8rem;
+  color: #666;
+  margin-right: 0.5rem;
+}
+
+.log-message {
+  font-weight: 500;
+}
+
+.log-info {
+  color: #2196f3;
+}
+
+.log-success {
+  color: #4caf50;
+}
+
+.log-warning {
+  color: #ff9800;
+}
+
+.log-error {
+  color: #f44336;
 }
