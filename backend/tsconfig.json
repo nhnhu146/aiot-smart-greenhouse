@@ -7,19 +7,18 @@
 		],
 		"outDir": "./dist",
 		"rootDir": "./src",
-		"strict": false,
+		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
+		"declaration": false,
+		"sourceMap": false,
 		"removeComments": true,
-		"noImplicitAny": false,
-		"strictNullChecks": false,
-		"strictFunctionTypes": false,
-		"noImplicitReturns": false,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"noImplicitReturns": true,
 		"noFallthroughCasesInSwitch": true,
 		"moduleResolution": "node",
 		"baseUrl": "./",
@@ -28,9 +27,7 @@
 				"src/*"
 			]
 		},
-		"allowSyntheticDefaultImports": true,
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true
+		"allowSyntheticDefaultImports": true
 	},
 	"include": [
 		"src/**/*"

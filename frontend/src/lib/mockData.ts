@@ -66,9 +66,11 @@ export const mockActivityData = [
 	}
 ];
 
-export default {
+const mockData = {
 	mockSensorData,
 	generateMockSensorData,
 	mockHistoricalData,
 	mockActivityData
 };
+
+export default mockData;

@@ -21,7 +21,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 			notifications: { email: true, threshold: true }
 		});
 
-		settings = await defaultSettings.save();
+		settings = await defaultSettings.save() as any;
 	}
 
 	const response: APIResponse = {
@@ -215,7 +215,7 @@ router.post('/restore', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // GET /api/settings/validate - Validate current settings
-router.get('/validate', asyncHandler(async (req: Request, res: Response) => {
+router.get('/validate', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	const settings = await Settings.findOne().lean();
 
 	if (!settings) {
@@ -224,7 +224,8 @@ router.get('/validate', asyncHandler(async (req: Request, res: Response) => {
 			message: 'No settings found',
 			timestamp: new Date().toISOString()
 		};
-		return res.status(404).json(response);
+		res.status(404).json(response);
+		return;
 	}
 
 	const validation = {
@@ -281,7 +282,7 @@ router.get('/validate', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // GET /api/settings/recommendations - Get optimization recommendations
-router.get('/recommendations', asyncHandler(async (req: Request, res: Response) => {
+router.get('/recommendations', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	const settings = await Settings.findOne().lean();
 	const latestSensor = await SensorData.findOne().sort({ timestamp: -1 }).lean();
 
@@ -291,7 +292,8 @@ router.get('/recommendations', asyncHandler(async (req: Request, res: Response) 
 			message: 'Insufficient data for recommendations',
 			timestamp: new Date().toISOString()
 		};
-		return res.status(404).json(response);
+		res.status(404).json(response);
+		return;
 	}
 
 	const recommendations = [];

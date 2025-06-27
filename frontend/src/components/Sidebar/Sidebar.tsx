@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Nav } from 'react-bootstrap';
-import Image from 'react-bootstrap/Image';
+import { Nav, Image } from 'react-bootstrap';
 import { usePathname, useRouter } from 'next/navigation';
 import authService, { User } from '@/lib/authService';
 import styles from './Sidebar.module.scss';
@@ -22,7 +21,6 @@ const AppSidebar = () => {
 	useEffect(() => {
 		const currentUser = authService.getCurrentUser();
 		setUser(currentUser);
-		console.log('Sidebar - current user:', currentUser);
 	}, []);
 
 	const handleSignOut = async () => {

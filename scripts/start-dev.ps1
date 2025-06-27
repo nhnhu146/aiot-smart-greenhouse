@@ -36,6 +36,8 @@ MONGODB_PASSWORD=greenhouse_password
 MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
 MQTT_USERNAME=vision
 MQTT_PASSWORD=vision
+API_PREFIX=/api
+CORS_ORIGIN=http://localhost:3000
 "@
         $envContent | Out-File -FilePath ".env" -Encoding UTF8NoBOM
     }
@@ -43,38 +45,7 @@ MQTT_PASSWORD=vision
 
 # Create necessary directories
 Write-Host "Creating necessary directories..." -ForegroundColor Yellow
-# New-Item -ItemType Directory -Force -Path "mosquitto/data" | Out-Null
-# New-Item -ItemType Directory -Force -Path "mosquitto/logs" | Out-Null
 New-Item -ItemType Directory -Force -Path "backend/logs" | Out-Null
-
-# Setup MQTT configuration with proper sequence
-# Write-Host "Setting up MQTT configuration..." -ForegroundColor Yellow
-# New-Item -ItemType Directory -Force -Path "mosquitto/config" | Out-Null
-
-# Step 1: Create anonymous configuration
-# Write-Host "Step 1: Creating anonymous MQTT configuration..." -ForegroundColor Cyan
-# $anonymousConfig = @"
-# listener 1883
-# allow_anonymous true
-# persistence true
-# persistence_location /mosquitto/data/
-# log_dest stdout
-# "@
-# $anonymousConfig | Set-Content "mosquitto/config/mosquitto.conf" -Encoding ASCII
-# $anonymousConfig | Set-Content "mosquitto/config/mosquitto-anonymous.conf" -Encoding ASCII
-
-# # Create secure configuration template
-# $secureConfig = @"
-# listener 1883
-# allow_anonymous false
-# password_file /mosquitto/config/passwd
-# persistence true
-# persistence_location /mosquitto/data/
-# log_dest stdout
-# "@
-# $secureConfig | Set-Content "mosquitto/config/mosquitto-secure.conf" -Encoding ASCII
-
-# Write-Host "MQTT initially configured for anonymous access" -ForegroundColor Green
 
 # Install backend dependencies if node_modules doesn't exist
 if (!(Test-Path "backend/node_modules")) {
@@ -124,34 +95,6 @@ docker compose up -d mongodb redis
 Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
 Start-Sleep -Seconds 10
 
-# Step 2: Create MQTT user with password
-# Write-Host "Step 2: Creating MQTT user 'vision' with password 'vision'..." -ForegroundColor Cyan
-# try {
-#     docker exec aiot_greenhouse_mqtt mosquitto_passwd -b -c /mosquitto/config/passwd vision vision
-#     docker exec aiot_greenhouse_mqtt chmod 600 /mosquitto/config/passwd
-#     Write-Host "MQTT user created successfully" -ForegroundColor Green
-# } catch {
-#     Write-Host "Failed to create MQTT user: $($_.Exception.Message)" -ForegroundColor Red
-#     Write-Host "Continuing with anonymous access..." -ForegroundColor Yellow
-# }
-
-# Step 3: Switch to secure configuration (disable anonymous)
-# Write-Host "Step 3: Switching to secure configuration (disabling anonymous)..." -ForegroundColor Cyan
-# Copy-Item "mosquitto/config/mosquitto-secure.conf" "mosquitto/config/mosquitto.conf" -Force
-# docker restart aiot_greenhouse_mqtt
-# Start-Sleep -Seconds 5
-
-# Verify MQTT is running with authentication
-# $mqttRunning = docker ps --filter "name=aiot_greenhouse_mqtt" --filter "status=running" --quiet
-# if ($mqttRunning) {
-#     Write-Host "MQTT authentication configured successfully!" -ForegroundColor Green
-#     Write-Host "   Username: vision" -ForegroundColor Cyan
-#     Write-Host "   Password: vision" -ForegroundColor Cyan
-#     Write-Host "   Anonymous access: DISABLED" -ForegroundColor Green
-# } else {
-#     Write-Host "MQTT failed to restart with authentication" -ForegroundColor Red
-# }
-
 # Start backend in development mode
 Write-Host "Starting backend in development mode..." -ForegroundColor Yellow
 Push-Location backend
@@ -182,7 +125,6 @@ Write-Host ""
 Write-Host "Frontend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host "Backend API: http://localhost:5000/api" -ForegroundColor Cyan
 Write-Host "Health Check: http://localhost:5000/api/health" -ForegroundColor Cyan
-Write-Host "MQTT Broker: mqtt://mqtt.noboroto.id.vn:1883" -ForegroundColor Cyan
 Write-Host "MongoDB: mongodb://localhost:27017" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "To stop all services, run: .\scripts\stop-dev.ps1" -ForegroundColor Yellow

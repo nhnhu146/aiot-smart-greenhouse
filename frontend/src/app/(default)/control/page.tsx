@@ -1,8 +1,7 @@
 "use client";
-
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
-import ActivityCard from '../../../components/ActivityCard/ActivityCard';
+import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import pushNoti from '@/hooks/pushNoti';
 import styles from './control.module.scss';
@@ -131,7 +130,7 @@ const Control = () => {
 				}
 			}
 		}
-	}, [sensorData, userInteraction, switchStates]);
+	}, [sensorData, userInteraction, switchStates, sendDeviceControl]);
 
 	// Reset user interaction flag after some time
 	useEffect(() => {

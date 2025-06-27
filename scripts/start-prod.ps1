@@ -1,8 +1,6 @@
 # PowerShell Production start script for AIOT Smart Greenhouse
 
 param(
-    [string]$MqttUser = "vision",
-    [string]$MqttPassword = "vision", 
     [switch]$SkipBuild,
     [switch]$Force
 )
@@ -40,8 +38,9 @@ if (!(Test-Path ".env") -or $Force) {
 NODE_ENV=production
 MONGODB_USER=greenhouse_admin
 MONGODB_PASSWORD=$securePassword
-MQTT_USERNAME=$MqttUser
-MQTT_PASSWORD=$MqttPassword
+MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+MQTT_USERNAME=vision
+MQTT_PASSWORD=vision
 API_PREFIX=/api
 CORS_ORIGIN=http://localhost:3000
 RATE_LIMIT_WINDOW_MS=900000
@@ -53,39 +52,8 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 # Create necessary directories with proper permissions
 Write-Host "Creating necessary directories..." -ForegroundColor Yellow
-New-Item -ItemType Directory -Force -Path "mosquitto/data" | Out-Null
-New-Item -ItemType Directory -Force -Path "mosquitto/logs" | Out-Null
 New-Item -ItemType Directory -Force -Path "backend/logs" | Out-Null
-
-# Create production backup directory
 New-Item -ItemType Directory -Force -Path "backups" | Out-Null
-
-# Step 1: Initialize MQTT with anonymous access for setup
-Write-Host "Step 1: Setting up MQTT configuration for anonymous access..." -ForegroundColor Cyan
-New-Item -ItemType Directory -Force -Path "mosquitto/config" | Out-Null
-
-# Create anonymous configuration
-$anonymousConfig = @"
-listener 1883
-allow_anonymous true
-persistence true
-persistence_location /mosquitto/data/
-log_dest stdout
-"@
-$anonymousConfig | Set-Content "mosquitto/config/mosquitto.conf" -Encoding UTF8
-$anonymousConfig | Set-Content "mosquitto/config/mosquitto-anonymous.conf" -Encoding UTF8
-
-# Create secure configuration template
-$secureConfig = @"
-listener 1883
-allow_anonymous false
-password_file /mosquitto/config/passwd
-persistence true
-persistence_location /mosquitto/data/
-log_dest stdout
-"@
-$secureConfig | Set-Content "mosquitto/config/mosquitto-secure.conf" -Encoding UTF8
-Write-Host "MQTT initially configured for anonymous access" -ForegroundColor Green
 
 # Build production images if not skipped
 if (-not $SkipBuild) {
@@ -115,39 +83,9 @@ docker compose -f compose.prod.yml up -d
 Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
 Start-Sleep -Seconds 20
 
-# Step 2: Create MQTT user with password
-# Write-Host "Step 2: Creating MQTT user '$MqttUser' with password '$MqttPassword'..." -ForegroundColor Cyan
-# try {
-#     docker exec aiot_greenhouse_mqtt mosquitto_passwd -b -c /mosquitto/config/passwd $MqttUser $MqttPassword
-#     docker exec aiot_greenhouse_mqtt chmod 600 /mosquitto/config/passwd
-#     Write-Host "MQTT user created successfully" -ForegroundColor Green
-# } catch {
-#     Write-Host "Failed to create MQTT user: $($_.Exception.Message)" -ForegroundColor Red
-#     Write-Host "Production deployment cannot continue without secure MQTT!" -ForegroundColor Red
-#     exit 1
-# }
-
-# Step 3: Switch to secure configuration (disable anonymous)
-# Write-Host "Step 3: Switching to secure configuration (disabling anonymous)..." -ForegroundColor Cyan
-# Copy-Item "mosquitto/config/mosquitto-secure.conf" "mosquitto/config/mosquitto.conf" -Force
-# docker restart aiot_greenhouse_mqtt
-# Start-Sleep -Seconds 5
-
-# # Verify MQTT is running with authentication
-# $mqttRunning = docker ps --filter "name=aiot_greenhouse_mqtt" --filter "status=running" --quiet
-# if ($mqttRunning) {
-#     Write-Host "Production MQTT authentication configured successfully!" -ForegroundColor Green
-#     Write-Host "   Username: $MqttUser" -ForegroundColor Cyan
-#     Write-Host "   Password: $MqttPassword" -ForegroundColor Cyan
-#     Write-Host "   Anonymous access: DISABLED" -ForegroundColor Green
-# } else {
-#     Write-Host "MQTT failed to restart with authentication" -ForegroundColor Red
-#     exit 1
-# }
-
 # Check service health
 Write-Host "Checking service health..." -ForegroundColor Yellow
-$containers = @("aiot_greenhouse_db", "aiot_greenhouse_mqtt", "aiot_greenhouse_redis", "aiot_greenhouse_backend", "aiot_greenhouse_frontend")
+$containers = @("aiot_greenhouse_db", "aiot_greenhouse_redis", "aiot_greenhouse_backend", "aiot_greenhouse_frontend")
 
 foreach ($container in $containers) {
     $status = docker inspect $container --format='{{.State.Status}}' 2>$null
@@ -188,12 +126,12 @@ if (`$LASTEXITCODE -eq 0) {
 }
 
 # Backup MQTT config
-Write-Host "Backing up MQTT configuration..." -ForegroundColor Yellow
-if (Test-Path "mosquitto/config") {
-    Copy-Item -Recurse mosquitto/config ./backups/mqtt_config_`$timestamp
-    Write-Host "MQTT config backup completed" -ForegroundColor Green
+Write-Host "Backing up application logs..." -ForegroundColor Yellow
+if (Test-Path "backend/logs") {
+    Copy-Item -Recurse backend/logs ./backups/logs_`$timestamp
+    Write-Host "Application logs backup completed" -ForegroundColor Green
 } else {
-    Write-Host "MQTT config directory not found" -ForegroundColor Yellow
+    Write-Host "Logs directory not found" -ForegroundColor Yellow
 }
 
 Write-Host "Backup completed: ./backups/*_`$timestamp" -ForegroundColor Green
@@ -210,13 +148,8 @@ Write-Host "Service URLs:" -ForegroundColor Cyan
 Write-Host "   Frontend: http://localhost:3000" -ForegroundColor White
 Write-Host "   Backend API: http://localhost:5000/api" -ForegroundColor White
 Write-Host "   Health Check: http://localhost:5000/api/health" -ForegroundColor White
-Write-Host "   MQTT Broker: mqtt://localhost:1883" -ForegroundColor White
 Write-Host "   MongoDB: mongodb://localhost:27017" -ForegroundColor White
 Write-Host "   Redis: redis://localhost:6379" -ForegroundColor White
-Write-Host ""
-Write-Host "Credentials:" -ForegroundColor Cyan
-Write-Host "   MQTT User: $MqttUser" -ForegroundColor White
-Write-Host "   MQTT Password: [Check .env file]" -ForegroundColor White
 Write-Host ""
 Write-Host "Management Commands:" -ForegroundColor Cyan
 Write-Host "   Stop services: .\scripts\stop-prod.ps1" -ForegroundColor White
@@ -224,7 +157,6 @@ Write-Host "   View logs: docker compose -f compose.prod.yml logs -f [service]" 
 Write-Host "   Create backup: .\scripts\backup-prod.ps1" -ForegroundColor White
 Write-Host ""
 Write-Host "Security Notes:" -ForegroundColor Yellow
-Write-Host "   - Change default MQTT credentials in production" -ForegroundColor White
 Write-Host "   - Set up proper SSL/TLS certificates" -ForegroundColor White
 Write-Host "   - Configure firewall rules" -ForegroundColor White
 Write-Host "   - Set up log rotation" -ForegroundColor White

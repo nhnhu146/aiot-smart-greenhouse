@@ -8,8 +8,8 @@ import {
 	Tooltip,
 	Legend,
 } from 'chart.js';
-import { CDBContainer } from 'cdbreact';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import styles from './SemiDoughnutChart.module.scss';
 
 // Register necessary components
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
@@ -65,9 +65,10 @@ const AppSemiDoughnutChart: React.FC<AppSemiDoughnutChartProps> = ({ label, valu
 	};
 
 	return (
-		<CDBContainer>
+		<div className={styles.chartCard}>
+			<p className={styles.label}>{label}</p>
 			<Doughnut data={data} options={options} />
-		</CDBContainer>
+		</div>
 	);
 };
 

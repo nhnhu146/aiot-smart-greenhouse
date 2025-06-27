@@ -38,7 +38,7 @@ const SystemSettingsPage = () => {
 			setEmailRecipients([currentUser.email]);
 		}
 		loadSettings();
-	}, []);
+	}, [emailRecipients]);
 
 	const loadSettings = async () => {
 		try {

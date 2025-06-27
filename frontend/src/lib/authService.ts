@@ -24,7 +24,6 @@ class AuthService {
 				try {
 					const parsedUser = JSON.parse(storedUser);
 					this.currentUser = { ...parsedUser, token: storedToken };
-					console.log('User loaded from storage:', this.currentUser);
 				} catch (error) {
 					console.error('Error parsing stored user:', error);
 					this.clearStorage();
@@ -44,12 +43,10 @@ class AuthService {
 			});
 
 			const data = await response.json();
-			console.log('Sign in response:', data);
 
 			if (data.success && data.user && data.token) {
 				this.currentUser = { ...data.user, token: data.token };
 				this.saveToStorage(data.user, data.token);
-				console.log('User signed in successfully:', this.currentUser);
 			}
 
 			return data;
@@ -97,13 +94,6 @@ class AuthService {
 		const hasToken = this.currentUser?.token !== undefined;
 		const hasStoredToken = typeof window !== 'undefined' && localStorage.getItem('token') !== null;
 
-		console.log('Authentication check:', {
-			hasCurrentUser,
-			hasToken,
-			hasStoredToken,
-			currentUser: this.currentUser
-		});
-
 		return hasCurrentUser && (hasToken || hasStoredToken);
 	}
 
@@ -126,5 +116,6 @@ class AuthService {
 	}
 }
 
-export default new AuthService();
+const authService = new AuthService();
+export default authService;
 export type { User, AuthResponse };

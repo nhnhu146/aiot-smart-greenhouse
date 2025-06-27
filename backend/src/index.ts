@@ -8,7 +8,7 @@ import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-// import compression from 'compression'; // Temporarily disabled
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 
@@ -72,12 +72,13 @@ const verifyToken = (token: string): any => {
 };
 
 // Authentication middleware
-const authenticateToken = (req: any, res: Response, next: NextFunction) => {
+const authenticateToken = (req: any, res: Response, next: NextFunction): void => {
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(' ')[1];
 
 	if (!token) {
-		return res.status(401).json({ success: false, message: 'Access token required' });
+		res.status(401).json({ success: false, message: 'Access token required' });
+		return;
 	}
 
 	try {
@@ -85,7 +86,8 @@ const authenticateToken = (req: any, res: Response, next: NextFunction) => {
 		req.user = user;
 		next();
 	} catch (error) {
-		return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+		res.status(403).json({ success: false, message: 'Invalid or expired token' });
+		return;
 	}
 };
 
@@ -127,9 +129,8 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Compression middleware - temporarily disabled due to type conflicts
-// TODO: Fix compression middleware type issues
-// app.use(compression());
+// Compression middleware (type assertion to fix TypeScript issue)
+app.use(compression() as any);
 
 // Logging middleware
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -138,32 +139,35 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(API_PREFIX, routes);
 
 // Authentication routes (replace Firebase Auth)
-app.post(`${API_PREFIX}/auth/signin`, async (req: Request, res: Response) => {
+app.post(`${API_PREFIX}/auth/signin`, async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email, password } = req.body;
 
 		if (!email || !password) {
-			return res.status(400).json({
+			res.status(400).json({
 				success: false,
 				message: 'Email and password are required'
 			});
+			return;
 		}
 
 		const user = users.get(email);
 		if (!user) {
-			return res.status(401).json({
+			res.status(401).json({
 				success: false,
 				message: 'Invalid email or password'
 			});
+			return;
 		}
 
 		// Use bcrypt to compare password
 		const isValidPassword = await bcrypt.compare(password, user.password);
 		if (!isValidPassword) {
-			return res.status(401).json({
+			res.status(401).json({
 				success: false,
 				message: 'Invalid email or password'
 			});
+			return;
 		}
 
 		// Update last login
@@ -183,22 +187,24 @@ app.post(`${API_PREFIX}/auth/signin`, async (req: Request, res: Response) => {
 	}
 });
 
-app.post(`${API_PREFIX}/auth/signup`, async (req: Request, res: Response) => {
+app.post(`${API_PREFIX}/auth/signup`, async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email, password } = req.body;
 
 		if (!email || !password) {
-			return res.status(400).json({
+			res.status(400).json({
 				success: false,
 				message: 'Email and password are required'
 			});
+			return;
 		}
 
 		if (users.has(email)) {
-			return res.status(409).json({
+			res.status(409).json({
 				success: false,
 				message: 'User already exists'
 			});
+			return;
 		}
 
 		const user: User = {
@@ -281,12 +287,13 @@ app.post(`${API_PREFIX}/settings`, async (req: Request, res: Response) => {
 });
 
 // Chat endpoint (replace Hugging Face API)
-app.post(`${API_PREFIX}/chat`, async (req: Request, res: Response) => {
+app.post(`${API_PREFIX}/chat`, async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { question } = req.body;
 
 		if (!question) {
-			return res.status(400).json({ success: false, message: 'Question is required' });
+			res.status(400).json({ success: false, message: 'Question is required' });
+			return;
 		}
 
 		// Simple rule-based chatbot (replace with your preferred AI service)

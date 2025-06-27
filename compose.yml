@@ -22,30 +22,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # MQTT Broker (Eclipse Mosquitto)
-  # mosquitto:
-  #   image: eclipse-mosquitto:2.0
-  #   container_name: aiot_greenhouse_mqtt
-  #   restart: unless-stopped
-  #   ports:
-  #     - "1883:1883"
-  #     - "9001:9001"
-  #   volumes:
-  #     - ./mosquitto/config:/mosquitto/config:rw
-  #     - ./mosquitto/data:/mosquitto/data:rw
-  #     - ./mosquitto/logs:/mosquitto/log:rw
-  #   networks:
-  #     - greenhouse_network
-  #   environment:
-  #     - MOSQUITTO_USERNAME=${MQTT_USERNAME:-vision}
-  #     - MOSQUITTO_PASSWORD=${MQTT_PASSWORD:-vision}
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "timeout 5 mosquitto_pub -h localhost -t 'test/health' -m 'health_check' -q 1 || exit 1"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 10s
-
   # Backend API
   backend:
     build:
@@ -56,8 +32,6 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-    # mosquitto:
-    #   condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 5000

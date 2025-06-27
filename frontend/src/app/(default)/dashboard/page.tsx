@@ -1,13 +1,9 @@
 'use client'
-import Container from 'react-bootstrap/Container';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Card from 'react-bootstrap/Card';
-import Badge from 'react-bootstrap/Badge';
+import { Container, Row, Col, Card, Badge } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
 import AppLineChart from '@/components/LineChart/LineChart';
 import AppSemiDoughnutChart from '@/components/SemiDoughnutChart/SemiDoughnutChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
-import { useEffect, useState } from 'react';
 import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
