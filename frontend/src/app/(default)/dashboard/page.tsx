@@ -6,13 +6,16 @@ import Card from 'react-bootstrap/Card';
 import Badge from 'react-bootstrap/Badge';
 import AppLineChart from '@/components/LineChart/LineChart';
 import AppSemiDoughnutChart from '@/components/SemiDoughnutChart/SemiDoughnutChart';
+import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
 import { useEffect, useState } from 'react';
 import withAuth from '@/components/withAuth/withAuth';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
 import DevUtils from '@/components/DevUtils/DevUtils';
 import styles from './dashboard.module.scss';
 
 const Dashboard = () => {
+	const { sensorData, isConnected } = useWebSocketContext();
 	const [data, setData] = useState<SensorData | null>(null);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
@@ -94,12 +97,24 @@ const Dashboard = () => {
 			<DevUtils />
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
 				<h3>Welcome to GreenHouse</h3>
-				{isUsingMockData && (
-					<Badge bg="warning" text="dark" style={{ fontSize: '12px' }}>
-						🎭 Demo Mode - Mock Data
+				<div className="d-flex gap-2">
+					{isUsingMockData && (
+						<Badge bg="warning" text="dark" style={{ fontSize: '12px' }}>
+							🎭 Demo Mode - Mock Data
+						</Badge>
+					)}
+					<Badge bg={isConnected ? 'success' : 'danger'} style={{ fontSize: '12px' }}>
+						{isConnected ? '🟢 WebSocket Connected' : '🔴 WebSocket Disconnected'}
 					</Badge>
-				)}
+				</div>
 			</div>
+
+			{/* Real-time Sensor Dashboard */}
+			<Row className="mb-4">
+				<Col>
+					<SensorDashboard />
+				</Col>
+			</Row>
 
 			<Row className={`my-3 align-items-center justify-content-center ${styles.chartRow}`}>
 				<Col sm={8}>

@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import ActivityCard from '../../../components/ActivityCard/ActivityCard';
-import publishMessage from '@/hooks/publishMQTT';
-import useMQTT from '@/hooks/useMQTT';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import pushNoti from '@/hooks/pushNoti';
 import styles from './control.module.scss';
 
@@ -14,111 +13,136 @@ interface EmailData {
 	text: string;
 }
 
-var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0;
+// Sensor data state
+var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0, LightLevel = 0, PIRValue = 0;
 var noti_sent = false, last_water_state = false;
 
 const Control = () => {
-	const { messages, clearMessages } = useMQTT();
-	const [switchStates, setSwitchStates] = useState(new Map([['greenhouse/devices/light/control', false]]));
+	const { sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
+	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
 	const [userInteraction, setUserInteraction] = useState(false);
 
 	const activities = [
-		{ title: 'Lights', icon: '💡', topic: 'greenhouse/devices/light/control' },
-		{ title: 'Fan', icon: '🌬️', topic: 'greenhouse/devices/fan/control' },
-		{ title: 'Watering', icon: '💧', topic: 'greenhouse/devices/pump/control' },
-		{ title: 'Window', icon: '🪟', topic: 'greenhouse/devices/window/control' },
-		{ title: 'Door', icon: '🚪', topic: 'greenhouse/devices/door/control' },
+		{ title: 'Lights', icon: '💡', device: 'light' },
+		{ title: 'Fan', icon: '🌬️', device: 'fan' },
+		{ title: 'Watering', icon: '💧', device: 'pump' },
+		{ title: 'Window', icon: '🪟', device: 'window' },
+		{ title: 'Door', icon: '🚪', device: 'door' },
 	];
 
-	const handleSwitchChange = (topic: string, state: boolean) => {
-		setSwitchStates((prev) => new Map(prev).set(topic, state));
-		const message = state ? 'HIGH' : 'LOW';
-		publishMessage(topic, message);
+	const handleSwitchChange = (device: string, state: boolean) => {
+		setSwitchStates((prev) => new Map(prev).set(device, state));
+		const action = state ? 'HIGH' : 'LOW';
+		sendDeviceControl(device, action);
+		setUserInteraction(true);
 	};
 
+	// Process sensor data from WebSocket
 	useEffect(() => {
-		if (messages.length > 0) {
-			messages.forEach(async (msg) => {
-				if (msg.startsWith("Photonresistor value")) {
-					const value = parseInt(msg.split(" ")[2], 10);
-					const shouldTurnOn = value > 2000;
-					const currentLightState = switchStates.get('HKT_greenhouse/lights') || false;
+		if (sensorData) {
+			const { sensor, data } = sensorData;
+			let value = typeof data === 'object' ? data.value : data;
+
+			console.log(`📊 Processing sensor data: ${sensor} = ${value}`);
+
+			// Update sensor values
+			switch (sensor) {
+				case 'humidity':
+					Humidity = parseFloat(value);
+					break;
+				case 'temperature':
+					Temperature = parseFloat(value);
+					break;
+				case 'rain':
+					Rain = parseInt(value, 10);
+					break;
+				case 'water':
+					Waterlevel = parseFloat(value);
+					break;
+				case 'soil':
+					Moisture = parseFloat(value);
+					break;
+				case 'light':
+					LightLevel = parseInt(value, 10);
+					break;
+				default:
+					// Handle other sensor types
+					break;
+			}
+
+			// Automatic control logic (only if user hasn't manually interacted recently)
+			if (!userInteraction) {
+				// Light control based on light sensor
+				if (sensor === 'light') {
+					const shouldTurnOn = LightLevel > 2000;
+					const currentLightState = switchStates.get('light') || false;
 					if (shouldTurnOn !== currentLightState) {
-						setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/lights', shouldTurnOn));
-						publishMessage('HKT_greenhouse/lights', shouldTurnOn ? 'HIGH' : 'LOW');
+						setSwitchStates((prev) => new Map(prev).set('light', shouldTurnOn));
+						sendDeviceControl('light', shouldTurnOn ? 'HIGH' : 'LOW');
 					}
-					clearMessages();
 				}
 
-				if (msg.startsWith("PIR value")) {
-					const value = parseInt(msg.split(" ")[2], 10);
-					const shouldOpenDoor = value === 1;
-					const currentDoorState = switchStates.get('HKT_greenhouse/door');
-					if (shouldOpenDoor !== currentDoorState) {
-						setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/door', shouldOpenDoor));
-						publishMessage('HKT_greenhouse/door', shouldOpenDoor ? 'HIGH' : 'LOW');
+				// Ventilation control based on humidity, temperature, and rain
+				if ((sensor === 'humidity' || sensor === 'temperature' || sensor === 'rain') &&
+					Humidity > 0 && Temperature > 0 && Rain >= 0) {
+					const shouldOpenWindow = Humidity > 30 && Temperature > 20 && Rain < 200;
+					const shouldOpenFan = Humidity > 30 && Temperature > 20 && Rain >= 200;
+
+					const currentFanState = switchStates.get('fan');
+					const currentWindowState = switchStates.get('window');
+
+					if (shouldOpenWindow !== currentWindowState) {
+						setSwitchStates((prev) => new Map(prev).set('window', shouldOpenWindow));
+						sendDeviceControl('window', shouldOpenWindow ? 'HIGH' : 'LOW');
 					}
-					clearMessages();
+
+					if (shouldOpenFan !== currentFanState) {
+						setSwitchStates((prev) => new Map(prev).set('fan', shouldOpenFan));
+						sendDeviceControl('fan', shouldOpenFan ? 'HIGH' : 'LOW');
+					}
 				}
 
-				if (msg.startsWith("Humidity value") || msg.startsWith("Temperature value") || msg.startsWith("Rain value")) {
-					if (msg.startsWith("Humidity value")) Humidity = parseFloat(msg.split(" ")[2]);
-					if (msg.startsWith("Temperature value")) Temperature = parseFloat(msg.split(" ")[2]);
-					if (msg.startsWith("Rain value")) Rain = parseInt(msg.split(" ")[2], 10);
-
-					if (typeof Humidity === "number" && typeof Temperature === "number" && typeof Rain === "number") {
-						const shouldOpenWindow = Humidity > 30 && Temperature > 20 && Rain < 200;
-						const shouldOpenFan = Humidity > 30 && Temperature > 20 && Rain >= 200;
-						const currentFanState = switchStates.get('HKT_greenhouse/fan');
-						const currentWindowState = switchStates.get('HKT_greenhouse/window');
-
-						if (shouldOpenWindow !== currentWindowState) {
-							setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/window', shouldOpenWindow));
-							publishMessage('HKT_greenhouse/window', shouldOpenWindow ? 'HIGH' : 'LOW');
-						}
-
-						if (shouldOpenFan !== currentFanState) {
-							setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/fan', shouldOpenFan));
-							publishMessage('HKT_greenhouse/fan', shouldOpenFan ? 'HIGH' : 'LOW');
-						}
-
-						const lcdMessage = `Humidity: ${Humidity.toFixed(2)} | Temperature: ${Temperature.toFixed(2)}`;
-						publishMessage("HKT_greenhouse/lcd", lcdMessage);
-					}
-					clearMessages();
-				}
-
-				if (msg.startsWith("Moisture value") || msg.startsWith("Float switch value")) {
-					if (msg.startsWith("Moisture value")) Moisture = parseFloat(msg.split(" ")[2]);
-					if (msg.startsWith("Float switch value")) Waterlevel = parseFloat(msg.split(" ")[3]);
-
+				// Watering control based on soil moisture and water level
+				if ((sensor === 'soil' || sensor === 'water') && Moisture > 0 && Waterlevel >= 0) {
 					const shouldTurnOnPump = Moisture > 4000 && Waterlevel === 1;
-					const currentPumpState = switchStates.get('HKT_greenhouse/watering');
+					const currentPumpState = switchStates.get('pump');
 
+					// Water level notifications
 					if (Waterlevel === 1 && last_water_state === false) {
 						noti_sent = false;
 						last_water_state = true;
 					}
 
 					if (Waterlevel === 0 && noti_sent === false) {
-						pushNoti("HKT GreenHouse Notification", "Water level is low. Please refill the water tank");
+						pushNoti("Smart Greenhouse Notification", "Water level is low. Please refill the water tank");
 						sendEmail({
-							to: 'nguyengiakiet2345@gmail.com',
-							subject: 'HKT GreenHouse Notification',
+							to: 'admin@greenhouse.com',
+							subject: 'Smart Greenhouse Notification',
 							text: 'Water level is low. Please refill the water tank',
 						});
 						noti_sent = true;
+						last_water_state = false;
 					}
 
 					if (shouldTurnOnPump !== currentPumpState) {
-						setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/watering', shouldTurnOnPump));
-						publishMessage('HKT_greenhouse/watering', shouldTurnOnPump ? 'HIGH' : 'LOW');
+						setSwitchStates((prev) => new Map(prev).set('pump', shouldTurnOnPump));
+						sendDeviceControl('pump', shouldTurnOnPump ? 'HIGH' : 'LOW');
 					}
-					clearMessages();
 				}
-			});
+			}
 		}
-	}, [messages, userInteraction, switchStates]);
+	}, [sensorData, userInteraction, switchStates]);
+
+	// Reset user interaction flag after some time
+	useEffect(() => {
+		if (userInteraction) {
+			const timer = setTimeout(() => {
+				setUserInteraction(false);
+			}, 30000); // 30 seconds
+
+			return () => clearTimeout(timer);
+		}
+	}, [userInteraction]);
 
 	async function sendEmail(emailData: EmailData) {
 		try {
@@ -140,7 +164,12 @@ const Control = () => {
 
 	return (
 		<Container className={styles["activity-container"]}>
-			<h3 className={styles["activity-title"]}>Let’s check your GreenHouse activity</h3>
+			<div className="d-flex justify-content-between align-items-center mb-3">
+				<h3 className={styles["activity-title"]}>Let&apos;s check your GreenHouse activity</h3>
+				<div className={`badge ${isConnected ? 'bg-success' : 'bg-danger'}`}>
+					{isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+				</div>
+			</div>
 			<Row className={styles["activity-row"]}>
 				{activities.map((activity, index) => (
 					<Col key={index} xs={12} md={6} lg={4} className={styles["activity-card-wrapper"]}>
@@ -148,8 +177,8 @@ const Control = () => {
 							title={activity.title}
 							icon={activity.icon}
 							switchId={`switch-${activity.title}`}
-							switchState={switchStates.get(activity.topic) || false}
-							onSwitchChange={(state) => handleSwitchChange(activity.topic, state)}
+							switchState={switchStates.get(activity.device) || false}
+							onSwitchChange={(state) => handleSwitchChange(activity.device, state)}
 						/>
 					</Col>
 				))}

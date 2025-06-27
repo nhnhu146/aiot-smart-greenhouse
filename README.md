@@ -16,14 +16,15 @@ Hệ thống nhà kính thông minh sử dụng công nghệ AIOT (Artificial In
 │   (Next.js)     │◄──►│   (Node.js)     │◄──►│   (MongoDB)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       
+         │ WebSocket              │ MQTT                  
          │                       │                       
          │              ┌─────────────────┐              
          │              │   MQTT Broker   │              
-         └─────────────►│   (Mosquitto)   │              
+         └──────────────┤   (Mosquitto)   │              
                         │   Port: 1883    │              
                         └─────────────────┘              
                                  │                        
-                                 │                        
+                                 │ MQTT                   
                         ┌─────────────────┐              
                         │   IoT Devices   │              
                         │   (Arduino/ESP) │              
@@ -296,11 +297,54 @@ mosquitto_pub -h localhost -u vision -P vision -t "test/topic" -m "Hello"
 mosquitto_sub -h localhost -u vision -P vision -t "test/topic"
 ```
 
-## 📚 Tài liệu
+## 🏗️ System Architecture
 
-- [Backend API Documentation](./backend/README.md)
-- [Frontend Documentation](./frontend/README.md)
-- [MQTT Authentication Guide](./docs/MQTT_AUTH.md)
+### Overview
+Hệ thống sử dụng kiến trúc WebSocket hiện đại với khả năng giám sát và cảnh báo toàn diện.
+
+```
+IoT Devices (ESP32) → MQTT Broker → Backend (Node.js) → WebSocket → Frontend (Next.js)
+```
+
+### Key Components
+- **WebSocket Service**: Xử lý kết nối WebSocket và lệnh điều khiển thiết bị
+- **MQTT Service**: Hệ thống callback cho dữ liệu cảm biến và trạng thái thiết bị
+- **Alert Service**: Giám sát ngưỡng cảm biến và kích hoạt thông báo
+- **Notification Service**: Gửi email cảnh báo với bảo vệ chống spam
+
+## 🚨 Alert System
+
+### Features
+- **Real-time monitoring**: Giám sát ngưỡng nhiệt độ, độ ẩm, độ ẩm đất, mực nước
+- **Email notifications**: Thông báo HTML với mã màu theo mức độ nghiêm trọng
+- **Anti-spam protection**: Cooldown 5 phút giữa các cảnh báo cùng loại
+- **Multiple severity levels**: low, medium, high, critical
+
+### Email Configuration
+```env
+EMAIL_ENABLED=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+```
+
+## 🔄 Scripts Documentation
+
+### Core Scripts
+- **`start-dev.ps1`**: Khởi động môi trường development với MQTT authentication tự động
+- **`start-prod.ps1`**: Khởi động môi trường production với cấu hình MQTT bảo mật
+- **`stop-dev.ps1`**: Dừng môi trường development
+- **`stop-prod.ps1`**: Dừng môi trường production
+- **`clean-project.ps1`**: Dọn dẹp build artifacts và cache files
+- **`force-clean-project.ps1`**: Dọn dẹp mạnh cho Windows long path issues
+
+### MQTT Authentication Process
+1. **Start with Anonymous Access**: MQTT ban đầu cho phép kết nối ẩn danh
+2. **Create Default User**: Tạo user 'vision' với password 'vision'
+3. **Disable Anonymous Access**: Chuyển sang cấu hình bảo mật
+4. **Continue with Services**: Tiếp tục khởi động backend/frontend
 
 ## 🤝 Đóng góp
 

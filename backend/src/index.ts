@@ -4,6 +4,7 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import express, { Application, Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -12,7 +13,7 @@ import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 
 // Import services and middleware
-import { databaseService, mqttService, alertService } from './services';
+import { databaseService, mqttService, alertService, webSocketService } from './services';
 import { errorHandler, notFoundHandler } from './middleware';
 import routes from './routes';
 
@@ -366,6 +367,9 @@ function setupMQTTHandlers() {
 
 				// Process sensor data through the new system
 				await mqttService.processSensorData(topic, sensorValue);
+
+				// Broadcast sensor data to WebSocket clients
+				webSocketService.broadcastSensorData(topic, { value: sensorValue });
 			}
 
 		} catch (error) {
@@ -416,8 +420,15 @@ async function startServer() {
 		// Setup graceful shutdown
 		setupGracefulShutdown();
 
+		// Create HTTP server
+		const httpServer = createServer(app);
+
+		// Initialize WebSocket service
+		webSocketService.initialize(httpServer);
+		console.log('✅ WebSocket service initialized');
+
 		// Start Express server
-		const server = app.listen(PORT, () => {
+		const server = httpServer.listen(PORT, () => {
 			console.log(`🌟 Server running on port ${PORT}`);
 			console.log(`🔗 API endpoint: http://localhost:${PORT}${API_PREFIX}`);
 			console.log(`📚 Health check: http://localhost:${PORT}${API_PREFIX}/health`);

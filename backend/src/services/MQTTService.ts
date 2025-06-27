@@ -7,6 +7,8 @@ export class MQTTService {
 	private readonly topics: MQTTTopics;
 	private sensorDataBuffer: Map<string, number> = new Map();
 	private alertService: any = null; // Will be injected to avoid circular dependency
+	private sensorDataCallbacks: Array<(topic: string, data: any) => void> = [];
+	private deviceStatusCallbacks: Array<(topic: string, status: any) => void> = [];
 
 	constructor() {
 		this.topics = {
@@ -77,10 +79,50 @@ export class MQTTService {
 		this.client.on('close', () => {
 			console.log('🔌 MQTT Client connection closed');
 		});
+
+		// Set up message handler
+		this.client.on('message', (topic, message) => {
+			this.handleMessage(topic, message);
+		});
 	}
 
 	public onMessage(callback: (topic: string, message: Buffer) => void): void {
 		this.client.on('message', callback);
+	}
+
+	// Add callback for sensor data
+	public onSensorData(callback: (topic: string, data: any) => void): void {
+		this.sensorDataCallbacks.push(callback);
+	}
+
+	// Add callback for device status
+	public onDeviceStatus(callback: (topic: string, status: any) => void): void {
+		this.deviceStatusCallbacks.push(callback);
+	}
+
+	// Enhanced message handler that triggers callbacks
+	private handleMessage(topic: string, message: Buffer): void {
+		try {
+			const data = JSON.parse(message.toString());
+
+			// Check if it's sensor data
+			if (topic.includes('/sensors/')) {
+				this.sensorDataCallbacks.forEach(callback => callback(topic, data));
+				this.processSensorData(topic, typeof data === 'number' ? data : data.value);
+			}
+
+			// Check if it's device status
+			if (topic.includes('/devices/') && topic.includes('/status')) {
+				this.deviceStatusCallbacks.forEach(callback => callback(topic, data));
+			}
+		} catch (error) {
+			// Handle non-JSON messages
+			const value = parseFloat(message.toString());
+			if (!isNaN(value) && topic.includes('/sensors/')) {
+				this.sensorDataCallbacks.forEach(callback => callback(topic, { value }));
+				this.processSensorData(topic, value);
+			}
+		}
 	}
 
 	public publishDeviceControl(deviceType: 'light' | 'pump' | 'door', command: string): Promise<void> {
