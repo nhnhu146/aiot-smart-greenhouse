@@ -37,7 +37,7 @@ MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
 MQTT_USERNAME=vision
 MQTT_PASSWORD=vision
 "@
-        $envContent | Out-File -FilePath ".env" -Encoding UTF8
+        $envContent | Out-File -FilePath ".env" -Encoding UTF8NoBOM
     }
 }
 

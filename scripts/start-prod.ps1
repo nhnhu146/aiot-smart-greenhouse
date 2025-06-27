@@ -47,7 +47,7 @@ CORS_ORIGIN=http://localhost:3000
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 "@
-    $envContent | Set-Content ".env" -Encoding UTF8
+    $envContent | Set-Content ".env" -Encoding UTF8NoBOM
     Write-Host "Production .env file created with secure credentials" -ForegroundColor Green
 }
 
