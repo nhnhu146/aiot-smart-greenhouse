@@ -1,15 +1,15 @@
 # PowerShell Production start script for AIOT Smart Greenhouse
 
+param(
+    [string]$MqttUser = "vision",
+    [string]$MqttPassword = "vision", 
+    [switch]$SkipBuild,
+    [switch]$Force
+)
+
 # Ensure UTF-8 encoding for proper Unicode character display
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
-
-param(
-    [string]$MqttUser = "vision",
-    [string]$MqttPassword = "vision",
-    [switch]$SkipBuild = $false,
-    [switch]$Force = $false
-)
 
 Write-Host "Starting AIOT Smart Greenhouse Production Environment..." -ForegroundColor Green
 
@@ -34,11 +34,12 @@ if (-not $isAdmin) {
 # Check if .env file exists, create production version
 Write-Host "Setting up production environment..." -ForegroundColor Yellow
 if (!(Test-Path ".env") -or $Force) {
+    $securePassword = "$(Get-Random -Minimum 100000 -Maximum 999999)_SecurePass"
     $envContent = @"
 # Production Environment Configuration for AIOT Smart Greenhouse
 NODE_ENV=production
 MONGODB_USER=greenhouse_admin
-MONGODB_PASSWORD=$(Get-Random -Minimum 100000 -Maximum 999999)_SecurePass
+MONGODB_PASSWORD=$securePassword
 MQTT_USERNAME=$MqttUser
 MQTT_PASSWORD=$MqttPassword
 API_PREFIX=/api
@@ -46,7 +47,7 @@ CORS_ORIGIN=http://localhost:3000
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 "@
-    $envContent | Set-Content ".env" -Encoding ASCII
+    $envContent | Set-Content ".env" -Encoding UTF8
     Write-Host "Production .env file created with secure credentials" -ForegroundColor Green
 }
 
@@ -71,8 +72,8 @@ persistence true
 persistence_location /mosquitto/data/
 log_dest stdout
 "@
-$anonymousConfig | Set-Content "mosquitto/config/mosquitto.conf" -Encoding ASCII
-$anonymousConfig | Set-Content "mosquitto/config/mosquitto-anonymous.conf" -Encoding ASCII
+$anonymousConfig | Set-Content "mosquitto/config/mosquitto.conf" -Encoding UTF8
+$anonymousConfig | Set-Content "mosquitto/config/mosquitto-anonymous.conf" -Encoding UTF8
 
 # Create secure configuration template
 $secureConfig = @"
@@ -83,7 +84,7 @@ persistence true
 persistence_location /mosquitto/data/
 log_dest stdout
 "@
-$secureConfig | Set-Content "mosquitto/config/mosquitto-secure.conf" -Encoding ASCII
+$secureConfig | Set-Content "mosquitto/config/mosquitto-secure.conf" -Encoding UTF8
 Write-Host "MQTT initially configured for anonymous access" -ForegroundColor Green
 
 # Build production images if not skipped
@@ -115,51 +116,55 @@ Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
 Start-Sleep -Seconds 20
 
 # Step 2: Create MQTT user with password
-Write-Host "Step 2: Creating MQTT user '$MqttUser' with password '$MqttPassword'..." -ForegroundColor Cyan
-try {
-    docker exec aiot_greenhouse_mqtt mosquitto_passwd -b -c /mosquitto/config/passwd $MqttUser $MqttPassword
-    docker exec aiot_greenhouse_mqtt chmod 600 /mosquitto/config/passwd
-    Write-Host "MQTT user created successfully" -ForegroundColor Green
-} catch {
-    Write-Host "Failed to create MQTT user: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Production deployment cannot continue without secure MQTT!" -ForegroundColor Red
-    exit 1
-}
+# Write-Host "Step 2: Creating MQTT user '$MqttUser' with password '$MqttPassword'..." -ForegroundColor Cyan
+# try {
+#     docker exec aiot_greenhouse_mqtt mosquitto_passwd -b -c /mosquitto/config/passwd $MqttUser $MqttPassword
+#     docker exec aiot_greenhouse_mqtt chmod 600 /mosquitto/config/passwd
+#     Write-Host "MQTT user created successfully" -ForegroundColor Green
+# } catch {
+#     Write-Host "Failed to create MQTT user: $($_.Exception.Message)" -ForegroundColor Red
+#     Write-Host "Production deployment cannot continue without secure MQTT!" -ForegroundColor Red
+#     exit 1
+# }
 
 # Step 3: Switch to secure configuration (disable anonymous)
-Write-Host "Step 3: Switching to secure configuration (disabling anonymous)..." -ForegroundColor Cyan
-Copy-Item "mosquitto/config/mosquitto-secure.conf" "mosquitto/config/mosquitto.conf" -Force
-docker restart aiot_greenhouse_mqtt
-Start-Sleep -Seconds 5
+# Write-Host "Step 3: Switching to secure configuration (disabling anonymous)..." -ForegroundColor Cyan
+# Copy-Item "mosquitto/config/mosquitto-secure.conf" "mosquitto/config/mosquitto.conf" -Force
+# docker restart aiot_greenhouse_mqtt
+# Start-Sleep -Seconds 5
 
-# Verify MQTT is running with authentication
-$mqttRunning = docker ps --filter "name=aiot_greenhouse_mqtt" --filter "status=running" --quiet
-if ($mqttRunning) {
-    Write-Host "Production MQTT authentication configured successfully!" -ForegroundColor Green
-    Write-Host "   Username: $MqttUser" -ForegroundColor Cyan
-    Write-Host "   Password: $MqttPassword" -ForegroundColor Cyan
-    Write-Host "   Anonymous access: DISABLED" -ForegroundColor Green
-} else {
-    Write-Host "MQTT failed to restart with authentication" -ForegroundColor Red
-    exit 1
-}
+# # Verify MQTT is running with authentication
+# $mqttRunning = docker ps --filter "name=aiot_greenhouse_mqtt" --filter "status=running" --quiet
+# if ($mqttRunning) {
+#     Write-Host "Production MQTT authentication configured successfully!" -ForegroundColor Green
+#     Write-Host "   Username: $MqttUser" -ForegroundColor Cyan
+#     Write-Host "   Password: $MqttPassword" -ForegroundColor Cyan
+#     Write-Host "   Anonymous access: DISABLED" -ForegroundColor Green
+# } else {
+#     Write-Host "MQTT failed to restart with authentication" -ForegroundColor Red
+#     exit 1
+# }
 
 # Check service health
 Write-Host "Checking service health..." -ForegroundColor Yellow
-$services = @("aiot_greenhouse_db", "aiot_greenhouse_mqtt", "aiot_greenhouse_redis", "aiot_greenhouse_backend")
+$containers = @("aiot_greenhouse_db", "aiot_greenhouse_mqtt", "aiot_greenhouse_redis", "aiot_greenhouse_backend", "aiot_greenhouse_frontend")
 
-foreach ($service in $services) {
-    $status = docker inspect $service --format='{{.State.Status}}' 2>$null
-    $health = docker inspect $service --format='{{.State.Health.Status}}' 2>$null
-    
-    if ($status -eq "running") {
-        if ($health -eq "healthy" -or $health -eq "") {
-            Write-Host "[OK] $service : Running and healthy" -ForegroundColor Green
+foreach ($container in $containers) {
+    $status = docker inspect $container --format='{{.State.Status}}' 2>$null
+    if ($status) {
+        $health = docker inspect $container --format='{{.State.Health.Status}}' 2>$null
+        
+        if ($status -eq "running") {
+            if ($health -eq "healthy" -or $health -eq "" -or $health -eq "<no value>") {
+                Write-Host "[OK] $container : Running and healthy" -ForegroundColor Green
+            } else {
+                Write-Host "[WARN] $container : Running but $health" -ForegroundColor Yellow
+            }
         } else {
-            Write-Host "[WARN] $service : Running but $health" -ForegroundColor Yellow
+            Write-Host "[ERROR] $container : $status" -ForegroundColor Red
         }
     } else {
-        Write-Host "[ERROR] $service : $status" -ForegroundColor Red
+        Write-Host "[INFO] $container : Not started or doesn't exist" -ForegroundColor Gray
     }
 }
 
@@ -169,17 +174,32 @@ $backupScript = @"
 `$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 Write-Host "Creating backup at `$timestamp..." -ForegroundColor Green
 
+# Create backups directory if it doesn't exist
+New-Item -ItemType Directory -Force -Path "./backups" | Out-Null
+
 # Backup MongoDB
-docker exec aiot_greenhouse_db mongodump --out /tmp/backup_`$timestamp
-docker cp aiot_greenhouse_db:/tmp/backup_`$timestamp ./backups/mongodb_`$timestamp
+Write-Host "Backing up MongoDB..." -ForegroundColor Yellow
+docker exec aiot_greenhouse_db mongodump --out /tmp/backup_`$timestamp 2>`$null
+if (`$LASTEXITCODE -eq 0) {
+    docker cp aiot_greenhouse_db:/tmp/backup_`$timestamp ./backups/mongodb_`$timestamp
+    Write-Host "MongoDB backup completed" -ForegroundColor Green
+} else {
+    Write-Host "MongoDB backup failed" -ForegroundColor Red
+}
 
 # Backup MQTT config
-Copy-Item -Recurse mosquitto/config ./backups/mqtt_config_`$timestamp
+Write-Host "Backing up MQTT configuration..." -ForegroundColor Yellow
+if (Test-Path "mosquitto/config") {
+    Copy-Item -Recurse mosquitto/config ./backups/mqtt_config_`$timestamp
+    Write-Host "MQTT config backup completed" -ForegroundColor Green
+} else {
+    Write-Host "MQTT config directory not found" -ForegroundColor Yellow
+}
 
 Write-Host "Backup completed: ./backups/*_`$timestamp" -ForegroundColor Green
 "@
 
-$backupScript | Set-Content "scripts/backup-prod.ps1" -Encoding ASCII
+$backupScript | Set-Content "scripts/backup-prod.ps1" -Encoding UTF8
 
 # Display production information
 Write-Host ""
@@ -187,6 +207,7 @@ Write-Host "AIOT Smart Greenhouse Production Environment Started!" -ForegroundCo
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Service URLs:" -ForegroundColor Cyan
+Write-Host "   Frontend: http://localhost:3000" -ForegroundColor White
 Write-Host "   Backend API: http://localhost:5000/api" -ForegroundColor White
 Write-Host "   Health Check: http://localhost:5000/api/health" -ForegroundColor White
 Write-Host "   MQTT Broker: mqtt://localhost:1883" -ForegroundColor White
@@ -198,7 +219,7 @@ Write-Host "   MQTT User: $MqttUser" -ForegroundColor White
 Write-Host "   MQTT Password: [Check .env file]" -ForegroundColor White
 Write-Host ""
 Write-Host "Management Commands:" -ForegroundColor Cyan
-Write-Host "   Stop services: docker compose -f compose.prod.yml down" -ForegroundColor White
+Write-Host "   Stop services: .\scripts\stop-prod.ps1" -ForegroundColor White
 Write-Host "   View logs: docker compose -f compose.prod.yml logs -f [service]" -ForegroundColor White
 Write-Host "   Create backup: .\scripts\backup-prod.ps1" -ForegroundColor White
 Write-Host ""
@@ -210,3 +231,60 @@ Write-Host "   - Set up log rotation" -ForegroundColor White
 Write-Host ""
 
 Write-Host "Production environment is ready!" -ForegroundColor Green
+
+# Create/update stop script to ensure it's current
+$stopScript = @"
+# PowerShell Production stop script for AIOT Smart Greenhouse
+# Auto-generated by start-prod.ps1
+
+# Ensure UTF-8 encoding for proper Unicode character display
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+`$OutputEncoding = [System.Text.Encoding]::UTF8
+
+param(
+    [switch]`$Force = `$false,
+    [switch]`$Backup = `$true
+)
+
+Write-Host "Stopping AIOT Smart Greenhouse Production Environment..." -ForegroundColor Red
+
+# Create backup before stopping if requested
+if (`$Backup -and (Test-Path "scripts/backup-prod.ps1")) {
+    Write-Host "Creating backup before shutdown..." -ForegroundColor Yellow
+    try {
+        & "scripts/backup-prod.ps1"
+    } catch {
+        Write-Host "Warning: Backup failed: `$(`$_.Exception.Message)" -ForegroundColor Yellow
+        if (-not `$Force) {
+            `$continue = Read-Host "Continue shutdown without backup? (y/N)"
+            if (`$continue -ne "y" -and `$continue -ne "Y") {
+                Write-Host "Shutdown cancelled." -ForegroundColor Yellow
+                exit 0
+            }
+        }
+    }
+}
+
+# Graceful shutdown
+Write-Host "Performing graceful shutdown..." -ForegroundColor Yellow
+
+# Use docker compose to stop services gracefully
+if (`$Force) {
+    Write-Host "Force stopping and removing containers..." -ForegroundColor Red
+    docker compose -f compose.prod.yml down --remove-orphans --volumes
+} else {
+    Write-Host "Stopping services gracefully..." -ForegroundColor Yellow
+    docker compose -f compose.prod.yml stop
+}
+
+Write-Host ""
+Write-Host "Production environment stopped successfully!" -ForegroundColor Green
+Write-Host ""
+Write-Host "To restart: .\scripts\start-prod.ps1" -ForegroundColor Cyan
+if (-not `$Force) {
+    Write-Host "To remove containers and volumes: .\scripts\stop-prod.ps1 -Force" -ForegroundColor Cyan
+}
+Write-Host ""
+"@
+
+$stopScript | Set-Content "scripts/stop-prod.ps1" -Encoding UTF8

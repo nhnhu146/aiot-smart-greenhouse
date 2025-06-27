@@ -23,28 +23,28 @@ services:
       start_period: 30s
 
   # MQTT Broker (Eclipse Mosquitto)
-  mosquitto:
-    image: eclipse-mosquitto:2.0
-    container_name: aiot_greenhouse_mqtt
-    restart: unless-stopped
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config:rw
-      - ./mosquitto/data:/mosquitto/data:rw
-      - ./mosquitto/logs:/mosquitto/log:rw
-    networks:
-      - greenhouse_network
-    environment:
-      - MOSQUITTO_USERNAME=${MQTT_USERNAME:-vision}
-      - MOSQUITTO_PASSWORD=${MQTT_PASSWORD:-vision}
-    healthcheck:
-      test: ["CMD-SHELL", "timeout 5 mosquitto_pub -h localhost -t 'test/health' -m 'health_check' -q 1 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+  # mosquitto:
+  #   image: eclipse-mosquitto:2.0
+  #   container_name: aiot_greenhouse_mqtt
+  #   restart: unless-stopped
+  #   ports:
+  #     - "1883:1883"
+  #     - "9001:9001"
+  #   volumes:
+  #     - ./mosquitto/config:/mosquitto/config:rw
+  #     - ./mosquitto/data:/mosquitto/data:rw
+  #     - ./mosquitto/logs:/mosquitto/log:rw
+  #   networks:
+  #     - greenhouse_network
+  #   environment:
+  #     - MOSQUITTO_USERNAME=${MQTT_USERNAME:-vision}
+  #     - MOSQUITTO_PASSWORD=${MQTT_PASSWORD:-vision}
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "timeout 5 mosquitto_pub -h localhost -t 'test/health' -m 'health_check' -q 1 || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
 
   # Backend API
   backend:
@@ -56,13 +56,13 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-      mosquitto:
-        condition: service_healthy
+    # mosquitto:
+    #   condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 5000
       MONGODB_URI: mongodb://${MONGODB_USER:-greenhouse_user}:${MONGODB_PASSWORD:-greenhouse_password}@mongodb:27017/aiot_greenhouse?authSource=admin
-      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      MQTT_BROKER_URL: mqtt://mqtt.noboroto.id.vn:1883
       MQTT_USERNAME: ${MQTT_USERNAME:-vision}
       MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
       MQTT_CLIENT_ID: greenhouse_backend
@@ -97,7 +97,9 @@ services:
   #   environment:
   #     NODE_ENV: ${NODE_ENV:-production}
   #     NEXT_PUBLIC_API_URL: http://localhost:5000/api
-  #     NEXT_PUBLIC_MQTT_URL: ws://localhost:9001
+  #     NEXT_PUBLIC_MQTT_URL: mqtt://mqtt.noboroto.id.vn:1883
+  #     NEXT_PUBLIC_MQTT_USERNAME: ${MQTT_USERNAME:-vision}
+  #     NEXT_PUBLIC_MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
   #   ports:
   #     - "3000:3000"
   #   networks:

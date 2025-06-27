@@ -19,7 +19,7 @@ Hệ thống nhà kính thông minh sử dụng công nghệ AIOT (Artificial In
          │                       │                       
          │              ┌─────────────────┐              
          │              │   MQTT Broker   │              
-         └──────────────►│   (Mosquitto)   │              
+         └─────────────►│   (Mosquitto)   │              
                         │   Port: 1883    │              
                         └─────────────────┘              
                                  │                        
@@ -184,7 +184,7 @@ This ensures MQTT broker is always properly secured after initialization.
 ### 4. Đăng nhập hệ thống
 
 **Default Admin Account:**
-- 👤 **Username:** `admin`
+- 👤 **Username:** `admin@gmail.com`
 - 🔐 **Password:** `admin`
 
 **URLs:**
@@ -300,7 +300,6 @@ mosquitto_sub -h localhost -u vision -P vision -t "test/topic"
 
 - [Backend API Documentation](./backend/README.md)
 - [Frontend Documentation](./frontend/README.md)
-- [Hardware Setup Guide](./embedded/README.md)
 - [MQTT Authentication Guide](./docs/MQTT_AUTH.md)
 
 ## 🤝 Đóng góp

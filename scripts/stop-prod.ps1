@@ -31,25 +31,12 @@ if ($Backup -and (Test-Path "scripts/backup-prod.ps1")) {
 # Graceful shutdown
 Write-Host "Performing graceful shutdown..." -ForegroundColor Yellow
 
-# Stop services in reverse dependency order
-Write-Host "Stopping backend service..." -ForegroundColor Gray
-docker stop aiot_greenhouse_backend 2>$null
-
-Write-Host "Stopping MQTT broker..." -ForegroundColor Gray
-docker stop aiot_greenhouse_mqtt 2>$null
-
-Write-Host "Stopping Redis..." -ForegroundColor Gray
-docker stop aiot_greenhouse_redis 2>$null
-
-Write-Host "Stopping MongoDB..." -ForegroundColor Gray
-docker stop aiot_greenhouse_db 2>$null
-
-# Remove containers if force flag is used
+# Use docker compose to stop services gracefully
 if ($Force) {
-    Write-Host "Removing containers..." -ForegroundColor Red
-    docker compose -f compose.prod.yml down --remove-orphans
+    Write-Host "Force stopping and removing containers..." -ForegroundColor Red
+    docker compose -f compose.prod.yml down --remove-orphans --volumes
 } else {
-    Write-Host "Stopping containers..." -ForegroundColor Yellow
+    Write-Host "Stopping services gracefully..." -ForegroundColor Yellow
     docker compose -f compose.prod.yml stop
 }
 
@@ -58,6 +45,6 @@ Write-Host "Production environment stopped successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "To restart: .\scripts\start-prod.ps1" -ForegroundColor Cyan
 if (-not $Force) {
-    Write-Host "To remove containers: .\scripts\stop-prod.ps1 -Force" -ForegroundColor Cyan
+    Write-Host "To remove containers and volumes: .\scripts\stop-prod.ps1 -Force" -ForegroundColor Cyan
 }
 Write-Host ""
