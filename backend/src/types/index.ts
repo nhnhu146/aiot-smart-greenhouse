@@ -1,12 +1,16 @@
 export interface SensorData {
 	_id?: string;
-	timestamp: Date;
-	temperature: number;
-	humidity: number;
-	soilMoisture: number;
-	waterLevel: number;
-	plantHeight: number;
-	rainStatus: boolean;
+	// Remove timestamp since we use MongoDB's createdAt
+	temperature?: number | null;
+	humidity?: number | null;
+	soilMoisture?: number | null;
+	waterLevel?: number | null;
+	plantHeight?: number | null;
+	rainStatus?: boolean | null;
+	lightLevel?: number | null;
+	motionDetected?: boolean | null;
+	deviceId?: string;
+	dataQuality?: 'complete' | 'partial' | 'error';
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -14,15 +18,17 @@ export interface SensorData {
 export interface DeviceStatus {
 	_id?: string;
 	deviceId: string;
-	deviceType: 'light' | 'pump' | 'door';
+	deviceType: 'light' | 'pump' | 'door' | 'window' | 'servo';
 	status: boolean;
-	lastUpdated: Date;
+	isOnline?: boolean;
+	errorCount?: number;
+	lastCommand?: string;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
 
 export interface DeviceControl {
-	deviceType: 'light' | 'pump' | 'door';
+	deviceType: 'light' | 'pump' | 'door' | 'window';
 	action: 'on' | 'off' | 'open' | 'close';
 	duration?: number; // in seconds, for pump
 }
@@ -79,11 +85,14 @@ export interface MQTTTopics {
 		WATER: 'greenhouse/sensors/water';
 		HEIGHT: 'greenhouse/sensors/height';
 		RAIN: 'greenhouse/sensors/rain';
+		LIGHT: 'greenhouse/sensors/light';
+		MOTION: 'greenhouse/sensors/motion';
 	};
 	DEVICES: {
 		LIGHT_CONTROL: 'greenhouse/devices/light/control';
 		PUMP_CONTROL: 'greenhouse/devices/pump/control';
 		DOOR_CONTROL: 'greenhouse/devices/door/control';
+		WINDOW_CONTROL: 'greenhouse/devices/window/control';
 	};
 }
 

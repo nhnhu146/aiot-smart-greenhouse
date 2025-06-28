@@ -36,9 +36,13 @@ class MockDataService {
 		for (let i = 23; i >= 0; i--) {
 			const time = new Date(now.getTime() - i * 60 * 60 * 1000);
 			data.push({
-				time: time.toLocaleTimeString('en-US', {
+				time: time.toLocaleString('en-US', {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
 					hour: '2-digit',
 					minute: '2-digit',
+					second: '2-digit',
 					hour12: false
 				}),
 				temperature: 20 + Math.random() * 15, // 20-35°C
@@ -108,10 +112,19 @@ class MockDataService {
 
 		// Try to fetch real data
 		try {
-			const response = await fetch('/api/sensors/history');
+			const response = await fetch('/api/history/sensors');
 			if (response.ok) {
-				const data = await response.json();
-				return { data, isMock: false };
+				const apiResponse = await response.json();
+
+				// Map API response to ChartDataPoint format
+				const mappedData: ChartDataPoint[] = apiResponse.data.sensors.map((sensor: any) => ({
+					time: sensor.timestamp,
+					temperature: sensor.temperature,
+					humidity: sensor.humidity,
+					soilMoisture: sensor.soilMoisture
+				}));
+
+				return { data: mappedData, isMock: false };
 			} else {
 				throw new Error(`API responded with status: ${response.status}`);
 			}

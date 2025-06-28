@@ -18,12 +18,15 @@ export class MQTTService {
 				SOIL: 'greenhouse/sensors/soil',
 				WATER: 'greenhouse/sensors/water',
 				HEIGHT: 'greenhouse/sensors/height',
-				RAIN: 'greenhouse/sensors/rain'
+				RAIN: 'greenhouse/sensors/rain',
+				LIGHT: 'greenhouse/sensors/light',
+				MOTION: 'greenhouse/sensors/motion'
 			},
 			DEVICES: {
 				LIGHT_CONTROL: 'greenhouse/devices/light/control',
 				PUMP_CONTROL: 'greenhouse/devices/pump/control',
-				DOOR_CONTROL: 'greenhouse/devices/door/control'
+				DOOR_CONTROL: 'greenhouse/devices/door/control',
+				WINDOW_CONTROL: 'greenhouse/devices/window/control'
 			}
 		};
 
@@ -102,13 +105,15 @@ export class MQTTService {
 
 	// Enhanced message handler that triggers callbacks
 	private handleMessage(topic: string, message: Buffer): void {
+		const receivedTimestamp = new Date(); // Capture receive time immediately
+
 		try {
 			const data = JSON.parse(message.toString());
 
 			// Check if it's sensor data
 			if (topic.includes('/sensors/')) {
 				this.sensorDataCallbacks.forEach(callback => callback(topic, data));
-				this.processSensorData(topic, typeof data === 'number' ? data : data.value);
+				this.processSensorData(topic, typeof data === 'number' ? data : data.value, receivedTimestamp);
 			}
 
 			// Check if it's device status
@@ -120,7 +125,7 @@ export class MQTTService {
 			const value = parseFloat(message.toString());
 			if (!isNaN(value) && topic.includes('/sensors/')) {
 				this.sensorDataCallbacks.forEach(callback => callback(topic, { value }));
-				this.processSensorData(topic, value);
+				this.processSensorData(topic, value, receivedTimestamp);
 			}
 		}
 	}
@@ -172,13 +177,22 @@ export class MQTTService {
 	}
 
 	// Process incoming sensor data and trigger threshold checks
-	public async processSensorData(topic: string, value: number): Promise<void> {
+	public async processSensorData(topic: string, value: number, receivedTimestamp?: Date): Promise<void> {
 		try {
-			// Store sensor value in buffer
+			// Store sensor value in buffer (timestamp is handled by MongoDB)
 			const sensorType = this.getSensorTypeFromTopic(topic);
 			if (sensorType) {
 				this.sensorDataBuffer.set(sensorType, value);
 				console.log(`📊 Sensor data received: ${sensorType} = ${value}`);
+
+				// Save individual sensor data immediately to ensure no data loss
+				await this.saveIndividualSensorData(sensorType, value);
+
+				// Handle special cases
+				if (sensorType === 'motionDetected' && value === 1 && this.alertService) {
+					// Motion detected - trigger alert
+					await this.alertService.handleMotionDetected();
+				}
 
 				// Check if we have all required sensor data for threshold checking
 				const requiredSensors = ['temperature', 'humidity', 'soilMoisture', 'waterLevel'];
@@ -195,12 +209,20 @@ export class MQTTService {
 					// Trigger threshold checking
 					await this.alertService.checkSensorThresholds(sensorData);
 
-					// Save to database
+					// Save complete sensor data set (without timestamp - MongoDB handles it)
 					await this.saveSensorData(sensorData);
 				}
 			}
 		} catch (error) {
 			console.error('Error processing sensor data:', error);
+
+			// Send system error alert if available
+			if (this.alertService) {
+				await this.alertService.handleSystemError(
+					error instanceof Error ? error.message : 'Unknown error',
+					'MQTT Service'
+				);
+			}
 		}
 	}
 
@@ -211,6 +233,8 @@ export class MQTTService {
 		if (topic.includes('water')) return 'waterLevel';
 		if (topic.includes('height')) return 'plantHeight';
 		if (topic.includes('rain')) return 'rainStatus';
+		if (topic.includes('light')) return 'lightLevel';
+		if (topic.includes('motion')) return 'motionDetected';
 		return null;
 	}
 
@@ -223,14 +247,72 @@ export class MQTTService {
 		try {
 			const sensorData = new SensorData({
 				...data,
-				plantHeight: this.sensorDataBuffer.get('plantHeight') || 0,
-				rainStatus: this.sensorDataBuffer.get('rainStatus') || false,
-				timestamp: new Date()
+				plantHeight: this.sensorDataBuffer.get('plantHeight') || null,
+				rainStatus: this.sensorDataBuffer.get('rainStatus') || null,
+				lightLevel: this.sensorDataBuffer.get('lightLevel') || null,
+				motionDetected: this.sensorDataBuffer.get('motionDetected') || null,
+				dataQuality: 'complete'
 			});
 
 			await sensorData.save();
+			console.log(`💾 Complete sensor data saved with MongoDB timestamp`);
 		} catch (error) {
-			console.error('Error saving sensor data:', error);
+			console.error('Error saving complete sensor data:', error);
+		}
+	}
+
+	// Save individual sensor reading immediately to prevent data loss
+	private async saveIndividualSensorData(sensorType: string, value: number): Promise<void> {
+		try {
+			// Create a sensor data record with only the current sensor value
+			const sensorData: any = {
+				temperature: null,
+				humidity: null,
+				soilMoisture: null,
+				waterLevel: null,
+				plantHeight: null,
+				rainStatus: null,
+				lightLevel: null,
+				motionDetected: null,
+				dataQuality: 'partial'
+			};
+
+			// Set the specific sensor value
+			switch (sensorType) {
+				case 'temperature':
+					sensorData.temperature = value;
+					break;
+				case 'humidity':
+					sensorData.humidity = value;
+					break;
+				case 'soilMoisture':
+					sensorData.soilMoisture = value;
+					break;
+				case 'waterLevel':
+					sensorData.waterLevel = value;
+					break;
+				case 'plantHeight':
+					sensorData.plantHeight = value;
+					break;
+				case 'rainStatus':
+					sensorData.rainStatus = Boolean(value);
+					break;
+				case 'lightLevel':
+					sensorData.lightLevel = value;
+					break;
+				case 'motionDetected':
+					sensorData.motionDetected = Boolean(value);
+					break;
+				default:
+					console.warn(`Unknown sensor type: ${sensorType}`);
+					return;
+			}
+
+			const newSensorData = new SensorData(sensorData);
+			await newSensorData.save();
+			console.log(`💾 Individual sensor data saved: ${sensorType} = ${value} with MongoDB timestamp`);
+		} catch (error) {
+			console.error(`Error saving individual sensor data for ${sensorType}:`, error);
 		}
 	}
 }

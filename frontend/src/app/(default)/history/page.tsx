@@ -8,6 +8,28 @@ const History = () => {
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 
+	// Format timestamp to display date-time consistently
+	const formatDateTime = (timestamp: string): string => {
+		const date = new Date(timestamp);
+
+		// Check if it's a valid date
+		if (isNaN(date.getTime())) {
+			// If it's already a formatted string, return as is
+			return timestamp;
+		}
+
+		// Format as dd/mm/yyyy hh:mm:ss
+		return date.toLocaleString('en-GB', {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hour12: false
+		});
+	};
+
 	// Fetch data when component is mounted
 	useEffect(() => {
 		const fetchData = async () => {
@@ -51,7 +73,7 @@ const History = () => {
 						style={{ width: '100%', height: '100px', borderRadius: '15px', margin: '10px 0', boxShadow: '0 0 10px rgba(87, 174, 9, 0.3)' }}
 					>
 						<Card.Body>
-							<p><b>Time:</b> {entry.time}</p>
+							<p><b>Time:</b> {formatDateTime(entry.time)}</p>
 							<p>
 								<b> Temperature:</b> {entry.temperature?.toFixed(1) || 'N/A'}°C
 								<b> Humidity:</b> {entry.humidity?.toFixed(1) || 'N/A'}%

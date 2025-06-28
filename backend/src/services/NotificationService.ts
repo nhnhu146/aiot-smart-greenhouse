@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { Alert, Settings } from '../models';
 
 export interface AlertData {
-	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device';
+	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'motion' | 'system';
 	level: 'low' | 'medium' | 'high' | 'critical';
 	message: string;
 	currentValue?: number;

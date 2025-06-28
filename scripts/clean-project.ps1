@@ -1,10 +1,18 @@
 # Clean and optimize AIOT Smart Greenhouse project
+# Enhanced version with force cleanup capabilities
+
+param(
+    [switch]$Force,
+    [switch]$SkipDocker,
+    [switch]$SkipCache
+)
 
 # Ensure UTF-8 encoding for proper Unicode character display
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-Write-Host "Cleaning and optimizing AIOT Smart Greenhouse project..." -ForegroundColor Green
+$cleanupMode = if ($Force) { "Force" } else { "Standard" }
+Write-Host "Cleaning and optimizing AIOT Smart Greenhouse project ($cleanupMode mode)..." -ForegroundColor Green
 
 # Enable long path support for current session (Windows 10/11)
 try {
@@ -25,17 +33,30 @@ function Remove-DirectorySafe {
             Remove-Item $Path -Recurse -Force -ErrorAction Stop
             Write-Host "Removed: $Path" -ForegroundColor Gray
         } catch {
-            try {
-                # Try with robocopy for stubborn directories (Windows long path issue)
-                Write-Host "Attempting alternative removal for: $Path" -ForegroundColor Yellow
-                $tempDir = Join-Path $env:TEMP "empty_$(Get-Random)"
-                New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-                robocopy $tempDir $Path /MIR /R:0 /W:0 | Out-Null
-                Remove-Item $tempDir -Force -ErrorAction SilentlyContinue
-                Remove-Item $Path -Force -ErrorAction SilentlyContinue
-                Write-Host "Removed: $Path (using robocopy)" -ForegroundColor Gray
-            } catch {
-                Write-Host "Failed to remove: $Path - $($_.Exception.Message)" -ForegroundColor Red
+            if ($Force) {
+                try {
+                    # Try with robocopy for stubborn directories (Windows long path issue)
+                    Write-Host "Attempting force removal for: $Path" -ForegroundColor Yellow
+                    $tempDir = Join-Path $env:TEMP "empty_$(Get-Random)"
+                    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+                    robocopy $tempDir $Path /MIR /R:0 /W:0 /NFL /NDL /NJH /NJS | Out-Null
+                    Remove-Item $tempDir -Force -ErrorAction SilentlyContinue
+                    Remove-Item $Path -Force -ErrorAction SilentlyContinue
+                    Write-Host "Removed: $Path (force method)" -ForegroundColor Gray
+                } catch {
+                    try {
+                        # Final attempt with takeown and icacls (Windows-specific)
+                        Write-Host "Attempting admin removal for: $Path" -ForegroundColor Yellow
+                        cmd /c "takeown /f `"$Path`" /r /d y >nul 2>&1"
+                        cmd /c "icacls `"$Path`" /grant administrators:F /t >nul 2>&1"
+                        Remove-Item $Path -Recurse -Force -ErrorAction SilentlyContinue
+                        Write-Host "Removed: $Path (admin method)" -ForegroundColor Gray
+                    } catch {
+                        Write-Host "Failed to remove: $Path - $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                }
+            } else {
+                Write-Host "Failed to remove: $Path (use -Force for aggressive removal)" -ForegroundColor Yellow
             }
         }
     }
@@ -104,15 +125,19 @@ Remove-FileSafe "backend/package-lock.json"
 Remove-FileSafe "frontend/package-lock.json"
 
 Write-Host "Optimizing Docker..." -ForegroundColor Yellow
-try {
-    docker system prune -f
-    Write-Host "Docker system cleaned" -ForegroundColor Gray
-} catch {
-    Write-Host "Docker cleanup failed or Docker not running" -ForegroundColor Yellow
+if (-not $SkipDocker) {
+    try {
+        docker system prune -f
+        Write-Host "Docker system cleaned" -ForegroundColor Gray
+    } catch {
+        Write-Host "Docker cleanup failed or Docker not running" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "Skipping Docker cleanup (--SkipDocker specified)" -ForegroundColor Yellow
 }
 
 # Clean yarn cache if yarn is available
-if (Get-Command -Name "yarn" -ErrorAction SilentlyContinue) {
+if (-not $SkipCache -and (Get-Command -Name "yarn" -ErrorAction SilentlyContinue)) {
     Write-Host "Cleaning yarn global cache..." -ForegroundColor Yellow
     try {
         # Clean global yarn cache
@@ -140,7 +165,7 @@ if (Get-Command -Name "yarn" -ErrorAction SilentlyContinue) {
 }
 
 # Clean npm cache
-if (Get-Command -Name "npm" -ErrorAction SilentlyContinue) {
+if (-not $SkipCache -and (Get-Command -Name "npm" -ErrorAction SilentlyContinue)) {
     Write-Host "Cleaning npm cache..." -ForegroundColor Yellow
     npm cache clean --force
 }

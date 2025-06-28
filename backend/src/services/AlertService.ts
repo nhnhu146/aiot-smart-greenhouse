@@ -1,5 +1,6 @@
 import { Settings, SensorData } from '../models';
 import { notificationService, AlertData } from './NotificationService';
+import { emailService } from './EmailService';
 
 export interface ThresholdConfig {
 	temperatureThreshold: { min: number; max: number };
@@ -11,9 +12,28 @@ export interface ThresholdConfig {
 class AlertService {
 	private currentThresholds: ThresholdConfig | null = null;
 	private lastCheckedValues: Map<string, number> = new Map();
+	private emailRecipients: string[] = [];
 
 	constructor() {
 		this.loadThresholds();
+		this.loadEmailRecipients();
+	}
+
+	// Load email recipients from settings
+	async loadEmailRecipients(): Promise<void> {
+		try {
+			const settings = await Settings.findOne().lean();
+			if (settings && settings.notifications?.emailRecipients) {
+				this.emailRecipients = settings.notifications.emailRecipients;
+				console.log(`Email recipients loaded: ${this.emailRecipients.length} recipients`);
+			} else {
+				console.log('No email recipients configured');
+				this.emailRecipients = [];
+			}
+		} catch (error) {
+			console.error('Error loading email recipients:', error);
+			this.emailRecipients = [];
+		}
 	}
 
 	// Load thresholds from database
@@ -91,6 +111,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
+			}
 		} else if (value > threshold.max) {
 			await notificationService.triggerAlert({
 				type: 'temperature',
@@ -99,6 +124,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
+			}
 		}
 
 		this.lastCheckedValues.set('temperature', value);
@@ -122,6 +152,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
+			}
 		} else if (value > threshold.max) {
 			await notificationService.triggerAlert({
 				type: 'humidity',
@@ -130,6 +165,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
+			}
 		}
 
 		this.lastCheckedValues.set('humidity', value);
@@ -153,6 +193,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
+			}
 		} else if (value > threshold.max) {
 			await notificationService.triggerAlert({
 				type: 'soilMoisture',
@@ -161,6 +206,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
+			}
 		}
 
 		this.lastCheckedValues.set('soilMoisture', value);
@@ -184,6 +234,11 @@ class AlertService {
 				currentValue: value,
 				threshold: threshold
 			});
+
+			// Send email alert
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendWaterLevelAlert(value, threshold, this.emailRecipients);
+			}
 		}
 
 		this.lastCheckedValues.set('waterLevel', value);
@@ -209,6 +264,66 @@ class AlertService {
 	// Force reload thresholds from database (useful when settings change)
 	async reloadThresholds(): Promise<void> {
 		await this.loadThresholds();
+		await this.loadEmailRecipients();
+	}
+
+	// Handle motion detection alert
+	async handleMotionDetected(): Promise<void> {
+		try {
+			await notificationService.triggerAlert({
+				type: 'motion',
+				level: 'medium',
+				message: 'Motion detected in greenhouse - Door automatically opened',
+				currentValue: 1,
+				threshold: { min: 0, max: 1 }
+			});
+
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendMotionDetectedAlert(this.emailRecipients);
+			}
+		} catch (error) {
+			console.error('Error handling motion detection alert:', error);
+		}
+	}
+
+	// Handle system errors
+	async handleSystemError(error: string, component: string): Promise<void> {
+		try {
+			await notificationService.triggerAlert({
+				type: 'system',
+				level: 'critical',
+				message: `System error in ${component}: ${error}`,
+				currentValue: 0,
+				threshold: { min: 0, max: 0 }
+			});
+
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0) {
+				await emailService.sendSystemErrorAlert(error, component, this.emailRecipients);
+			}
+		} catch (error) {
+			console.error('Error handling system error alert:', error);
+		}
+	}
+
+	// Test email functionality
+	async testEmailAlert(): Promise<boolean> {
+		if (this.emailRecipients.length === 0) {
+			console.log('No email recipients configured for testing');
+			return false;
+		}
+
+		return await emailService.sendTestEmail(this.emailRecipients);
+	}
+
+	// Get email service status
+	getEmailStatus(): { enabled: boolean; configured: boolean; recipients: number } {
+		const status = emailService.getStatus();
+		return {
+			...status,
+			recipients: this.emailRecipients.length
+		};
 	}
 }
 

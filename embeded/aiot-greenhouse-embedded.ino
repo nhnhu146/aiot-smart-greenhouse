@@ -4,6 +4,7 @@
 #include <DHT.h>                // For DHT temperature and humidity sensor
 #include <Wire.h>               // For I2C communication
 #include <LiquidCrystal_I2C.h>  // For LCD display via I2C
+#include <esp_task_wdt.h>       // For watchdog timer
 
 // ==============================
 // Wi-Fi Configuration
@@ -68,7 +69,14 @@ Servo doorServo;             // Servo motor for door
 unsigned long lastSendTime1 = 0;
 unsigned long lastSendTime2 = 0;
 unsigned long lastSendTime3 = 0;
+unsigned long lastMotionCheck = 0;
+unsigned long lastWaterCheck = 0;
 int i = 0; // Biến đếm
+int lastPIRState = LOW; // Track PIR state changes
+
+// Error counting for system recovery
+int wifiErrorCount = 0;
+int mqttErrorCount = 0;
 
 /**
  * @brief Initializes the ESP32 and its peripherals.
@@ -109,6 +117,12 @@ void setup() {
   lcd.init();
   lcd.setCursor(0,0);
   lcd.print("Hello World");
+  
+  // Enable watchdog timer (30 seconds timeout)
+  esp_task_wdt_init(30, true);
+  esp_task_wdt_add(NULL);
+  
+  Serial.println("Watchdog timer enabled");
 }
 
 /**
@@ -120,6 +134,9 @@ void setup() {
  * @return void
  */
 void loop() {
+  // Reset watchdog timer
+  esp_task_wdt_reset();
+  
   if (!client.connected()) {
     reconnect();
   }
@@ -133,10 +150,36 @@ void loop() {
   int moisture = analogRead(moisture_pin);
 
   int PIRValue = digitalRead(PIR_in_pin);
-
   int FloatSwitchValue = digitalRead(float_switch);
 
   lcd.backlight();
+
+  // Motion detection continuous (FR-010) - Check every second
+  if (millis() - lastMotionCheck > 1000) {
+    lastMotionCheck = millis();
+    
+    if (PIRValue == HIGH && lastPIRState == LOW) {
+      // Motion detected - state changed from LOW to HIGH
+      client.publish("greenhouse/sensors/motion", "1");
+      Serial.println("Motion detected and sent!");
+      
+      // Auto open door if motion detected
+      controlDoor("HIGH");
+      
+      lastPIRState = HIGH;
+    } else if (PIRValue == LOW && lastPIRState == HIGH) {
+      // Motion stopped
+      client.publish("greenhouse/sensors/motion", "0");
+      Serial.println("Motion stopped");
+      lastPIRState = LOW;
+    }
+  }
+
+  // Water level check every 1 minute (FR-007)
+  if (millis() - lastWaterCheck > 60000) {
+    lastWaterCheck = millis();
+    sendWaterLevelValue(FloatSwitchValue);
+  }
 
   // Gửi dữ liệu sensor qua MQTT mỗi 5 giây
   if (millis() - lastSendTime2 > 5000) {
@@ -146,9 +189,18 @@ void loop() {
     sendTemperatureValue(t);
     sendHumidityValue(h);
     sendSoilMoistureValue(moisture);
-    sendWaterLevelValue(FloatSwitchValue);
     sendLightLevelValue(Photon_value);
     sendRainSensorValue(rainvalue);
+    
+    // FR-006: Gửi dữ liệu chiều cao cây (plant height)
+    sendPlantHeightValue(distanceCm);
+  }
+  
+  // Check if system is healthy and attempt recovery if needed
+  if (!client.connected() && WiFi.status() != WL_CONNECTED) {
+    Serial.println("System unhealthy, attempting recovery...");
+    setup_wifi();
+    reconnect();
   }
 }
 
@@ -189,12 +241,15 @@ void setup_wifi() {
  * @note This function blocks until the connection is established. It uses a random client ID to avoid conflicts.
  */
 void reconnect() {
-  while (!client.connected()) {
+  int retryCount = 0;
+  while (!client.connected() && retryCount < 5) {
     Serial.println("Attempting MQTT connection...");
     String clientId = "ESP32Client-" + String(random(0xffff), HEX);
 
     if (client.connect(clientId.c_str())) {
       Serial.println("Connected to MQTT!");
+      mqttErrorCount = 0; // Reset error count on success
+      
       client.subscribe(lights_topic);
       client.subscribe(microphone_topic);
       client.subscribe(watering_topic);
@@ -205,6 +260,15 @@ void reconnect() {
       Serial.print("Failed to connect, rc=");
       Serial.print(client.state());
       Serial.println();
+      
+      retryCount++;
+      mqttErrorCount++;
+      
+      if (mqttErrorCount > 10) {
+        Serial.println("Too many MQTT errors, restarting ESP32...");
+        ESP.restart();
+      }
+      
       delay(5000);
     }
   }
@@ -360,6 +424,22 @@ void sendRainSensorValue(int rain) {
   String payload = String(rain);
   client.publish("greenhouse/sensors/rain", payload.c_str());
   Serial.println("Sent rain: " + payload);
+}
+
+/**
+ * @brief Publishes the plant height value to the MQTT broker.
+ *
+ * Converts the plant height value to a string and publishes it to the configured
+ * `height_topic`.
+ *
+ * @param[in] height The plant height measured by ultrasonic sensor in cm.
+ *
+ * @return void
+ */
+void sendPlantHeightValue(long height) {
+  String payload = String(height);
+  client.publish("greenhouse/sensors/height", payload.c_str());
+  Serial.println("Sent plant height: " + payload + " cm");
 }
 
 /**

@@ -46,7 +46,7 @@ class ApiClient {
 	}
 
 	async getSensorHistory(limit = 100): Promise<SensorData[]> {
-		return this.request(`/api/sensors/history?limit=${limit}`);
+		return this.request(`/api/history/sensors?limit=${limit}`);
 	}
 
 	async sendSensorData(data: Omit<SensorData, '_id' | 'timestamp'>): Promise<{ success: boolean; id: string; message: string }> {

@@ -3,6 +3,8 @@ import { Alert } from '../models';
 import { validateQuery, validateBody, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema, AlertCreateSchema } from '../schemas';
 import { APIResponse } from '../types';
+import { alertService, emailService } from '../services';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -237,6 +239,124 @@ router.post('/resolve-all', asyncHandler(async (req: Request, res: Response) => 
 			modifiedCount: result.modifiedCount,
 			matchedCount: result.matchedCount
 		},
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+// Schema validation for test email
+const testEmailSchema = z.object({
+	recipients: z.array(z.string().email()).min(1, 'At least one recipient is required')
+});
+
+/**
+ * @route GET /api/alerts/email/status
+ * @desc Get email service status
+ * @access Private
+ */
+router.get('/email/status', asyncHandler(async (req: Request, res: Response) => {
+	const status = alertService.getEmailStatus();
+
+	const response: APIResponse = {
+		success: true,
+		data: status,
+		message: 'Email service status retrieved successfully',
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+/**
+ * @route POST /api/alerts/email/test
+ * @desc Send test email
+ * @access Private
+ */
+router.post('/email/test', asyncHandler(async (req: Request, res: Response) => {
+	const { recipients } = testEmailSchema.parse(req.body);
+
+	const success = await emailService.sendTestEmail(recipients);
+
+	if (success) {
+		const response: APIResponse = {
+			success: true,
+			message: `Test email sent successfully to ${recipients.length} recipients`,
+			data: { recipients },
+			timestamp: new Date().toISOString()
+		};
+		res.json(response);
+	} else {
+		throw new AppError('Failed to send test email - Email service may not be configured', 400);
+	}
+}));
+
+/**
+ * @route GET /api/alerts/thresholds
+ * @desc Get current alert thresholds
+ * @access Private
+ */
+router.get('/thresholds', asyncHandler(async (req: Request, res: Response) => {
+	const thresholds = alertService.getCurrentThresholds();
+
+	const response: APIResponse = {
+		success: true,
+		data: thresholds,
+		message: 'Alert thresholds retrieved successfully',
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+/**
+ * @route POST /api/alerts/reload
+ * @desc Reload thresholds and email settings from database
+ * @access Private
+ */
+router.post('/reload', asyncHandler(async (req: Request, res: Response) => {
+	await alertService.reloadThresholds();
+
+	const response: APIResponse = {
+		success: true,
+		message: 'Alert settings reloaded successfully',
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+/**
+ * @route POST /api/alerts/motion
+ * @desc Manually trigger motion detection alert (for testing)
+ * @access Private
+ */
+router.post('/motion', asyncHandler(async (req: Request, res: Response) => {
+	await alertService.handleMotionDetected();
+
+	const response: APIResponse = {
+		success: true,
+		message: 'Motion detection alert triggered successfully',
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+/**
+ * @route POST /api/alerts/system-error
+ * @desc Manually trigger system error alert (for testing)
+ * @access Private
+ */
+router.post('/system-error', asyncHandler(async (req: Request, res: Response) => {
+	const { error = 'Test system error', component = 'Test Component' } = req.body;
+
+	await alertService.handleSystemError(error, component);
+
+	const response: APIResponse = {
+		success: true,
+		message: 'System error alert triggered successfully',
+		data: { error, component },
 		timestamp: new Date().toISOString()
 	};
 

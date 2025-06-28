@@ -12,25 +12,36 @@ const DeviceStatusSchema: Schema = new Schema({
 	deviceType: {
 		type: String,
 		required: true,
-		enum: ['light', 'pump', 'door']
+		enum: ['light', 'pump', 'door', 'window', 'servo']
 	},
 	status: {
 		type: Boolean,
 		required: true,
 		default: false
 	},
-	lastUpdated: {
-		type: Date,
-		required: true,
-		default: Date.now
+	// Remove lastUpdated since we use updatedAt from timestamps
+	// Additional fields for better device management
+	isOnline: {
+		type: Boolean,
+		default: true
+	},
+	errorCount: {
+		type: Number,
+		default: 0
+	},
+	lastCommand: {
+		type: String,
+		default: null
 	}
 }, {
-	timestamps: true,
+	timestamps: true, // This creates createdAt and updatedAt automatically
 	versionKey: false
 });
 
-// Index for better query performance
+// Optimized indexes for better query performance
 DeviceStatusSchema.index({ deviceId: 1 });
 DeviceStatusSchema.index({ deviceType: 1 });
+DeviceStatusSchema.index({ updatedAt: -1 }); // For recent activity queries
+DeviceStatusSchema.index({ deviceType: 1, status: 1 }); // For device type and status queries
 
 export default mongoose.model<IDeviceStatus>('DeviceStatus', DeviceStatusSchema);
