@@ -129,7 +129,6 @@ const Dashboard = () => {
 			<Row className={`my-3 ${styles.chartRow}`}>
 				<Col>
 					<Card className={styles.doughnutCard}>
-						<Card.Body className={styles.chartTitle}>Humidity</Card.Body>
 						<AppSemiDoughnutChart
 							label="Humidity"
 							value={data.humidity}
@@ -140,7 +139,6 @@ const Dashboard = () => {
 				</Col>
 				<Col>
 					<Card className={styles.doughnutCard}>
-						<Card.Body className={styles.chartTitle}>Soil moisture</Card.Body>
 						<AppSemiDoughnutChart
 							label="Moisture"
 							value={data.moisture}
@@ -151,7 +149,6 @@ const Dashboard = () => {
 				</Col>
 				<Col>
 					<Card className={styles.doughnutCard}>
-						<Card.Body className={styles.chartTitle}>Temperature</Card.Body>
 						<AppSemiDoughnutChart
 							label="Temperature"
 							value={data.temperature}

@@ -109,18 +109,18 @@ const SignUp = () => {
 							{showPassword ? (
 								<Image
 									className="mx-1 my-1"
-									src="/close-eye.svg"
-									alt="Hide password"
-									width={20}
-									height={20}
-								/>
-							) : (
-								<Image
-									className="mx-1 my-1"
 									src="/open-eye.svg"
 									alt="Show password"
 									width={19}
 									height={19}
+								/>
+							) : (
+								<Image
+									className="mx-1 my-1"
+									src="/close-eye.svg"
+									alt="Hide password"
+									width={20}
+									height={20}
 								/>
 							)}
 						</button>
@@ -148,18 +148,18 @@ const SignUp = () => {
 							{showConfirmPassword ? (
 								<Image
 									className="mx-1 my-1"
-									src="/close-eye.svg"
-									alt="Hide password"
-									width={20}
-									height={20}
-								/>
-							) : (
-								<Image
-									className="mx-1 my-1"
 									src="/open-eye.svg"
 									alt="Show password"
 									width={19}
 									height={19}
+								/>
+							) : (
+								<Image
+									className="mx-1 my-1"
+									src="/close-eye.svg"
+									alt="Hide password"
+									width={20}
+									height={20}
 								/>
 							)}
 						</button>

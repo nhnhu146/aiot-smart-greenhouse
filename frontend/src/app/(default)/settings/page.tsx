@@ -356,7 +356,13 @@ const SystemSettingsPage = () => {
 								onChange={(e) => setNewEmail(e.target.value)}
 								isInvalid={!!emailError}
 							/>
-							<Button onClick={addEmailRecipient} variant="primary">Add</Button>
+							<Button 
+								onClick={addEmailRecipient} 
+								variant="success" 
+								className={styles.addButton}
+							>
+								Add
+							</Button>
 						</div>
 						<Form.Control.Feedback type="invalid">
 							{emailError}

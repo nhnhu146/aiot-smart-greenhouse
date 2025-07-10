@@ -164,7 +164,7 @@ const Control = () => {
 	return (
 		<Container className={styles["activity-container"]}>
 			<div className="d-flex justify-content-between align-items-center mb-3">
-				<h3 className={styles["activity-title"]}>Let&apos;s check your GreenHouse activity</h3>
+				<h3 className={styles["activity-title"]}>Let's control your Greenhouse devices</h3>
 				<div className={`badge ${isConnected ? 'bg-success' : 'bg-danger'}`}>
 					{isConnected ? '🟢 Connected' : '🔴 Disconnected'}
 				</div>

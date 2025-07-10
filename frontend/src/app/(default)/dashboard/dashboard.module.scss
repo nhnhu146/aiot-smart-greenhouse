@@ -10,9 +10,15 @@
 
 .chartCard {
   border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(87, 174, 9, 0.1);
+  box-shadow: 0 6px 25px rgba(87, 174, 9, 0.15);
   padding: 1rem;
-  background-color: #f8fff3;
+  background-color: #ffffff;
+  border: none;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 30px rgba(87, 174, 9, 0.2);
+  }
 
   .chartTitle {
     font-weight: 600;
@@ -27,9 +33,15 @@
 
 .doughnutCard {
   border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(87, 174, 9, 0.15);
+  box-shadow: 0 6px 20px rgba(87, 174, 9, 0.15);
   padding: 1rem;
   background-color: #ffffff;
+  border: none;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(87, 174, 9, 0.2);
+  }
 
   .chartTitle {
     font-weight: 500;

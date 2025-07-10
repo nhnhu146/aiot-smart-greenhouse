@@ -56,7 +56,7 @@ const AppSidebar = () => {
 				</div>
 
 				<div className={styles.avatarWrapper}>
-					<Image src="/avatar.svg" alt="Avatar" width={40} height={40} className={styles.icon} />
+					<Image src="/avatar.svg" alt="Avatar" width={30} height={30} className={styles.icon} />
 					<p className='my-2'>{user?.email || 'User'}</p>
 				</div>
 			</div>

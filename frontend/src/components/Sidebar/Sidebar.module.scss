@@ -19,7 +19,7 @@
 
 .navItem {
   cursor: pointer;
-  padding: 0.5rem 1rem; // <- padding 2 bên
+  padding: 0.5rem 1rem;
   border-radius: 10px;
   color: #000000;
   display: flex;
@@ -68,4 +68,14 @@
 
 .icon {
   margin: 0 0.5rem;
+  align-self: center;
+}
+
+.avatarWrapper p {
+  max-width: 150px;
+  word-wrap: break-word;
+  white-space: normal;
+  overflow: visible;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
 }
