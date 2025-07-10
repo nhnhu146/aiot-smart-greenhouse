@@ -57,11 +57,12 @@ const History = () => {
 	return (
 		<Container className="my-3">
 			<h3 className="mb-4 mx-2">Let&apos;s check your Cloud!</h3>
-			{isUsingMockData && (
-				<div className="alert alert-info mb-3">
-					🎭 Using mock data for development
-				</div>
-			)}
+			<div className={`alert ${isUsingMockData ? 'alert-warning' : 'alert-success'} mb-3`}>
+				{isUsingMockData
+					? '🎭 Using mock data for development'
+					: '📊 Using production data'
+				}
+			</div>
 			{isLoading ? (
 				<p>Loading data...</p>
 			) : data.length === 0 ? (

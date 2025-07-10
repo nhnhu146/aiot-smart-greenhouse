@@ -14,9 +14,9 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 
 	// Filter by date range if provided
 	if (from || to) {
-		query.timestamp = {};
-		if (from) query.timestamp.$gte = from;
-		if (to) query.timestamp.$lte = to;
+		query.createdAt = {};
+		if (from) query.createdAt.$gte = from;
+		if (to) query.createdAt.$lte = to;
 	}
 
 	const skip = (page - 1) * limit;
@@ -24,22 +24,22 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	// Get sensor data history
 	const [sensorHistory, deviceHistory, alertHistory] = await Promise.all([
 		SensorData.find(query)
-			.sort({ timestamp: -1 })
+			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean(),
 		DeviceStatus.find()
-			.sort({ lastUpdated: -1 })
+			.sort({ updatedAt: -1 })
 			.lean(),
-		Alert.find(query.timestamp ? { timestamp: query.timestamp } : {})
-			.sort({ timestamp: -1 })
+		Alert.find(query.createdAt ? { createdAt: query.createdAt } : {})
+			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean()
 	]);
 
 	const totalSensors = await SensorData.countDocuments(query);
-	const totalAlerts = await Alert.countDocuments(query.timestamp ? { timestamp: query.timestamp } : {});
+	const totalAlerts = await Alert.countDocuments(query.createdAt ? { createdAt: query.createdAt } : {});
 
 	const response: APIResponse = {
 		success: true,
@@ -82,16 +82,16 @@ router.get('/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req
 	const query: any = {};
 
 	if (from || to) {
-		query.timestamp = {};
-		if (from) query.timestamp.$gte = from;
-		if (to) query.timestamp.$lte = to;
+		query.createdAt = {};
+		if (from) query.createdAt.$gte = from;
+		if (to) query.createdAt.$lte = to;
 	}
 
 	const skip = (page - 1) * limit;
 
 	const [data, total] = await Promise.all([
 		SensorData.find(query)
-			.sort({ timestamp: -1 })
+			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean(),
@@ -128,7 +128,7 @@ router.get('/devices', validateQuery(QueryParamsSchema), asyncHandler(async (req
 	}
 
 	const devices = await DeviceStatus.find(query)
-		.sort({ lastUpdated: -1 })
+		.sort({ updatedAt: -1 })
 		.lean();
 
 	const response: APIResponse = {
@@ -147,9 +147,9 @@ router.get('/summary', validateQuery(QueryParamsSchema), asyncHandler(async (req
 
 	const matchQuery: any = {};
 	if (from || to) {
-		matchQuery.timestamp = {};
-		if (from) matchQuery.timestamp.$gte = from;
-		if (to) matchQuery.timestamp.$lte = to;
+		matchQuery.createdAt = {};
+		if (from) matchQuery.createdAt.$gte = from;
+		if (to) matchQuery.createdAt.$lte = to;
 	}
 
 	const dailySummary = await SensorData.aggregate([
@@ -157,9 +157,9 @@ router.get('/summary', validateQuery(QueryParamsSchema), asyncHandler(async (req
 		{
 			$group: {
 				_id: {
-					year: { $year: '$timestamp' },
-					month: { $month: '$timestamp' },
-					day: { $dayOfMonth: '$timestamp' }
+					year: { $year: '$createdAt' },
+					month: { $month: '$createdAt' },
+					day: { $dayOfMonth: '$createdAt' }
 				},
 				avgTemperature: { $avg: '$temperature' },
 				avgHumidity: { $avg: '$humidity' },
@@ -168,7 +168,7 @@ router.get('/summary', validateQuery(QueryParamsSchema), asyncHandler(async (req
 				avgPlantHeight: { $avg: '$plantHeight' },
 				rainCount: { $sum: { $cond: ['$rainStatus', 1, 0] } },
 				totalReadings: { $sum: 1 },
-				date: { $first: '$timestamp' }
+				date: { $first: '$createdAt' }
 			}
 		},
 		{ $sort: { '_id.year': -1, '_id.month': -1, '_id.day': -1 } },
@@ -191,9 +191,9 @@ router.get('/trends', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 
 	const matchQuery: any = {};
 	if (from || to) {
-		matchQuery.timestamp = {};
-		if (from) matchQuery.timestamp.$gte = from;
-		if (to) matchQuery.timestamp.$lte = to;
+		matchQuery.createdAt = {};
+		if (from) matchQuery.createdAt.$gte = from;
+		if (to) matchQuery.createdAt.$lte = to;
 	}
 
 	const trends = await SensorData.aggregate([
@@ -201,10 +201,10 @@ router.get('/trends', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 		{
 			$group: {
 				_id: {
-					year: { $year: '$timestamp' },
-					month: { $month: '$timestamp' },
-					day: { $dayOfMonth: '$timestamp' },
-					hour: { $hour: '$timestamp' }
+					year: { $year: '$createdAt' },
+					month: { $month: '$createdAt' },
+					day: { $dayOfMonth: '$createdAt' },
+					hour: { $hour: '$createdAt' }
 				},
 				avgTemperature: { $avg: '$temperature' },
 				avgHumidity: { $avg: '$humidity' },
@@ -240,8 +240,8 @@ router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 	}
 
 	const [sensors, devices, alerts] = await Promise.all([
-		SensorData.find(query).sort({ timestamp: -1 }).limit(5000).lean(),
-		DeviceStatus.find().sort({ lastUpdated: -1 }).lean(),
+		SensorData.find(query).sort({ createdAt: -1 }).limit(5000).lean(),
+		DeviceStatus.find().sort({ updatedAt: -1 }).lean(),
 		Alert.find(query.timestamp ? { timestamp: query.timestamp } : {})
 			.sort({ timestamp: -1 }).limit(1000).lean()
 	]);

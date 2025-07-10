@@ -41,7 +41,7 @@ services:
       MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
       MQTT_CLIENT_ID: greenhouse_backend
       API_PREFIX: /api
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: "*"
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
     ports:
@@ -57,33 +57,32 @@ services:
       retries: 3
       start_period: 30s
 
-  # Frontend (Next.js) - Commented out for development
-  # Uncomment this section if you want to build and run frontend in Docker
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: aiot_greenhouse_frontend
-  #   restart: unless-stopped
-  #   depends_on:
-  #     backend:
-  #       condition: service_healthy
-  #   environment:
-  #     NODE_ENV: ${NODE_ENV:-production}
-  #     NEXT_PUBLIC_API_URL: http://localhost:5000
-  #     NEXT_PUBLIC_MQTT_URL: mqtt://mqtt.noboroto.id.vn:1883
-  #     NEXT_PUBLIC_MQTT_USERNAME: ${MQTT_USERNAME:-vision}
-  #     NEXT_PUBLIC_MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - greenhouse_network
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:3000"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 30s
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aiot_greenhouse_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+      NEXT_PUBLIC_MQTT_URL: mqtt://mqtt.noboroto.id.vn:1883
+      NEXT_PUBLIC_MQTT_USERNAME: ${MQTT_USERNAME:-vision}
+      NEXT_PUBLIC_MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
+    ports:
+      - "3000:3000"
+    networks:
+      - greenhouse_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Redis (for caching and session storage)
   redis:

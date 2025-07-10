@@ -35,7 +35,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 	const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
 	// Get latest sensor data
-	const latestSensor = await SensorData.findOne().sort({ timestamp: -1 }).lean();
+	const latestSensor = await SensorData.findOne().sort({ createdAt: -1 }).lean();
 
 	// Get device status
 	const devices = await DeviceStatus.find().lean();
@@ -45,7 +45,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 
 	// Get 24h statistics
 	const stats24h = await SensorData.aggregate([
-		{ $match: { timestamp: { $gte: last24h } } },
+		{ $match: { createdAt: { $gte: last24h } } },
 		{
 			$group: {
 				_id: null,
@@ -65,18 +65,18 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 
 	// Get 7 days trend
 	const trend7d = await SensorData.aggregate([
-		{ $match: { timestamp: { $gte: last7d } } },
+		{ $match: { createdAt: { $gte: last7d } } },
 		{
 			$group: {
 				_id: {
-					year: { $year: '$timestamp' },
-					month: { $month: '$timestamp' },
-					day: { $dayOfMonth: '$timestamp' }
+					year: { $year: '$createdAt' },
+					month: { $month: '$createdAt' },
+					day: { $dayOfMonth: '$createdAt' }
 				},
 				avgTemperature: { $avg: '$temperature' },
 				avgHumidity: { $avg: '$humidity' },
 				avgSoilMoisture: { $avg: '$soilMoisture' },
-				date: { $first: '$timestamp' }
+				date: { $first: '$createdAt' }
 			}
 		},
 		{ $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
@@ -86,7 +86,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 	const systemHealth = {
 		database: 'healthy',
 		mqtt: mqttService.isConnected() ? 'healthy' : 'disconnected',
-		sensors: latestSensor && (now.getTime() - new Date(latestSensor.timestamp).getTime()) < 300000 ? 'healthy' : 'stale',
+		sensors: latestSensor && latestSensor.createdAt && (now.getTime() - new Date(latestSensor.createdAt).getTime()) < 300000 ? 'healthy' : 'stale',
 		devices: {
 			total: devices.length,
 			online: devices.filter(d => d.status).length,
@@ -102,7 +102,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 			devices: devices.reduce((acc: any, device) => {
 				acc[device.deviceType] = {
 					status: device.status,
-					lastUpdated: device.lastUpdated
+					updatedAt: device.updatedAt
 				};
 				return acc;
 			}, {}),

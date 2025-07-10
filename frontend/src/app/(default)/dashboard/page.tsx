@@ -7,7 +7,6 @@ import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
 import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
-import DevUtils from '@/components/DevUtils/DevUtils';
 import styles from './dashboard.module.scss';
 
 const Dashboard = () => {
@@ -90,13 +89,17 @@ const Dashboard = () => {
 
 	return (
 		<Container className={styles.dashboardContainer}>
-			<DevUtils />
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
 				<h3>Welcome to GreenHouse</h3>
 				<div className="d-flex gap-2">
 					{isUsingMockData && (
 						<Badge bg="warning" text="dark" style={{ fontSize: '12px' }}>
 							🎭 Demo Mode - Mock Data
+						</Badge>
+					)}
+					{!isUsingMockData && (
+						<Badge bg="success" text="light" style={{ fontSize: '12px' }}>
+							📊 Production Data
 						</Badge>
 					)}
 					<Badge bg={isConnected ? 'success' : 'danger'} style={{ fontSize: '12px' }}>

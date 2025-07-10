@@ -1,13 +1,17 @@
 // Development utilities component
 'use client'
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Button, Form } from 'react-bootstrap';
 import mockDataService from '@/services/mockDataService';
 
 const DevUtils: React.FC = () => {
+	const [isMockEnabled, setIsMockEnabled] = useState(true);
 	useEffect(() => {
-		if (process.env.NODE_ENV === 'development') {
-			// Log developer instructions
-			console.log(`
+		// On mount, check the current mock data status
+		setIsMockEnabled(mockDataService.isUsingMockData());
+
+		// Log developer instructions (always available now)
+		console.log(`
 🚀 GreenHouse Development Mode
 ==============================
 
@@ -24,15 +28,19 @@ Examples:
 > mockDataService.setUseMockData(false)  // Switch to real API
 > mockDataService.updateMockSensorData({ temperature: 40 }) // Set temperature to 40°C
       `);
-		}
 	}, []);
 
-	// Don't render anything in production
-	if (process.env.NODE_ENV !== 'development') {
-		return null;
-	}
+	// Toggle mock data function
+	const toggleMockData = () => {
+		const newState = !isMockEnabled;
+		mockDataService.setUseMockData(newState);
+		setIsMockEnabled(newState);
+		// Force refresh the page to apply changes immediately
+		window.location.reload();
+	};
 
-	return null; // This component doesn't render UI, just provides dev tools
+	// Always render now (removed production check)
+	return null; // Will be moved to settings page
 };
 
 export default DevUtils;

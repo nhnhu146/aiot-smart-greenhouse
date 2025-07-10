@@ -15,7 +15,16 @@ interface ChartDataPoint {
 
 class MockDataService {
 	// Developer flag - set to false to disable mock data
-	private useMockData: boolean = true;
+	private useMockData: boolean;
+
+	constructor() {
+		// Initialize from localStorage if available, default to true otherwise
+		const savedPreference = typeof localStorage !== 'undefined'
+			? localStorage.getItem('useMockData')
+			: null;
+
+		this.useMockData = savedPreference === null ? true : savedPreference === 'true';
+	}
 
 	// Mock sensor data
 	private mockSensorData: SensorData = {
@@ -58,6 +67,11 @@ class MockDataService {
 	public setUseMockData(enabled: boolean): void {
 		this.useMockData = enabled;
 		console.log(`Mock data ${enabled ? 'enabled' : 'disabled'}`);
+
+		// Save preference to localStorage if available
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem('useMockData', enabled.toString());
+		}
 	}
 
 	public isUsingMockData(): boolean {
@@ -169,7 +183,7 @@ class MockDataService {
 // Export singleton instance
 const mockDataService = new MockDataService();
 
-// Development helper - expose to window for easy toggling in browser console
+// Always expose helper to window for easy toggling in browser console
 if (typeof window !== 'undefined') {
 	(window as any).mockDataService = mockDataService;
 	console.log('MockDataService available at window.mockDataService');

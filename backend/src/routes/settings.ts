@@ -284,7 +284,7 @@ router.get('/validate', asyncHandler(async (req: Request, res: Response): Promis
 // GET /api/settings/recommendations - Get optimization recommendations
 router.get('/recommendations', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	const settings = await Settings.findOne().lean();
-	const latestSensor = await SensorData.findOne().sort({ timestamp: -1 }).lean();
+	const latestSensor = await SensorData.findOne().sort({ createdAt: -1 }).lean();
 
 	if (!settings || !latestSensor) {
 		const response: APIResponse = {
@@ -299,7 +299,7 @@ router.get('/recommendations', asyncHandler(async (req: Request, res: Response):
 	const recommendations = [];
 
 	// Temperature recommendations
-	if (latestSensor.temperature > settings.temperatureThreshold.max) {
+	if (latestSensor.temperature != null && latestSensor.temperature > settings.temperatureThreshold.max) {
 		recommendations.push({
 			type: 'optimization',
 			category: 'temperature',
@@ -311,7 +311,7 @@ router.get('/recommendations', asyncHandler(async (req: Request, res: Response):
 	}
 
 	// Humidity recommendations
-	if (latestSensor.humidity < settings.humidityThreshold.min) {
+	if (latestSensor.humidity != null && latestSensor.humidity < settings.humidityThreshold.min) {
 		recommendations.push({
 			type: 'optimization',
 			category: 'humidity',
@@ -323,7 +323,7 @@ router.get('/recommendations', asyncHandler(async (req: Request, res: Response):
 	}
 
 	// Soil moisture recommendations
-	if (latestSensor.soilMoisture < settings.soilMoistureThreshold.min) {
+	if (latestSensor.soilMoisture != null && latestSensor.soilMoisture < settings.soilMoistureThreshold.min) {
 		recommendations.push({
 			type: 'action',
 			category: 'irrigation',
@@ -335,7 +335,7 @@ router.get('/recommendations', asyncHandler(async (req: Request, res: Response):
 	}
 
 	// Water level recommendations
-	if (latestSensor.waterLevel < settings.waterLevelThreshold.min) {
+	if (latestSensor.waterLevel != null && latestSensor.waterLevel < settings.waterLevelThreshold.min) {
 		recommendations.push({
 			type: 'alert',
 			category: 'water',
@@ -347,7 +347,7 @@ router.get('/recommendations', asyncHandler(async (req: Request, res: Response):
 	}
 
 	// Auto control recommendations
-	if (!settings.autoControl.pump && latestSensor.soilMoisture < settings.soilMoistureThreshold.min) {
+	if (!settings.autoControl.pump && latestSensor.soilMoisture != null && latestSensor.soilMoisture < settings.soilMoistureThreshold.min) {
 		recommendations.push({
 			type: 'setting',
 			category: 'automation',

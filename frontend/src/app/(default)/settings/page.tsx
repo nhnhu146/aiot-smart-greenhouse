@@ -5,6 +5,9 @@ import { Card, Button, Form, Alert, Spinner } from 'react-bootstrap';
 import styles from './settings.module.scss';
 import authService, { User } from '@/lib/authService';
 import apiClient from '@/lib/apiClient';
+import mockDataService from '@/services/mockDataService';
+import DevUtils from '@/components/DevUtils/DevUtils';
+import MockDataToggle from '@/components/MockDataToggle/MockDataToggle';
 
 interface ThresholdSettings {
 	temperatureThreshold: { min: number; max: number };
@@ -30,6 +33,7 @@ const SystemSettingsPage = () => {
 	const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [testingEmail, setTestingEmail] = useState(false);
+	const [isUsingMockData, setIsUsingMockData] = useState(false);
 
 	useEffect(() => {
 		const currentUser = authService.getCurrentUser();
@@ -37,6 +41,8 @@ const SystemSettingsPage = () => {
 		if (currentUser?.email && !emailRecipients.includes(currentUser.email)) {
 			setEmailRecipients([currentUser.email]);
 		}
+		// Check mock data status
+		setIsUsingMockData(mockDataService.isUsingMockData());
 		loadSettings();
 	}, [emailRecipients]);
 
@@ -155,6 +161,7 @@ const SystemSettingsPage = () => {
 
 	return (
 		<div className={styles.container}>
+			<DevUtils />
 			<h2 className={styles.heading}>System Configuration</h2>
 
 			{message && (
@@ -162,6 +169,14 @@ const SystemSettingsPage = () => {
 					{message.text}
 				</Alert>
 			)}
+
+			{/* Data Source Control */}
+			<Card className={styles.card}>
+				<Card.Header className={styles.cardHeader}>Data Source Configuration</Card.Header>
+				<Card.Body className={styles.cardBody}>
+					<MockDataToggle onToggle={(isMock) => setIsUsingMockData(isMock)} />
+				</Card.Body>
+			</Card>
 
 			{/* Temperature Thresholds */}
 			<Card className={styles.card}>

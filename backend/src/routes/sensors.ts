@@ -14,16 +14,16 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 
 	// Filter by date range if provided
 	if (from || to) {
-		query.timestamp = {};
-		if (from) query.timestamp.$gte = from;
-		if (to) query.timestamp.$lte = to;
+		query.createdAt = {};
+		if (from) query.createdAt.$gte = from;
+		if (to) query.createdAt.$lte = to;
 	}
 
 	const skip = (page - 1) * limit;
 
 	const [data, total] = await Promise.all([
 		SensorData.find(query)
-			.sort({ timestamp: -1 })
+			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean(),
@@ -53,7 +53,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 // GET /api/sensors/latest - Lấy dữ liệu cảm biến mới nhất
 router.get('/latest', asyncHandler(async (req: Request, res: Response) => {
 	const latestData = await SensorData.findOne()
-		.sort({ timestamp: -1 })
+		.sort({ createdAt: -1 })
 		.lean();
 
 	const response: APIResponse = {
@@ -72,9 +72,9 @@ router.get('/stats', validateQuery(QueryParamsSchema), asyncHandler(async (req: 
 
 	const matchQuery: any = {};
 	if (from || to) {
-		matchQuery.timestamp = {};
-		if (from) matchQuery.timestamp.$gte = from;
-		if (to) matchQuery.timestamp.$lte = to;
+		matchQuery.createdAt = {};
+		if (from) matchQuery.createdAt.$gte = from;
+		if (to) matchQuery.createdAt.$lte = to;
 	}
 
 	const stats = await SensorData.aggregate([
@@ -115,7 +115,7 @@ router.get('/stats', validateQuery(QueryParamsSchema), asyncHandler(async (req: 
 // GET /api/sensors/realtime - Stream dữ liệu realtime (last 10 readings)
 router.get('/realtime', asyncHandler(async (req: Request, res: Response) => {
 	const realtimeData = await SensorData.find()
-		.sort({ timestamp: -1 })
+		.sort({ createdAt: -1 })
 		.limit(10)
 		.lean();
 
@@ -132,7 +132,7 @@ router.get('/realtime', asyncHandler(async (req: Request, res: Response) => {
 // GET /api/sensors/current - Lấy trạng thái hiện tại của tất cả cảm biến
 router.get('/current', asyncHandler(async (req: Request, res: Response) => {
 	const currentData = await SensorData.findOne()
-		.sort({ timestamp: -1 })
+		.sort({ createdAt: -1 })
 		.lean();
 
 	if (!currentData) {
@@ -145,7 +145,7 @@ router.get('/current', asyncHandler(async (req: Request, res: Response) => {
 	}
 
 	// Calculate time since last update
-	const timeSinceUpdate = Date.now() - new Date(currentData.timestamp).getTime();
+	const timeSinceUpdate = currentData.createdAt ? Date.now() - new Date(currentData.createdAt).getTime() : 0;
 	const isOnline = timeSinceUpdate < 300000; // 5 minutes threshold
 
 	const response: APIResponse = {
@@ -155,7 +155,7 @@ router.get('/current', asyncHandler(async (req: Request, res: Response) => {
 			...currentData,
 			isOnline,
 			timeSinceUpdate: Math.floor(timeSinceUpdate / 1000), // in seconds
-			lastUpdateFormatted: new Date(currentData.timestamp).toLocaleString()
+			lastUpdateFormatted: currentData.createdAt ? new Date(currentData.createdAt).toLocaleString() : 'Unknown'
 		},
 		timestamp: new Date().toISOString()
 	};
@@ -169,20 +169,20 @@ router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 
 	const query: any = {};
 	if (from || to) {
-		query.timestamp = {};
-		if (from) query.timestamp.$gte = from;
-		if (to) query.timestamp.$lte = to;
+		query.createdAt = {};
+		if (from) query.createdAt.$gte = from;
+		if (to) query.createdAt.$lte = to;
 	}
 
 	const data = await SensorData.find(query)
-		.sort({ timestamp: -1 })
+		.sort({ createdAt: -1 })
 		.limit(limit)
 		.lean();
 
 	// Convert to CSV format
 	const csvHeader = 'Timestamp,Temperature,Humidity,SoilMoisture,WaterLevel,PlantHeight,RainStatus\n';
 	const csvData = data.map(row =>
-		`${row.timestamp},${row.temperature},${row.humidity},${row.soilMoisture},${row.waterLevel},${row.plantHeight},${row.rainStatus}`
+		`${row.createdAt},${row.temperature},${row.humidity},${row.soilMoisture},${row.waterLevel},${row.plantHeight},${row.rainStatus}`
 	).join('\n');
 
 	const csvContent = csvHeader + csvData;

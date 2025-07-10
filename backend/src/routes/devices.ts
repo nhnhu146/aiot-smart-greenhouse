@@ -17,7 +17,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	}
 
 	const devices = await DeviceStatus.find(query)
-		.sort({ lastUpdated: -1 })
+		.sort({ updatedAt: -1 })
 		.lean();
 
 	const response: APIResponse = {
@@ -34,12 +34,12 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 router.get('/:deviceType', asyncHandler(async (req: Request, res: Response) => {
 	const { deviceType } = req.params;
 
-	if (!['light', 'pump', 'door'].includes(deviceType)) {
+	if (!['light', 'pump', 'door', 'window'].includes(deviceType)) {
 		throw new AppError('Invalid device type', 400);
 	}
 
 	const device = await DeviceStatus.findOne({ deviceType })
-		.sort({ lastUpdated: -1 })
+		.sort({ updatedAt: -1 })
 		.lean();
 
 	if (!device) {
@@ -61,8 +61,8 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 	const { deviceType, action, duration }: DeviceControl = req.body;
 
 	// Validate action for specific device types
-	if (deviceType === 'door' && !['open', 'close'].includes(action)) {
-		throw new AppError('Invalid action for door. Use "open" or "close"', 400);
+	if (['door', 'window'].includes(deviceType) && !['open', 'close'].includes(action)) {
+		throw new AppError(`Invalid action for ${deviceType}. Use "open" or "close"`, 400);
 	}
 
 	if (['light', 'pump'].includes(deviceType) && !['on', 'off'].includes(action)) {
@@ -87,8 +87,7 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			{
 				deviceId: `greenhouse_${deviceType}`,
 				deviceType,
-				status,
-				lastUpdated: new Date()
+				status
 			},
 			{ upsert: true, new: true }
 		);
@@ -124,8 +123,8 @@ router.get('/status', asyncHandler(async (req: Request, res: Response) => {
 		devices: devices.reduce((acc: any, device) => {
 			acc[device.deviceType] = {
 				status: device.status,
-				lastUpdated: device.lastUpdated,
-				isResponding: (Date.now() - new Date(device.lastUpdated).getTime()) < 300000 // 5 minutes
+				updatedAt: device.updatedAt,
+				isResponding: device.updatedAt ? (Date.now() - new Date(device.updatedAt).getTime()) < 300000 : false // 5 minutes
 			};
 			return acc;
 		}, {})
@@ -170,8 +169,7 @@ router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (
 				{
 					deviceId: `greenhouse_${deviceType}`,
 					deviceType,
-					status,
-					lastUpdated: new Date()
+					status
 				},
 				{ upsert: true, new: true }
 			);
@@ -211,7 +209,7 @@ router.get('/history', validateQuery(QueryParamsSchema), asyncHandler(async (req
 
 	const [history, total] = await Promise.all([
 		DeviceStatus.find(query)
-			.sort({ lastUpdated: -1 })
+			.sort({ updatedAt: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean(),

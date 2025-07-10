@@ -130,7 +130,7 @@ export class MQTTService {
 		}
 	}
 
-	public publishDeviceControl(deviceType: 'light' | 'pump' | 'door', command: string): Promise<void> {
+	public publishDeviceControl(deviceType: 'light' | 'pump' | 'door' | 'window', command: string): Promise<void> {
 		return new Promise((resolve, reject) => {
 			const topic = this.getDeviceControlTopic(deviceType);
 
@@ -146,7 +146,7 @@ export class MQTTService {
 		});
 	}
 
-	private getDeviceControlTopic(deviceType: 'light' | 'pump' | 'door'): string {
+	private getDeviceControlTopic(deviceType: 'light' | 'pump' | 'door' | 'window'): string {
 		switch (deviceType) {
 			case 'light':
 				return this.topics.DEVICES.LIGHT_CONTROL;
@@ -154,6 +154,8 @@ export class MQTTService {
 				return this.topics.DEVICES.PUMP_CONTROL;
 			case 'door':
 				return this.topics.DEVICES.DOOR_CONTROL;
+			case 'window':
+				return this.topics.DEVICES.WINDOW_CONTROL;
 			default:
 				throw new Error(`Unknown device type: ${deviceType}`);
 		}

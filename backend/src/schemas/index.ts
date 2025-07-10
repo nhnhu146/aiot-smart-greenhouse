@@ -11,7 +11,7 @@ export const SensorDataSchema = z.object({
 });
 
 export const DeviceControlSchema = z.object({
-	deviceType: z.enum(['light', 'pump', 'door']),
+	deviceType: z.enum(['light', 'pump', 'door', 'window']),
 	action: z.enum(['on', 'off', 'open', 'close']),
 	duration: z.number().min(1).max(3600).optional() // max 1 hour
 });
@@ -58,7 +58,7 @@ export const QueryParamsSchema = z.object({
 	limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(100)).optional(),
 	from: z.string().transform(val => new Date(val)).pipe(z.date()).optional(),
 	to: z.string().transform(val => new Date(val)).pipe(z.date()).optional(),
-	deviceType: z.enum(['light', 'pump', 'door']).optional(),
+	deviceType: z.enum(['light', 'pump', 'door', 'window']).optional(),
 	resolved: z.string().transform(val => val === 'true').pipe(z.boolean()).optional()
 });
 

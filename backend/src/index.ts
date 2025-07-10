@@ -233,7 +233,7 @@ app.post(`${API_PREFIX}/auth/signup`, async (req: Request, res: Response): Promi
 // Sensor data endpoints (replace ThingSpeak)
 app.get(`${API_PREFIX}/sensors/latest`, async (req: Request, res: Response) => {
 	try {
-		const latestData = await SensorData.findOne({}).sort({ timestamp: -1 });
+		const latestData = await SensorData.findOne({}).sort({ createdAt: -1 });
 		res.json(latestData || {});
 	} catch (error) {
 		console.error('Error fetching latest sensor data:', error);
@@ -245,7 +245,7 @@ app.get(`${API_PREFIX}/sensors/history`, async (req: Request, res: Response) => 
 	try {
 		const limit = parseInt(req.query.limit as string) || 100;
 		const history = await SensorData.find({})
-			.sort({ timestamp: -1 })
+			.sort({ createdAt: -1 })
 			.limit(limit);
 		res.json(history);
 	} catch (error) {
@@ -301,18 +301,18 @@ app.post(`${API_PREFIX}/chat`, async (req: Request, res: Response): Promise<void
 		let answer = "I'm sorry, I don't understand that question.";
 
 		if (lowerQuestion.includes('temperature')) {
-			const latestData = await SensorData.findOne({}).sort({ timestamp: -1 });
-			answer = latestData
+			const latestData = await SensorData.findOne({}).sort({ createdAt: -1 });
+			answer = latestData && latestData.temperature != null
 				? `The current temperature is ${latestData.temperature}°C`
 				: "Temperature data is not available.";
 		} else if (lowerQuestion.includes('humidity')) {
-			const latestData = await SensorData.findOne({}).sort({ timestamp: -1 });
-			answer = latestData
+			const latestData = await SensorData.findOne({}).sort({ createdAt: -1 });
+			answer = latestData && latestData.humidity != null
 				? `The current humidity is ${latestData.humidity}%`
 				: "Humidity data is not available.";
 		} else if (lowerQuestion.includes('moisture')) {
-			const latestData = await SensorData.findOne({}).sort({ timestamp: -1 });
-			answer = latestData
+			const latestData = await SensorData.findOne({}).sort({ createdAt: -1 });
+			answer = latestData && latestData.soilMoisture != null
 				? `The current soil moisture is ${latestData.soilMoisture}%`
 				: "Soil moisture data is not available.";
 		}
