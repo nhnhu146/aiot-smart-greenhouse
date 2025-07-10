@@ -10,11 +10,13 @@ Hệ thống nhà kính thông minh sử dụng công nghệ AIOT (Artificial In
 
 ## 📋 Quick Navigation
 
-- 📚 **[Complete Documentation](./DOCUMENTATION.md)** - Comprehensive system guide
-- 🚀 **[Quick Start](#-quick-start)** - Get up and running fast
-- 🔧 **[Configuration](#-configuration)** - Environment setup
-- 🏗️ **[Architecture](#-system-architecture)** - System overview
-- 📞 **[Support](#-support--troubleshooting)** - Help and troubleshooting
+- 📚 **[Complete Documentation](./docs/README.md)** - Documentation hub và quick start
+- 🚀 **[Getting Started](./docs/getting-started.md)** - Hướng dẫn bắt đầu chi tiết
+- 🏗️ **[System Architecture](./docs/architecture.md)** - Kiến trúc hệ thống
+- 📡 **[MQTT Guide](./docs/mqtt-guide.md)** - Cấu hình MQTT và triggers
+- 🔧 **[API Documentation](./docs/api-documentation.md)** - API reference
+- 👨‍💻 **[Development Guide](./docs/development-guide.md)** - Setup development
+- �️ **[Troubleshooting](./docs/troubleshooting.md)** - Xử lý sự cố
 
 ## 👥 Development Team
 1. **Nguyen Van Le Ba Thanh** - 22127390 (Project Lead)
