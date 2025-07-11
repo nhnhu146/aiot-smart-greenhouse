@@ -24,6 +24,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@types/socket.io": "^3.0.2",
+		"axios": "^1.10.0",
 		"bcrypt": "^6.0.0",
 		"compression": "^1.8.0",
 		"cors": "^2.8.5",

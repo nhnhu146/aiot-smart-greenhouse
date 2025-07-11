@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { Alert, Settings } from '../models';
+import { sendPushNotification } from './PushNotificationService';
 
 export interface AlertData {
 	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'motion' | 'system';
@@ -59,13 +60,15 @@ class NotificationService {
 
 	// Main trigger alert function - centralized for easy extension
 	async triggerAlert(alertData: AlertData): Promise<void> {
+		console.log('[triggerAlert] Start:', alertData);
 		try {
-			const alertKey = `${alertData.type}_${alertData.level}`;
+			const alertKey = `${alertData.type}_${alertData.level}_${alertData.currentValue ? Math.floor(alertData.currentValue/5)*5 : 'na'}`;
 			const now = Date.now();
 
 			// Check cooldown to prevent spam
 			const lastAlert = this.lastAlertTime.get(alertKey);
 			if (lastAlert && (now - lastAlert) < this.alertCooldown) {
+				console.log(`[triggerAlert] Cooldown active for ${alertKey}, skipping`);
 				return;
 			}
 
@@ -85,18 +88,19 @@ class NotificationService {
 				await this.sendEmailAlert(alertData);
 			}
 
+			// Gửi thông báo push (PushSafer)
+			await sendPushNotification(
+				`🌿 Alert: ${alertData.type.toUpperCase()} - ${alertData.level.toUpperCase()}`,
+				alertData.message
+			);
+
 			// Update last alert time
 			this.lastAlertTime.set(alertKey, now);
-
-			// Future extensions can be added here:
-			// - SMS notifications
-			// - Push notifications  
-			// - Webhook calls
-			// - Automation triggers
 
 		} catch (error) {
 			console.error('Error triggering alert:', error);
 		}
+		console.log('[triggerAlert] End');
 	}
 
 	private async saveAlertToDatabase(alertData: AlertData): Promise<void> {

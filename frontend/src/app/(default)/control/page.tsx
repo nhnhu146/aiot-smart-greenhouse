@@ -3,18 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
-import pushNoti from '@/hooks/pushNoti';
 import styles from './control.module.scss';
 
-interface EmailData {
-	to: string;
-	subject: string;
-	text: string;
-}
-
 // Sensor data state
-var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0, LightLevel = 0, PIRValue = 0;
-var noti_sent = false, last_water_state = false;
+var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0, LightLevel = 0;
+var last_water_state = false;
 
 const Control = () => {
 	const { sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
@@ -65,13 +58,12 @@ const Control = () => {
 					LightLevel = parseInt(value, 10);
 					break;
 				default:
-					// Handle other sensor types
 					break;
 			}
 
 			// Automatic control logic (only if user hasn't manually interacted recently)
 			if (!userInteraction) {
-				// Light control based on light sensor
+				// Light control
 				if (sensor === 'light') {
 					const shouldTurnOn = LightLevel > 2000;
 					const currentLightState = switchStates.get('light') || false;
@@ -81,7 +73,7 @@ const Control = () => {
 					}
 				}
 
-				// Ventilation control based on humidity, temperature, and rain
+				// Ventilation control
 				if ((sensor === 'humidity' || sensor === 'temperature' || sensor === 'rain') &&
 					Humidity > 0 && Temperature > 0 && Rain >= 0) {
 					const shouldOpenWindow = Humidity > 30 && Temperature > 20 && Rain < 200;
@@ -101,25 +93,17 @@ const Control = () => {
 					}
 				}
 
-				// Watering control based on soil moisture and water level
+				// Watering control
 				if ((sensor === 'soil' || sensor === 'water') && Moisture > 0 && Waterlevel >= 0) {
 					const shouldTurnOnPump = Moisture > 4000 && Waterlevel === 1;
 					const currentPumpState = switchStates.get('pump');
 
-					// Water level notifications
+					// Reset notification state
 					if (Waterlevel === 1 && last_water_state === false) {
-						noti_sent = false;
 						last_water_state = true;
 					}
 
-					if (Waterlevel === 0 && noti_sent === false) {
-						pushNoti("Smart Greenhouse Notification", "Water level is low. Please refill the water tank");
-						sendEmail({
-							to: 'admin@greenhouse.com',
-							subject: 'Smart Greenhouse Notification',
-							text: 'Water level is low. Please refill the water tank',
-						});
-						noti_sent = true;
+					if (Waterlevel === 0 && last_water_state === true) {
 						last_water_state = false;
 					}
 
@@ -137,34 +121,16 @@ const Control = () => {
 		if (userInteraction) {
 			const timer = setTimeout(() => {
 				setUserInteraction(false);
-			}, 30000); // 30 seconds
+			}, 30000);
 
 			return () => clearTimeout(timer);
 		}
 	}, [userInteraction]);
 
-	async function sendEmail(emailData: EmailData) {
-		try {
-			const res = await fetch('/api/send-mail', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(emailData),
-			});
-			const data = await res.json();
-			if (data.success) {
-				console.log('Email sent successfully:', data.response);
-			} else {
-				console.error('Failed to send email:', data.error);
-			}
-		} catch (error) {
-			console.error('Error while sending email:', error);
-		}
-	}
-
 	return (
 		<Container className={styles["activity-container"]}>
 			<div className="d-flex justify-content-between align-items-center mb-3">
-				<h3 className={styles["activity-title"]}>Let's control your Greenhouse devices</h3>
+				<h3 className={styles["activity-title"]}>Let&apos;s control your Greenhouse devices</h3>
 				<div className={`badge ${isConnected ? 'bg-success' : 'bg-danger'}`}>
 					{isConnected ? '🟢 Connected' : '🔴 Disconnected'}
 				</div>

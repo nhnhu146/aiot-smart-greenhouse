@@ -44,6 +44,7 @@ services:
       CORS_ORIGIN: "*"
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
+      PUSHSAFER_PRIVATE_KEY: ${PUSHSAFER_PRIVATE_KEY:-jRAkGUU3spPjSUr2kT6q}
     ports:
       - "5000:5000"
     volumes:
