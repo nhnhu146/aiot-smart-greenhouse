@@ -74,44 +74,44 @@ class AlertService {
 		soilMoisture: number;
 		waterLevel: number;
 	}): Promise<void> {
-		console.log('👀 Checking thresholds for data:', sensorData);
+		const traceId = Math.random().toString(36).substr(2, 9);
+		console.log(`[${traceId}] 👀 Checking thresholds for data:`, sensorData);
 		
 		if (!this.currentThresholds) {
 			await this.loadThresholds();
 		}
 
 		if (!this.currentThresholds) {
-			console.error('❌ No thresholds available for checking');
+			console.error(`[${traceId}] ❌ No thresholds available for checking`);
 			return;
 		}
 		
-		console.log('📊 Current thresholds:', this.currentThresholds);
+		console.log(`[${traceId}] 📊 Current thresholds:`, this.currentThresholds);
 
-		// Check each sensor value against thresholds
-		await Promise.all([
-			this.checkTemperature(sensorData.temperature),
-			this.checkHumidity(sensorData.humidity),
-			this.checkSoilMoisture(sensorData.soilMoisture),
-			this.checkWaterLevel(sensorData.waterLevel)
-		]);
+		// THAY ĐỔI: Thực thi tuần tự thay vì song song
+		// Loại bỏ Promise.all để tránh gửi thông báo trùng lặp
+		await this.checkTemperature(sensorData.temperature, traceId);
+		await this.checkHumidity(sensorData.humidity, traceId);
+		await this.checkSoilMoisture(sensorData.soilMoisture, traceId);
+		await this.checkWaterLevel(sensorData.waterLevel, traceId);
 	}
 
-	private async checkTemperature(value: number): Promise<void> {
+	private async checkTemperature(value: number, traceId: string): Promise<void> {
 		if (!this.currentThresholds) return;
 
 		const threshold = this.currentThresholds.temperatureThreshold;
 		const lastValue = this.lastCheckedValues.get('temperature');
 
-		console.log(`🌡️ Checking temperature: ${value}°C (min: ${threshold.min}, max: ${threshold.max})`);
+		console.log(`[${traceId}] 🌡️ Checking temperature: ${value}°C (min: ${threshold.min}, max: ${threshold.max})`);
 		
 		// Only trigger if value changes significantly or crosses threshold
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 0.5) {
-			console.log(`🌡️ Temperature change too small: ${value}°C vs last ${lastValue}°C`);
+			console.log(`[${traceId}] 🌡️ Temperature change too small: ${value}°C vs last ${lastValue}°C`);
 			return;
 		}
 
 		if (value < threshold.min) {
-			console.log(`🚨 [Temperature] BELOW threshold: ${value}°C < ${threshold.min}°C`);
+			console.log(`[${traceId}] 🚨 [Temperature] BELOW threshold: ${value}°C < ${threshold.min}°C`);
 			await notificationService.triggerAlert({
 				type: 'temperature',
 				level: value < threshold.min - 5 ? 'critical' : 'high',
@@ -126,7 +126,7 @@ class AlertService {
 				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
 			}
 		} else if (value > threshold.max) {
-			console.log(`🚨 [Temperature] ABOVE threshold: ${value}°C > ${threshold.max}°C`);
+			console.log(`[${traceId}] 🚨 [Temperature] ABOVE threshold: ${value}°C > ${threshold.max}°C`);
 			await notificationService.triggerAlert({
 				type: 'temperature',
 				level: value > threshold.max + 5 ? 'critical' : 'high',
@@ -147,21 +147,21 @@ class AlertService {
 		this.lastCheckedValues.set('temperature', value);
 	}
 
-	private async checkHumidity(value: number): Promise<void> {
+	private async checkHumidity(value: number, traceId: string): Promise<void> {
 		if (!this.currentThresholds) return;
 
 		const threshold = this.currentThresholds.humidityThreshold;
 		const lastValue = this.lastCheckedValues.get('humidity');
 
-		console.log(`💧 Checking humidity: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
+		console.log(`[${traceId}] 💧 Checking humidity: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
 		
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
-			console.log(`💧 Humidity change too small: ${value}% vs last ${lastValue}%`);
+			console.log(`[${traceId}] 💧 Humidity change too small: ${value}% vs last ${lastValue}%`);
 			return;
 		}
 
 		if (value < threshold.min) {
-			console.log(`🚨 [Humidity] BELOW threshold: ${value}% < ${threshold.min}%`);
+			console.log(`[${traceId}] 🚨 [Humidity] BELOW threshold: ${value}% < ${threshold.min}%`);
 			await notificationService.triggerAlert({
 				type: 'humidity',
 				level: value < threshold.min - 10 ? 'high' : 'medium',
@@ -176,7 +176,7 @@ class AlertService {
 				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
 			}
 		} else if (value > threshold.max) {
-			console.log(`🚨 [Humidity] ABOVE threshold: ${value}% > ${threshold.max}%`);
+			console.log(`[${traceId}] 🚨 [Humidity] ABOVE threshold: ${value}% > ${threshold.max}%`);
 			await notificationService.triggerAlert({
 				type: 'humidity',
 				level: value > threshold.max + 10 ? 'high' : 'medium',
@@ -197,21 +197,21 @@ class AlertService {
 		this.lastCheckedValues.set('humidity', value);
 	}
 
-	private async checkSoilMoisture(value: number): Promise<void> {
+	private async checkSoilMoisture(value: number, traceId: string): Promise<void> {
 		if (!this.currentThresholds) return;
 
 		const threshold = this.currentThresholds.soilMoistureThreshold;
 		const lastValue = this.lastCheckedValues.get('soilMoisture');
 
-		console.log(`🌱 Checking soil moisture: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
+		console.log(`[${traceId}] 🌱 Checking soil moisture: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
 		
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
-			console.log(`🌱 Soil moisture change too small: ${value}% vs last ${lastValue}%`);
+			console.log(`[${traceId}] 🌱 Soil moisture change too small: ${value}% vs last ${lastValue}%`);
 			return;
 		}
 
 		if (value < threshold.min) {
-			console.log(`🚨 [Soil Moisture] BELOW threshold: ${value}% < ${threshold.min}%`);
+			console.log(`[${traceId}] 🚨 [Soil Moisture] BELOW threshold: ${value}% < ${threshold.min}%`);
 			await notificationService.triggerAlert({
 				type: 'soilMoisture',
 				level: value < threshold.min - 10 ? 'critical' : 'high',
@@ -226,7 +226,7 @@ class AlertService {
 				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
 			}
 		} else if (value > threshold.max) {
-			console.log(`🚨 [Soil Moisture] ABOVE threshold: ${value}% > ${threshold.max}%`);
+			console.log(`[${traceId}] 🚨 [Soil Moisture] ABOVE threshold: ${value}% > ${threshold.max}%`);
 			await notificationService.triggerAlert({
 				type: 'soilMoisture',
 				level: 'medium',
@@ -247,21 +247,21 @@ class AlertService {
 		this.lastCheckedValues.set('soilMoisture', value);
 	}
 
-	private async checkWaterLevel(value: number): Promise<void> {
+	private async checkWaterLevel(value: number, traceId: string): Promise<void> {
 		if (!this.currentThresholds) return;
 
 		const threshold = this.currentThresholds.waterLevelThreshold;
 		const lastValue = this.lastCheckedValues.get('waterLevel');
 
-		console.log(`🚰 Checking water level: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
+		console.log(`[${traceId}] 🚰 Checking water level: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
 		
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
-			console.log(`🚰 Water level change too small: ${value}% vs last ${lastValue}%`);
+			console.log(`[${traceId}] 🚰 Water level change too small: ${value}% vs last ${lastValue}%`);
 			return;
 		}
 
 		if (value < threshold.min) {
-			console.log(`🚨 [Water Level] BELOW threshold: ${value}% < ${threshold.min}%`);
+			console.log(`[${traceId}] 🚨 [Water Level] BELOW threshold: ${value}% < ${threshold.min}%`);
 			await notificationService.triggerAlert({
 				type: 'waterLevel',
 				level: value < 10 ? 'critical' : 'high',

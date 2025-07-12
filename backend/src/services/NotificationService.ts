@@ -60,22 +60,33 @@ class NotificationService {
 
 	// Main trigger alert function - centralized for easy extension
 	async triggerAlert(alertData: AlertData): Promise<void> {
-		console.log('[triggerAlert] Start:', alertData);
+		const requestId = Math.random().toString(36).substr(2, 9); // ID duy nhất cho mỗi request
+		console.log(`[${requestId}] [triggerAlert] Start:`, alertData);
 		try {
+			// Tạo alertKey chi tiết hơn, bao gồm cả giá trị và loại cảnh báo
 			const alertKey = `${alertData.type}_${alertData.level}_${alertData.currentValue ? Math.floor(alertData.currentValue/5)*5 : 'na'}`;
 			const now = Date.now();
 
-			// Check cooldown to prevent spam
+			// Kiểm tra cooldown để tránh spam
 			const lastAlert = this.lastAlertTime.get(alertKey);
 			if (lastAlert && (now - lastAlert) < this.alertCooldown) {
-				console.log(`[triggerAlert] Cooldown active for ${alertKey}, skipping`);
+				console.log(`[${requestId}] [triggerAlert] Cooldown active for ${alertKey}, skipping. Last alert: ${new Date(lastAlert).toISOString()}, Time left: ${Math.round((this.alertCooldown - (now - lastAlert))/1000)}s`);
 				return;
 			}
 
-			console.log(`🚨 Alert triggered: ${alertData.type} - ${alertData.message}`);
+			// Cập nhật thời gian cuối ngay lập tức để ngăn các lệnh gọi song song
+			this.lastAlertTime.set(alertKey, now);
 
-			// Save alert to database
-			await this.saveAlertToDatabase(alertData);
+			console.log(`[${requestId}] 🚨 Alert triggered: ${alertData.type} - ${alertData.message}`);
+
+			try {
+				// Lưu alert vào database
+				await this.saveAlertToDatabase(alertData);
+				console.log(`[${requestId}] Alert saved to database`);
+			} catch (dbError) {
+				console.error(`[${requestId}] Error saving alert to database:`, dbError);
+				// Tiếp tục gửi thông báo mặc dù lưu DB thất bại
+			}
 
 			// Get recipients from settings
 			const recipients = await this.getEmailRecipients();
@@ -85,22 +96,29 @@ class NotificationService {
 
 			// Send email notification
 			if (this.emailConfig.enabled && this.emailConfig.recipients.length > 0) {
-				await this.sendEmailAlert(alertData);
+				try {
+					await this.sendEmailAlert(alertData);
+					console.log(`[${requestId}] Email alerts sent`);
+				} catch (emailError) {
+					console.error(`[${requestId}] Error sending email:`, emailError);
+				}
 			}
 
 			// Gửi thông báo push (PushSafer)
-			await sendPushNotification(
-				`🌿 Alert: ${alertData.type.toUpperCase()} - ${alertData.level.toUpperCase()}`,
-				alertData.message
-			);
-
-			// Update last alert time
-			this.lastAlertTime.set(alertKey, now);
+			try {
+				await sendPushNotification(
+					`🌿 Alert: ${alertData.type.toUpperCase()} - ${alertData.level.toUpperCase()}`,
+					alertData.message
+				);
+				console.log(`[${requestId}] Push notification sent`);
+			} catch (pushError) {
+				console.error(`[${requestId}] Error sending push notification:`, pushError);
+			}
 
 		} catch (error) {
-			console.error('Error triggering alert:', error);
+			console.error(`[${requestId}] Error triggering alert:`, error);
 		}
-		console.log('[triggerAlert] End');
+		console.log(`[${requestId}] [triggerAlert] End`);
 	}
 
 	private async saveAlertToDatabase(alertData: AlertData): Promise<void> {
@@ -110,15 +128,21 @@ class NotificationService {
 				level: alertData.level,
 				message: alertData.message,
 				value: alertData.currentValue,
-				threshold: alertData.threshold,
+				threshold: alertData.threshold ? {
+					min: alertData.threshold.min,
+					max: alertData.threshold.max
+				} : undefined,
 				deviceType: alertData.deviceType,
 				timestamp: new Date(),
 				resolved: false
 			});
 
 			await alert.save();
+			console.log(`Alert saved to database: ${alertData.type} - ${alertData.level}`);
 		} catch (error) {
 			console.error('Error saving alert to database:', error);
+			// Throw lại lỗi để caller có thể xử lý
+			throw error;
 		}
 	}
 

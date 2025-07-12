@@ -1,48 +1,55 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { Alert } from '../types';
+import mongoose, { Document } from 'mongoose';
 
-export interface IAlert extends Omit<Alert, '_id'>, Document { }
+export interface IAlert extends Document {
+  type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'motion' | 'system';
+  level: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  value?: number;
+  threshold?: {
+    min?: number;
+    max?: number;
+  };
+  deviceType?: string;
+  timestamp: Date;
+  resolved: boolean;
+}
 
-const AlertSchema: Schema = new Schema({
-	type: {
-		type: String,
-		required: true,
-		enum: ['warning', 'error', 'info']
-	},
-	message: {
-		type: String,
-		required: true
-	},
-	sensor: {
-		type: String,
-		required: false
-	},
-	value: {
-		type: Number,
-		required: false
-	},
-	threshold: {
-		type: Number,
-		required: false
-	},
-	resolved: {
-		type: Boolean,
-		required: true,
-		default: false
-	},
-	timestamp: {
-		type: Date,
-		required: true,
-		default: Date.now
-	}
-}, {
-	timestamps: true,
-	versionKey: false
+const AlertSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'device', 'motion', 'system'],
+    required: true
+  },
+  level: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'critical'],
+    required: true
+  },
+  message: {
+    type: String,
+    required: true
+  },
+  value: {
+    type: Number
+  },
+  threshold: {
+    min: Number,
+    max: Number
+  },
+  deviceType: String,
+  timestamp: {
+    type: Date,
+    default: Date.now
+  },
+  resolved: {
+    type: Boolean,
+    default: false
+  }
 });
 
-// Index for better query performance
-AlertSchema.index({ timestamp: -1 });
-AlertSchema.index({ resolved: 1 });
-AlertSchema.index({ type: 1 });
+const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
 
-export default mongoose.model<IAlert>('Alert', AlertSchema);
+// Thêm export default để khớp với cách import trong index.ts
+export default Alert;
+// Vẫn giữ named export cho các file đang sử dụng
+export { Alert };
