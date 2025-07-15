@@ -3,6 +3,7 @@ import { SensorData } from '../models';
 import { validateQuery, asyncHandler } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
+import { formatVietnamTimestamp } from '../utils/timezone';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 				hasPrev: page > 1
 			}
 		},
-		timestamp: new Date().toISOString()
+		timestamp: formatVietnamTimestamp()
 	};
 
 	res.json(response);
@@ -60,7 +61,7 @@ router.get('/latest', asyncHandler(async (req: Request, res: Response) => {
 		success: true,
 		message: 'Latest sensor data retrieved successfully',
 		data: latestData,
-		timestamp: new Date().toISOString()
+		timestamp: formatVietnamTimestamp()
 	};
 
 	res.json(response);
@@ -106,7 +107,7 @@ router.get('/stats', validateQuery(QueryParamsSchema), asyncHandler(async (req: 
 		success: true,
 		message: 'Sensor statistics retrieved successfully',
 		data: stats[0] || {},
-		timestamp: new Date().toISOString()
+		timestamp: formatVietnamTimestamp()
 	};
 
 	res.json(response);

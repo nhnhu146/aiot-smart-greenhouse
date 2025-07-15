@@ -3,6 +3,7 @@ import { SensorData, DeviceStatus, Alert } from '../models';
 import { validateQuery, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
+import { formatVietnamTimestamp } from '../utils/timezone';
 
 const router = Router();
 
@@ -247,7 +248,7 @@ router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 	]);
 
 	const exportData = {
-		exportTime: new Date().toISOString(),
+		exportTime: formatVietnamTimestamp(),
 		dateRange: { from, to },
 		data: {
 			sensors: sensors,

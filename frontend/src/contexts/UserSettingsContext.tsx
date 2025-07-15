@@ -51,7 +51,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 	const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 	const getAuthToken = () => {
-		return localStorage.getItem('token');
+		return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 	};
 
 	const getAuthHeaders = useCallback(() => {
@@ -70,6 +70,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 			const token = getAuthToken();
 			if (!token) {
 				setError('Authentication required');
+				setLoading(false);
 				return;
 			}
 
@@ -94,9 +95,9 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 		} finally {
 			setLoading(false);
 		}
-	}, [API_BASE_URL, getAuthHeaders]);
+	}, []);
 
-	const updateAlertRecipients = async (recipients: string[]) => {
+	const updateAlertRecipients = useCallback(async (recipients: string[]) => {
 		try {
 			setError(null);
 			const response = await fetch(`${API_BASE_URL}/api/user-settings/alert-recipients`, {
@@ -122,9 +123,9 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 			setError(err instanceof Error ? err.message : 'Unknown error');
 			throw err;
 		}
-	};
+	}, [getAuthHeaders, settings]);
 
-	const updateMqttConfig = async (config: any) => {
+	const updateMqttConfig = useCallback(async (config: any) => {
 		try {
 			setError(null);
 			const response = await fetch(`${API_BASE_URL}/api/user-settings/mqtt-config`, {
@@ -150,9 +151,9 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 			setError(err instanceof Error ? err.message : 'Unknown error');
 			throw err;
 		}
-	};
+	}, [getAuthHeaders, settings]);
 
-	const updateAlertThresholds = async (thresholds: any) => {
+	const updateAlertThresholds = useCallback(async (thresholds: any) => {
 		try {
 			setError(null);
 			const response = await fetch(`${API_BASE_URL}/api/user-settings/alert-thresholds`, {
@@ -178,9 +179,9 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 			setError(err instanceof Error ? err.message : 'Unknown error');
 			throw err;
 		}
-	};
+	}, [getAuthHeaders, settings]);
 
-	const resetSettings = async () => {
+	const resetSettings = useCallback(async () => {
 		try {
 			setError(null);
 			const response = await fetch(`${API_BASE_URL}/api/user-settings/reset`, {
@@ -202,7 +203,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 			setError(err instanceof Error ? err.message : 'Unknown error');
 			throw err;
 		}
-	};
+	}, [getAuthHeaders]);
 
 	useEffect(() => {
 		loadSettings();

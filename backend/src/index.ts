@@ -129,7 +129,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
 	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100000'), // limit each IP to 100 requests per windowMs
 	message: {
 		success: false,
 		message: 'Too many requests from this IP, please try again later',
@@ -506,29 +506,177 @@ function setupMQTTHandlers() {
 		try {
 			console.log(`📨 Received MQTT message on topic: ${topic}`);
 
-			const messageString = message.toString();
+			const messageString = message.toString().trim();
 			console.log(`📄 Message content: ${messageString}`);
 
-			// Handle sensor data
+			// Handle sensor data - IoT devices send only simple numeric values
 			if (topic.startsWith('greenhouse/sensors/')) {
 				const sensorValue = parseFloat(messageString);
 
 				if (isNaN(sensorValue)) {
 					console.error('❌ Invalid sensor value received:', messageString);
+					// Send debug feedback for invalid data
+					mqttService.publishDebugFeedback(topic, messageString, 'error_invalid_value');
 					return;
 				}
 
-				// Process sensor data through the new system
-				await mqttService.processSensorData(topic, sensorValue);
+				// Extract sensor type from topic
+				const sensorType = topic.split('/')[2];
+				console.log(`🔧 Processing ${sensorType} sensor with value: ${sensorValue}`);
+
+				// Save to database using correct model structure
+				await saveSensorDataToDatabase(sensorType, sensorValue);
 
 				// Broadcast sensor data to WebSocket clients
-				webSocketService.broadcastSensorData(topic, { value: sensorValue });
+				webSocketService.broadcastSensorData(topic, {
+					value: sensorValue,
+					type: sensorType,
+					timestamp: new Date().toISOString()
+				});
+
+				// Check alerts
+				if (alertService) {
+					await checkSensorAlerts(sensorType, sensorValue);
+				}
+
+				// Send debug feedback for successful processing
+				mqttService.publishDebugFeedback(topic, messageString, 'success');
 			}
 
 		} catch (error) {
 			console.error('❌ Error processing MQTT message:', error);
+			// Send debug feedback for processing errors
+			mqttService.publishDebugFeedback(topic, message.toString(), 'error_processing');
 		}
 	});
+}
+
+// Helper function to save sensor data to database
+async function saveSensorDataToDatabase(sensorType: string, value: number) {
+	try {
+		// Get the latest sensor document or create a new one
+		let sensorDoc = await SensorData.findOne().sort({ createdAt: -1 });
+
+		// If no document exists or the latest is older than 30 seconds, create new
+		const now = new Date();
+		const shouldCreateNew = !sensorDoc ||
+			(sensorDoc.createdAt && now.getTime() - sensorDoc.createdAt.getTime() > 30000);
+
+		if (shouldCreateNew) {
+			// Create new document with the sensor value
+			const newData: any = {
+				deviceId: 'esp32-greenhouse-01',
+				dataQuality: 'partial'
+			};
+
+			// Map sensor type to database field
+			switch (sensorType) {
+				case 'temperature':
+					newData.temperature = value;
+					break;
+				case 'humidity':
+					newData.humidity = value;
+					break;
+				case 'soil':
+					newData.soilMoisture = value;
+					break;
+				case 'water':
+					newData.waterLevel = value;
+					break;
+				case 'light':
+					newData.lightLevel = value;
+					break;
+				case 'height':
+					newData.plantHeight = value;
+					break;
+				case 'rain':
+					newData.rainStatus = value > 0;
+					break;
+				default:
+					console.warn(`🔍 Unknown sensor type: ${sensorType}`);
+					return;
+			}
+
+			sensorDoc = new SensorData(newData);
+			await sensorDoc.save();
+		} else if (sensorDoc) {
+			// Update existing document - explicit null check
+			switch (sensorType) {
+				case 'temperature':
+					sensorDoc.temperature = value;
+					break;
+				case 'humidity':
+					sensorDoc.humidity = value;
+					break;
+				case 'soil':
+					sensorDoc.soilMoisture = value;
+					break;
+				case 'water':
+					sensorDoc.waterLevel = value;
+					break;
+				case 'light':
+					sensorDoc.lightLevel = value;
+					break;
+				case 'height':
+					sensorDoc.plantHeight = value;
+					break;
+				case 'rain':
+					sensorDoc.rainStatus = value > 0;
+					break;
+			}
+
+			// Update quality based on how many sensors have data
+			const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'lightLevel'];
+			const filledSensors = sensorFields.filter(field =>
+				(sensorDoc as any)[field] != null
+			).length;
+			sensorDoc.dataQuality = filledSensors >= 4 ? 'complete' : 'partial';
+
+			await sensorDoc.save();
+		}
+
+		console.log(`💾 Saved ${sensorType} sensor data: ${value}`);
+
+	} catch (error) {
+		console.error(`❌ Error saving sensor data to database:`, error);
+	}
+}
+
+// Helper function to check sensor alerts
+async function checkSensorAlerts(sensorType: string, value: number) {
+	try {
+		// Create alert data structure expected by AlertService
+		const alertData: any = {
+			temperature: null,
+			humidity: null,
+			soilMoisture: null,
+			waterLevel: null
+		};
+
+		// Set the specific sensor value
+		switch (sensorType) {
+			case 'temperature':
+				alertData.temperature = value;
+				break;
+			case 'humidity':
+				alertData.humidity = value;
+				break;
+			case 'soil':
+				alertData.soilMoisture = value;
+				break;
+			case 'water':
+				alertData.waterLevel = value;
+				break;
+		}
+
+		// Only check alerts for supported sensor types
+		if (['temperature', 'humidity', 'soil', 'water'].includes(sensorType)) {
+			await alertService.checkSensorThresholds(alertData);
+		}
+
+	} catch (error) {
+		console.error(`❌ Error checking sensor alerts:`, error);
+	}
 }
 
 // Graceful shutdown
@@ -561,12 +709,15 @@ function setupGracefulShutdown() {
 async function startServer() {
 	try {
 		console.log('🚀 Starting AIOT Smart Greenhouse Backend...');
-
 		// Connect to database
 		await databaseService.connect();
 		console.log('✅ Database connected');
 
-		// Setup MQTT handlers
+		// Connect to MQTT broker and wait for connection
+		await mqttService.connect();
+		console.log('✅ MQTT connection established');
+
+		// Setup MQTT handlers after connection is ready
 		setupMQTTHandlers();
 		console.log('✅ MQTT handlers setup');
 

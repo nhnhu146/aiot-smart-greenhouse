@@ -1,6 +1,5 @@
 import { Server } from 'socket.io';
 import { Server as HttpServer } from 'http';
-import { mqttService } from './MQTTService';
 
 class WebSocketService {
 	private io: Server | null = null;
@@ -43,59 +42,64 @@ class WebSocketService {
 			});
 		});
 
-		// Listen to MQTT sensor data and broadcast to all WebSocket clients
-		this.setupMQTTBridge();
+		// Listen to MQTT sensor data and broadcast to all WebSocket clients - now handled in index.ts
+		// this.setupMQTTBridge();
 	}
 
 	private setupMQTTBridge() {
-		// Bridge MQTT messages to WebSocket clients
-		mqttService.onSensorData((topic: string, data: any) => {
-			this.broadcastSensorData(topic, data);
-		});
-
-		mqttService.onDeviceStatus((topic: string, status: any) => {
-			this.broadcastDeviceStatus(topic, status);
-		});
+		// Bridge MQTT messages to WebSocket clients - removed to avoid circular dependencies
+		// MQTT handling is now done directly in index.ts
+		console.log('[WS] MQTT bridge setup skipped - handled in main application');
 	}
 
 	private handleDeviceControl(data: any) {
 		const { device, action, value } = data;
 
-		// Map frontend device names to MQTT service types
-		const deviceTypeMap: { [key: string]: 'light' | 'pump' | 'door' } = {
-			'light': 'light',
-			'pump': 'pump',
-			'door': 'door',
-			'window': 'door', // Map window to door for now
-			'fan': 'pump' // Map fan to pump for now
+		// Import mqttService dynamically to avoid circular dependency
+		const { mqttService } = require('./MQTTService');
+
+		// Map frontend device names to MQTT topics
+		const deviceTopicMap: { [key: string]: string } = {
+			'light': 'greenhouse/devices/light/control',
+			'pump': 'greenhouse/devices/pump/control',
+			'door': 'greenhouse/devices/door/control',
+			'window': 'greenhouse/devices/window/control',
+			'fan': 'greenhouse/devices/pump/control' // Map fan to pump for now
 		};
 
-		const mqttDeviceType = deviceTypeMap[device];
-		if (!mqttDeviceType) {
+		const mqttTopic = deviceTopicMap[device];
+		if (!mqttTopic) {
 			console.error('Unknown device type:', device);
 			return;
 		}
 
-		// Create command payload
-		const command = JSON.stringify({
-			action,
-			value,
-			timestamp: new Date().toISOString()
-		});
+		console.log(`[WS] Device control request: ${device} -> ${action} (${value})`);
+		console.log(`[WS] Publishing to MQTT: ${mqttTopic} -> ${action}`);
 
-		mqttService.publishDeviceControl(mqttDeviceType, command);
+		// Use the MQTT service to publish device control
+		if (mqttService && mqttService.isClientConnected()) {
+			mqttService.publish(mqttTopic, action);
+		} else {
+			console.error('[WS] MQTT service not available or not connected');
+		}
 	}
 
 	// Broadcast sensor data to all connected clients
 	broadcastSensorData(topic: string, data: any) {
-		if (!this.io) return;
+		if (!this.io) {
+			console.log('[WS-ERROR] WebSocket server not initialized');
+			return;
+		}
 
 		const sensorType = this.extractSensorType(topic);
-		this.io.emit('sensor:data', {
+		const wsData = {
 			sensor: sensorType,
 			data,
 			timestamp: new Date().toISOString()
-		});
+		};
+
+		console.log(`[WS-BROADCAST] Broadcasting ${sensorType} data to clients:`, wsData);
+		this.io.emit('sensor:data', wsData);
 	}
 
 	// Broadcast device status to all connected clients

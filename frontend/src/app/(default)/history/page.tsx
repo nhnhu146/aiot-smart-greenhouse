@@ -65,6 +65,40 @@ const History = () => {
 		fetchData();
 	}, []);
 
+	// Listen for mock data setting changes
+	useEffect(() => {
+		const handleMockDataChange = (event: CustomEvent) => {
+			console.log('🔧 Mock data setting changed in history:', event.detail.enabled);
+
+			// Force re-fetch data with new setting
+			const fetchData = async () => {
+				const isUsingMock = mockDataService.isUsingMockData();
+
+				if (isUsingMock) {
+					const result = await mockDataService.getChartData();
+					setData(result.data);
+					setIsUsingMockData(true);
+					console.log('🎭 History switched to mock data');
+				} else {
+					const result = await mockDataService.getChartData();
+					setData(result.data);
+					setIsUsingMockData(result.isMock);
+					console.log(result.isMock ? '🎭 History fallback to mock data (API unavailable)' : '✅ History switched to real data');
+				}
+			};
+
+			fetchData();
+		};
+
+		// @ts-ignore
+		window.addEventListener('mockDataChanged', handleMockDataChange);
+
+		return () => {
+			// @ts-ignore
+			window.removeEventListener('mockDataChanged', handleMockDataChange);
+		};
+	}, []);
+
 	return (
 		<Container className={styles.historyContainer}>
 			<h3 className={styles.heading}>Let&apos;s explore your Cloud history</h3>

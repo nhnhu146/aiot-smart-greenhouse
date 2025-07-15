@@ -7,6 +7,7 @@ interface WebSocketContextType {
 	socket: any;
 	isConnected: boolean;
 	sensorData: any;
+	persistentSensorData: any;
 	deviceStatus: any;
 	alerts: any[];
 	sendDeviceControl: (device: string, action: string, value?: any) => void;

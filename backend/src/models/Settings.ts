@@ -79,6 +79,24 @@ const SettingsSchema: Schema = new Schema({
 			type: [String],
 			default: []
 		}
+	},
+	emailAlerts: {
+		temperature: {
+			type: Boolean,
+			default: true
+		},
+		humidity: {
+			type: Boolean,
+			default: true
+		},
+		soilMoisture: {
+			type: Boolean,
+			default: true
+		},
+		waterLevel: {
+			type: Boolean,
+			default: true
+		}
 	}
 }, {
 	timestamps: true,

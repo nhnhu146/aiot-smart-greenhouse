@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface SensorData {
 	sensor: string;
 	data: any;
 	timestamp: string;
+}
+
+interface PersistentSensorState {
+	temperature: { value: number; timestamp: string } | null;
+	humidity: { value: number; timestamp: string } | null;
+	soil: { value: number; timestamp: string } | null;
+	water: { value: number; timestamp: string } | null;
+	light: { value: number; timestamp: string } | null;
+	rain: { value: number; timestamp: string } | null;
 }
 
 interface DeviceStatus {
@@ -27,6 +36,7 @@ interface UseWebSocketReturn {
 	socket: Socket | null;
 	isConnected: boolean;
 	sensorData: SensorData | null;
+	persistentSensorData: PersistentSensorState;
 	deviceStatus: DeviceStatus | null;
 	alerts: Alert[];
 	sendDeviceControl: (device: string, action: string, value?: any) => void;
@@ -37,13 +47,52 @@ export default function useWebSocket(): UseWebSocketReturn {
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
 	const [sensorData, setSensorData] = useState<SensorData | null>(null);
+	const [persistentSensorData, setPersistentSensorData] = useState<PersistentSensorState>({
+		temperature: null,
+		humidity: null,
+		soil: null,
+		water: null,
+		light: null,
+		rain: null
+	});
 	const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
 	const [alerts, setAlerts] = useState<Alert[]>([]);
 	const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
+	// Use requestAnimationFrame to prevent UI blocking
+	const updateSensorData = useCallback((data: SensorData) => {
+		requestAnimationFrame(() => {
+			setSensorData(data);
+
+			// Update persistent sensor state
+			const value = typeof data.data === 'object' ? data.data.value : parseFloat(data.data) || 0;
+			setPersistentSensorData(prev => ({
+				...prev,
+				[data.sensor]: {
+					value,
+					timestamp: data.timestamp
+				}
+			}));
+
+			console.log(`📊 Sensor ${data.sensor} updated: ${value} (persistent state maintained)`);
+		});
+	}, []);
+
+	const updateDeviceStatus = useCallback((status: DeviceStatus) => {
+		requestAnimationFrame(() => {
+			setDeviceStatus(status);
+		});
+	}, []);
+
+	const updateAlerts = useCallback((alert: Alert) => {
+		requestAnimationFrame(() => {
+			setAlerts(prev => [alert, ...prev].slice(0, 50));
+		});
+	}, []);
+
 	useEffect(() => {
 		// Get server URL from environment or default to localhost
-		const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:4000';
+		const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 		console.log('🔌 Connecting to WebSocket server:', serverUrl);
 
@@ -85,21 +134,10 @@ export default function useWebSocket(): UseWebSocketReturn {
 			setIsConnected(false);
 		});
 
-		// Data events
-		newSocket.on('sensor:data', (data: SensorData) => {
-			console.log('📊 Sensor data received:', data);
-			setSensorData(data);
-		});
-
-		newSocket.on('device:status', (status: DeviceStatus) => {
-			console.log('🔧 Device status received:', status);
-			setDeviceStatus(status);
-		});
-
-		newSocket.on('alert:new', (alert: Alert) => {
-			console.log('🚨 New alert:', alert);
-			setAlerts(prev => [alert, ...prev].slice(0, 50)); // Keep last 50 alerts
-		});
+		// Data events - Use callbacks to prevent UI blocking
+		newSocket.on('sensor:data', updateSensorData);
+		newSocket.on('device:status', updateDeviceStatus);
+		newSocket.on('alert:new', updateAlerts);
 
 		newSocket.on('notification', (notification: any) => {
 			console.log('🔔 Notification:', notification);
@@ -115,10 +153,10 @@ export default function useWebSocket(): UseWebSocketReturn {
 			}
 			newSocket.close();
 		};
-	}, []);
+	}, [updateSensorData, updateDeviceStatus, updateAlerts]); // Stable dependencies
 
 	// Function to send device control commands
-	const sendDeviceControl = (device: string, action: string, value?: any) => {
+	const sendDeviceControl = useCallback((device: string, action: string, value?: any) => {
 		if (socket && isConnected) {
 			const controlData = {
 				device,
@@ -132,17 +170,18 @@ export default function useWebSocket(): UseWebSocketReturn {
 		} else {
 			console.warn('⚠️ WebSocket not connected, cannot send device control');
 		}
-	};
+	}, [socket, isConnected]);
 
 	// Function to clear alerts
-	const clearAlerts = () => {
+	const clearAlerts = useCallback(() => {
 		setAlerts([]);
-	};
+	}, []);
 
 	return {
 		socket,
 		isConnected,
 		sensorData,
+		persistentSensorData,
 		deviceStatus,
 		alerts,
 		sendDeviceControl,

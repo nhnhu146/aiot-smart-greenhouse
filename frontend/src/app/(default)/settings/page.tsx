@@ -19,6 +19,13 @@ interface ThresholdSettings {
 	waterLevelThreshold: { min: number; max: number };
 }
 
+interface EmailAlerts {
+	temperature: boolean;
+	humidity: boolean;
+	soilMoisture: boolean;
+	waterLevel: boolean;
+}
+
 const SystemSettingsPage = () => {
 	const [thresholds, setThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
@@ -28,6 +35,12 @@ const SystemSettingsPage = () => {
 	});
 
 	const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
+	const [emailAlerts, setEmailAlerts] = useState<EmailAlerts>({
+		temperature: true,
+		humidity: true,
+		soilMoisture: true,
+		waterLevel: true
+	});
 	const [newEmail, setNewEmail] = useState('');
 	const [schedule, setSchedule] = useState('08:00');
 	const [controlMode, setControlMode] = useState('auto');
@@ -47,7 +60,7 @@ const SystemSettingsPage = () => {
 		// Check mock data status
 		setIsUsingMockData(mockDataService.isUsingMockData());
 		loadSettings();
-	}, [emailRecipients]);
+	}, []); // Remove emailRecipients dependency to prevent infinite loop
 
 	const loadSettings = async () => {
 		try {
@@ -62,6 +75,10 @@ const SystemSettingsPage = () => {
 
 				if (response.data.notifications?.emailRecipients) {
 					setEmailRecipients(response.data.notifications.emailRecipients);
+				}
+
+				if (response.data.emailAlerts) {
+					setEmailAlerts(response.data.emailAlerts);
 				}
 			}
 		} catch (error) {
@@ -97,7 +114,7 @@ const SystemSettingsPage = () => {
 	const testEmail = async (email: string) => {
 		setTestingEmail(true);
 		try {
-			const response = await fetch('/api/settings/test-email', {
+			const response = await fetch('/api/auth/test-email', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ email })
@@ -130,7 +147,8 @@ const SystemSettingsPage = () => {
 					email: true,
 					threshold: true,
 					emailRecipients
-				}
+				},
+				emailAlerts
 			});
 
 			setMessage({
@@ -156,6 +174,12 @@ const SystemSettingsPage = () => {
 			waterLevelThreshold: { min: 20, max: 90 }
 		});
 		setEmailRecipients(user?.email ? [user.email] : []);
+		setEmailAlerts({
+			temperature: true,
+			humidity: true,
+			soilMoisture: true,
+			waterLevel: true
+		});
 		setSchedule('08:00');
 		setControlMode('auto');
 		setEmailError('');
@@ -399,6 +423,68 @@ const SystemSettingsPage = () => {
 							))}
 						</div>
 					)}
+				</Card.Body>
+			</Card>
+
+			{/* Email Alert Settings */}
+			<Card className={styles.card}>
+				<Card.Header className={styles.cardHeader}>Email Alert Settings</Card.Header>
+				<Card.Body className={styles.cardBody}>
+					<p className="text-muted mb-3">Configure which alerts should trigger email notifications</p>
+
+					<div className="row">
+						<div className="col-md-6">
+							<Form.Check
+								type="switch"
+								id="temperature-email-switch"
+								label="Temperature Alerts"
+								checked={emailAlerts.temperature}
+								onChange={(e) => setEmailAlerts({
+									...emailAlerts,
+									temperature: e.target.checked
+								})}
+								className="mb-3"
+							/>
+
+							<Form.Check
+								type="switch"
+								id="humidity-email-switch"
+								label="Humidity Alerts"
+								checked={emailAlerts.humidity}
+								onChange={(e) => setEmailAlerts({
+									...emailAlerts,
+									humidity: e.target.checked
+								})}
+								className="mb-3"
+							/>
+						</div>
+
+						<div className="col-md-6">
+							<Form.Check
+								type="switch"
+								id="soil-email-switch"
+								label="Soil Moisture Alerts"
+								checked={emailAlerts.soilMoisture}
+								onChange={(e) => setEmailAlerts({
+									...emailAlerts,
+									soilMoisture: e.target.checked
+								})}
+								className="mb-3"
+							/>
+
+							<Form.Check
+								type="switch"
+								id="water-email-switch"
+								label="Water Level Alerts"
+								checked={emailAlerts.waterLevel}
+								onChange={(e) => setEmailAlerts({
+									...emailAlerts,
+									waterLevel: e.target.checked
+								})}
+								className="mb-3"
+							/>
+						</div>
+					</div>
 				</Card.Body>
 			</Card>
 

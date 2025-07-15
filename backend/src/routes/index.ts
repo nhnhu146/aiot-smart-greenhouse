@@ -17,6 +17,7 @@ const router = Router();
 router.use('/sensors', sensorsRouter);
 router.use('/devices', devicesRouter);
 router.use('/history', historyRouter);
+router.use('/settings', settingsRouter);
 router.use('/alerts', alertsRouter);
 router.use('/auth', authRouter);
 router.use('/user-settings', userSettingsRouter);
@@ -88,7 +89,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 	// System health check
 	const systemHealth = {
 		database: 'healthy',
-		mqtt: mqttService.isConnected() ? 'healthy' : 'disconnected',
+		mqtt: mqttService.isClientConnected() ? 'healthy' : 'disconnected',
 		sensors: latestSensor && latestSensor.createdAt && (now.getTime() - new Date(latestSensor.createdAt).getTime()) < 300000 ? 'healthy' : 'stale',
 		devices: {
 			total: devices.length,

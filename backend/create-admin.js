@@ -19,28 +19,52 @@ async function createAdminUser() {
 		// Check if admin user already exists
 		const existingAdmin = await usersCollection.findOne({ email: 'admin@gmail.com' });
 
-		if (existingAdmin) {
+		if (!existingAdmin) {
+			// Hash the password
+			const hashedPassword = await bcrypt.hash('admin', 10);
+
+			// Create admin user
+			const adminUser = {
+				_id: 'admin-001',
+				email: 'admin@gmail.com',
+				password: hashedPassword,
+				role: 'admin',
+				createdAt: new Date(),
+				lastLogin: null
+			};
+
+			await usersCollection.insertOne(adminUser);
+			console.log('✅ Default admin user created successfully');
+			console.log('👤 Email: admin@gmail.com');
+			console.log('🔐 Password: admin');
+		} else {
 			console.log('Admin user already exists');
-			return;
 		}
 
-		// Hash the password
-		const hashedPassword = await bcrypt.hash('admin', 10);
+		// Check if test user already exists
+		const existingTestUser = await usersCollection.findOne({ email: 'vttu21@clc.fitus.edu.vn' });
 
-		// Create admin user
-		const adminUser = {
-			_id: 'admin-001',
-			email: 'admin@gmail.com',
-			password: hashedPassword,
-			role: 'admin',
-			createdAt: new Date(),
-			lastLogin: null
-		};
+		if (!existingTestUser) {
+			// Hash the password
+			const hashedTestPassword = await bcrypt.hash('vttu21', 10);
 
-		await usersCollection.insertOne(adminUser);
-		console.log('✅ Default admin user created successfully');
-		console.log('👤 Email: admin@gmail.com');
-		console.log('🔐 Password: admin');
+			// Create test user
+			const testUser = {
+				_id: 'test-001',
+				email: 'vttu21@clc.fitus.edu.vn',
+				password: hashedTestPassword,
+				role: 'user',
+				createdAt: new Date(),
+				lastLogin: null
+			};
+
+			await usersCollection.insertOne(testUser);
+			console.log('✅ Test user created successfully');
+			console.log('👤 Email: vttu21@clc.fitus.edu.vn');
+			console.log('🔐 Password: vttu21');
+		} else {
+			console.log('Test user already exists');
+		}
 
 	} catch (error) {
 		console.error('Error creating admin user:', error);

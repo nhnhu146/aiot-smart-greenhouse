@@ -17,12 +17,30 @@ class MockDataService {
 	private useMockData: boolean;
 
 	constructor() {
-		// Initialize from localStorage if available, default to true for development
+		// For production stability: always start with real data (false)
+		// Users must manually enable mock data if needed
 		const savedPreference = typeof localStorage !== 'undefined'
 			? localStorage.getItem('useMockData')
 			: null;
 
-		this.useMockData = savedPreference === null ? true : savedPreference === 'true';
+		// FORCE DEFAULT TO FALSE - mock data must be explicitly enabled
+		this.useMockData = false;
+
+		// If there was a saved preference and it was true, log but still default to false
+		if (savedPreference === 'true') {
+			console.log('⚠️ Previous mock data preference found but resetting to false for stability');
+			// Clear the old preference
+			if (typeof localStorage !== 'undefined') {
+				localStorage.setItem('useMockData', 'false');
+			}
+		}
+
+		// Debug log
+		console.log('🔧 MockDataService initialized (FORCED DEFAULT):', {
+			savedPreference,
+			useMockData: this.useMockData,
+			note: 'Always starts with real data for production stability'
+		});
 	}
 
 	// Mock sensor data with realistic greenhouse values
@@ -65,11 +83,19 @@ class MockDataService {
 	// Configuration methods
 	public setUseMockData(enabled: boolean): void {
 		this.useMockData = enabled;
-		console.log(`Mock data ${enabled ? 'enabled' : 'disabled'}`);
+		console.log(`🔧 Mock data ${enabled ? 'ENABLED' : 'DISABLED'} by user`);
 
 		// Save preference to localStorage
 		if (typeof localStorage !== 'undefined') {
 			localStorage.setItem('useMockData', enabled.toString());
+			console.log(`💾 Preference saved to localStorage: ${enabled}`);
+		}
+
+		// Trigger custom event for components to react
+		if (typeof window !== 'undefined') {
+			window.dispatchEvent(new CustomEvent('mockDataChanged', {
+				detail: { enabled }
+			}));
 		}
 	}
 
@@ -96,7 +122,8 @@ class MockDataService {
 
 		// Try to fetch real data from API
 		try {
-			const response = await fetch('/api/sensors/latest');
+			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+			const response = await fetch(`${API_BASE_URL}/api/sensors/latest`);
 			if (response.ok) {
 				const apiResponse = await response.json();
 
@@ -133,7 +160,8 @@ class MockDataService {
 
 		// Try to fetch real chart data
 		try {
-			const response = await fetch('/api/history/sensors');
+			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+			const response = await fetch(`${API_BASE_URL}/api/history/sensors`);
 			if (response.ok) {
 				const apiResponse = await response.json();
 

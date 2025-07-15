@@ -24,7 +24,7 @@ const pushNoti = (message: string, title: string) => {
 		p.send({
 			m: message,
 			t: title,
-			s: "8", // sound
+			// s: "8", // Removed sound to fix AbortError
 			v: "3", // vibration
 			i: "1", // icon
 		});

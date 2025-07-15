@@ -18,7 +18,7 @@ RUN \
 	if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
 	elif [ -f package-lock.json ]; then npm ci; \
 	elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-	else echo "Lockfile not found." && exit 1; \
+	else yarn install; \
 	fi
 
 # Development stage
@@ -34,7 +34,7 @@ RUN \
 	if [ -f yarn.lock ]; then yarn build; \
 	elif [ -f package-lock.json ]; then npm run build; \
 	elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm build; \
-	else echo "Lockfile not found." && exit 1; \
+	else yarn install; \
 	fi
 
 # Production stage

@@ -1,65 +1,20 @@
-.examplesContainer {
-	.cursor-pointer {
-		cursor: pointer;
-
-		&:hover {
-			background-color: rgba(0, 123, 255, 0.1);
-			border-radius: 3px;
-		}
-	}
-
-	.text-break {
-		word-break: break-all;
-	}
-
-	code {
-		font-size: 0.875rem;
-		padding: 2px 4px;
-		background-color: rgba(0, 0, 0, 0.05);
-		border-radius: 3px;
-	}
-
-	pre {
-		background-color: #f8f9fa;
-		border: 1px solid #e9ecef;
-		border-radius: 0.25rem;
-		padding: 0.75rem;
-		font-size: 0.8rem;
-		overflow-x: auto;
-		white-space: pre-wrap;
-		word-wrap: break-word;
-	}
-
-	.bg-dark code {
-		background-color: transparent;
-		color: #f8f9fa;
-	}
-
-	.card {
-		transition: box-shadow 0.15s ease-in-out;
-
-		&:hover {
-			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-		}
-	}
-
-	.badge {
-		font-size: 0.75rem;
-	}
-
-	.alert {
-		border-left: 4px solid #0dcaf0;
-	}
+.container {
+	padding: 1.5rem;
 }
 
-@media (max-width: 768px) {
-	.examplesContainer {
-		pre {
-			font-size: 0.75rem;
-		}
+.heading {
+	font-size: 1.8rem;
+	color: #2b512b;
+	margin-bottom: 1.5rem;
+	margin-left: 0.5rem;
+}
 
-		code {
-			font-size: 0.8rem;
-		}
-	}
+.cursor-pointer {
+	cursor: pointer;
+}
+
+.cursor-pointer:hover {
+	background-color: #f8f9fa;
+	padding: 2px 4px;
+	border-radius: 4px;
 }

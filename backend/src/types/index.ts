@@ -61,6 +61,12 @@ export interface Settings {
 		threshold: boolean;
 		emailRecipients: string[];
 	};
+	emailAlerts: {
+		temperature: boolean;
+		humidity: boolean;
+		soilMoisture: boolean;
+		waterLevel: boolean;
+	};
 	updatedAt?: Date;
 }
 

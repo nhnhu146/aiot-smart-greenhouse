@@ -13,13 +13,19 @@ class AlertService {
 	private currentThresholds: ThresholdConfig | null = null;
 	private lastCheckedValues: Map<string, number> = new Map();
 	private emailRecipients: string[] = [];
+	private emailAlerts = {
+		temperature: true,
+		humidity: true,
+		soilMoisture: true,
+		waterLevel: true
+	};
 
 	constructor() {
 		this.loadThresholds();
 		this.loadEmailRecipients();
 	}
 
-	// Load email recipients from settings
+	// Load email recipients and email alert settings from database
 	async loadEmailRecipients(): Promise<void> {
 		try {
 			const settings = await Settings.findOne().lean();
@@ -30,8 +36,16 @@ class AlertService {
 				console.log('No email recipients configured');
 				this.emailRecipients = [];
 			}
+
+			// Load email alert settings
+			if (settings && settings.emailAlerts) {
+				this.emailAlerts = settings.emailAlerts;
+				console.log('Email alert settings loaded:', this.emailAlerts);
+			} else {
+				console.log('No email alert settings found, using defaults');
+			}
 		} catch (error) {
-			console.error('Error loading email recipients:', error);
+			console.error('Error loading email recipients and alert settings:', error);
 			this.emailRecipients = [];
 		}
 	}
@@ -76,7 +90,7 @@ class AlertService {
 	}): Promise<void> {
 		const traceId = Math.random().toString(36).substr(2, 9);
 		console.log(`[${traceId}] 👀 Checking thresholds for data:`, sensorData);
-		
+
 		if (!this.currentThresholds) {
 			await this.loadThresholds();
 		}
@@ -85,7 +99,7 @@ class AlertService {
 			console.error(`[${traceId}] ❌ No thresholds available for checking`);
 			return;
 		}
-		
+
 		console.log(`[${traceId}] 📊 Current thresholds:`, this.currentThresholds);
 
 		// THAY ĐỔI: Thực thi tuần tự thay vì song song
@@ -103,7 +117,7 @@ class AlertService {
 		const lastValue = this.lastCheckedValues.get('temperature');
 
 		console.log(`[${traceId}] 🌡️ Checking temperature: ${value}°C (min: ${threshold.min}, max: ${threshold.max})`);
-		
+
 		// Only trigger if value changes significantly or crosses threshold
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 0.5) {
 			console.log(`[${traceId}] 🌡️ Temperature change too small: ${value}°C vs last ${lastValue}°C`);
@@ -120,8 +134,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.temperature) {
 				console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
 			}
@@ -135,8 +149,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.temperature) {
 				console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
 			}
@@ -154,7 +168,7 @@ class AlertService {
 		const lastValue = this.lastCheckedValues.get('humidity');
 
 		console.log(`[${traceId}] 💧 Checking humidity: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
-		
+
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
 			console.log(`[${traceId}] 💧 Humidity change too small: ${value}% vs last ${lastValue}%`);
 			return;
@@ -170,8 +184,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.humidity) {
 				console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
 			}
@@ -185,8 +199,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.humidity) {
 				console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
 			}
@@ -204,7 +218,7 @@ class AlertService {
 		const lastValue = this.lastCheckedValues.get('soilMoisture');
 
 		console.log(`[${traceId}] 🌱 Checking soil moisture: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
-		
+
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
 			console.log(`[${traceId}] 🌱 Soil moisture change too small: ${value}% vs last ${lastValue}%`);
 			return;
@@ -220,8 +234,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.soilMoisture) {
 				console.log(`📧 Sending soil moisture alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
 			}
@@ -235,8 +249,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.soilMoisture) {
 				console.log(`📧 Sending soil moisture alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
 			}
@@ -254,7 +268,7 @@ class AlertService {
 		const lastValue = this.lastCheckedValues.get('waterLevel');
 
 		console.log(`[${traceId}] 🚰 Checking water level: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
-		
+
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
 			console.log(`[${traceId}] 🚰 Water level change too small: ${value}% vs last ${lastValue}%`);
 			return;
@@ -270,8 +284,8 @@ class AlertService {
 				threshold: threshold
 			});
 
-			// Send email alert
-			if (this.emailRecipients.length > 0) {
+			// Send email alert if enabled
+			if (this.emailRecipients.length > 0 && this.emailAlerts.waterLevel) {
 				console.log(`📧 Sending water level alert email to ${this.emailRecipients.length} recipients`);
 				await emailService.sendWaterLevelAlert(value, threshold, this.emailRecipients);
 			}
