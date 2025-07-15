@@ -1,4 +1,7 @@
 'use client'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 import React, { FormEvent, useState } from 'react';
 import { Card, Button, Alert } from 'react-bootstrap';
 import { useRouter } from 'next/navigation';
@@ -59,7 +62,7 @@ const ForgotPassword = () => {
 
 					<h4 className="mb-3 text-center">Reset Password</h4>
 					<p className="text-center text-muted mb-4">
-						Enter your email address and we'll send you a link to reset your password.
+						Enter your email address and we&apos;ll send you a link to reset your password.
 					</p>
 
 					{/* Success Message */}

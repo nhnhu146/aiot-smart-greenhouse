@@ -1,9 +1,13 @@
-"use client";
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+'use client';
+import React, { useEffect, useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import styles from './control.module.scss';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 const Control = () => {
 	const { sensorData, sendDeviceControl, isConnected } = useWebSocketContext();

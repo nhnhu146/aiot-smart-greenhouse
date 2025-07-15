@@ -1,4 +1,7 @@
 'use client';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 import { ChangeEvent, useState } from "react";
 import { Container, Card, Image } from "react-bootstrap";
 
@@ -21,7 +24,7 @@ const Chatbot = () => {
 			if (data.error) {
 				setResponse(`Error: ${data.error}`);
 			} else {
-				setResponse(data.answer || "Sorry, I don't know the answer.");
+				setResponse(data.answer || "Sorry, I don&apos;t know the answer.");
 			}
 		} catch (error) {
 			console.error("Error:", error);

@@ -1,4 +1,7 @@
 'use client';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 import React, { useState } from 'react';
 import { Card, Button } from 'react-bootstrap';
 import Image from 'next/image';

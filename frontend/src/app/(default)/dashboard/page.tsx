@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
+import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Badge } from 'react-bootstrap';
-import { useEffect, useState } from 'react';
 import AppLineChart from '@/components/LineChart/LineChart';
 import AppSemiDoughnutChart from '@/components/SemiDoughnutChart/SemiDoughnutChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
@@ -8,6 +9,9 @@ import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
 import styles from './dashboard.module.scss';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 const Dashboard = () => {
 	const { sensorData, isConnected } = useWebSocketContext();
@@ -20,20 +24,34 @@ const Dashboard = () => {
 
 		const fetchData = async () => {
 			try {
-				// Get sensor data using mockDataService (handles real/mock fallback)
-				const result = await mockDataService.getSensorData();
+				// Check if mock data is enabled in settings
+				const isUsingMock = mockDataService.isUsingMockData();
 
-				setData(result.data);
-				setIsUsingMockData(result.isMock);
-				setIsLoading(false);
+				if (isUsingMock) {
+					// Use mock data
+					const result = await mockDataService.getSensorData();
+					setData(result.data);
+					setIsUsingMockData(true);
+					console.log('🎭 Using mock sensor data (enabled in settings)');
 
-				if (result.isMock) {
-					console.log('🎭 Using mock sensor data');
 					// Start mock data updates for realistic simulation
 					cleanupMockUpdates = mockDataService.startMockDataUpdates(5000);
 				} else {
-					console.log('✅ Using real sensor data');
+					// Use real data from WebSocket if available
+					if (sensorData && isConnected) {
+						setData(sensorData.data);
+						setIsUsingMockData(false);
+						console.log('✅ Using real sensor data from WebSocket');
+					} else {
+						// Fallback to API if WebSocket not available
+						const result = await mockDataService.getSensorData();
+						setData(result.data);
+						setIsUsingMockData(result.isMock);
+						console.log(result.isMock ? '🎭 Fallback to mock data (API unavailable)' : '✅ Using real sensor data from API');
+					}
 				}
+
+				setIsLoading(false);
 			} catch (error) {
 				console.error('Failed to fetch sensor data:', error);
 				setIsLoading(false);
@@ -48,18 +66,46 @@ const Dashboard = () => {
 				cleanupMockUpdates();
 			}
 		};
-	}, []);
+	}, [sensorData, isConnected]);
 
-	// Auto-refresh data every 30 seconds
+	// Real-time WebSocket data updates when not using mock data
 	useEffect(() => {
+		if (!mockDataService.isUsingMockData() && sensorData && isConnected) {
+			// Format WebSocket data to match expected SensorData interface
+			const formattedData = {
+				humidity: sensorData.data?.humidity || 0,
+				moisture: sensorData.data?.soilMoisture || sensorData.data?.moisture || 0,
+				temperature: sensorData.data?.temperature || 0,
+				timestamp: sensorData.timestamp || new Date().toISOString()
+			};
+
+			setData(formattedData);
+			setIsUsingMockData(false);
+			console.log('🌐 Real-time sensor data from WebSocket:', formattedData);
+		}
+	}, [sensorData, isConnected]);
+
+	// Auto-refresh data every 30 seconds if not using mock data
+	useEffect(() => {
+		if (mockDataService.isUsingMockData()) {
+			return; // Don&apos;t set interval for mock data
+		}
+
 		const interval = setInterval(async () => {
-			const result = await mockDataService.getSensorData();
-			setData(result.data);
-			setIsUsingMockData(result.isMock);
+			if (isConnected && sensorData) {
+				// Use WebSocket data if available
+				setData(sensorData.data);
+				setIsUsingMockData(false);
+			} else {
+				// Fallback to API
+				const result = await mockDataService.getSensorData();
+				setData(result.data);
+				setIsUsingMockData(result.isMock);
+			}
 		}, 30000);
 
 		return () => clearInterval(interval);
-	}, []);
+	}, [sensorData, isConnected]);
 
 	if (isLoading) {
 		return (

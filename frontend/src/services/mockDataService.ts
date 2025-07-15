@@ -98,13 +98,23 @@ class MockDataService {
 		try {
 			const response = await fetch('/api/sensors/latest');
 			if (response.ok) {
-				const data = await response.json();
+				const apiResponse = await response.json();
+
+				// Map API response to expected format
+				const data: SensorData = {
+					humidity: apiResponse.data?.humidity || 0,
+					moisture: apiResponse.data?.soilMoisture || 0,
+					temperature: apiResponse.data?.temperature || 0,
+					timestamp: apiResponse.data?.createdAt || new Date().toISOString()
+				};
+
 				return { data, isMock: false };
 			} else {
 				throw new Error(`API responded with status: ${response.status}`);
 			}
 		} catch (error) {
 			console.warn('Failed to fetch real sensor data, falling back to mock:', error);
+			// When API fails and mock is disabled, still return mock but mark as such
 			return {
 				data: this.mockSensorData,
 				isMock: true

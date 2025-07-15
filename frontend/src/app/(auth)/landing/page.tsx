@@ -1,4 +1,7 @@
 'use client';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 import Image from 'next/image';
 import { Row, Col, Button } from 'react-bootstrap';
 import styles from './landing.module.scss';

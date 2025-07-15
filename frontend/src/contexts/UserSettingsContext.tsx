@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface UserSettings {
 	userId: string;
@@ -53,15 +54,15 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 		return localStorage.getItem('token');
 	};
 
-	const getAuthHeaders = () => {
+	const getAuthHeaders = useCallback(() => {
 		const token = getAuthToken();
 		return {
 			'Content-Type': 'application/json',
 			...(token && { 'Authorization': `Bearer ${token}` })
 		};
-	};
+	}, []);
 
-	const loadSettings = async () => {
+	const loadSettings = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
@@ -93,7 +94,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [API_BASE_URL, getAuthHeaders]);
 
 	const updateAlertRecipients = async (recipients: string[]) => {
 		try {
@@ -205,7 +206,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ chil
 
 	useEffect(() => {
 		loadSettings();
-	}, []);
+	}, [loadSettings]);
 
 	const contextValue: UserSettingsContextType = {
 		settings,

@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import authService from '@/lib/authService';
 import styles from './signin.module.scss';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 const SignIn = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');

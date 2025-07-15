@@ -23,7 +23,6 @@ RUN \
 
 # Development stage
 FROM base AS dev
-ENV NODE_ENV=development
 COPY . .
 EXPOSE 5000
 CMD ["yarn", "dev"]

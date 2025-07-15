@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import React from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';

@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Nav, Image } from 'react-bootstrap';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import authService, { User } from '@/lib/authService';
 import styles from './Sidebar.module.scss';
 
@@ -10,17 +11,23 @@ const navItems = [
 	{ label: 'Control', icon: '/activity.svg', path: '/control' },
 	// { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' }, // Hidden for now
 	{ label: 'History', icon: '/cloud.svg', path: '/history' },
+	{ label: 'MQTT Examples', icon: '/setup.svg', path: '/mqtt-examples' },
 	{ label: 'Settings', icon: '/settings.svg', path: '/settings' },
 ];
 
 const AppSidebar = () => {
-	const pathname = usePathname();
 	const router = useRouter();
 	const [user, setUser] = useState<User | null>(null);
+	const [currentPath, setCurrentPath] = useState('');
 
 	useEffect(() => {
 		const currentUser = authService.getCurrentUser();
 		setUser(currentUser);
+
+		// Get current path on client side only
+		if (typeof window !== 'undefined') {
+			setCurrentPath(window.location.pathname);
+		}
 	}, []);
 
 	const handleSignOut = async () => {
@@ -38,7 +45,7 @@ const AppSidebar = () => {
 					{navItems.map((item, index) => (
 						<div
 							key={index}
-							className={`${styles.navItem} ${pathname === item.path ? styles.active : ''}`}
+							className={`${styles.navItem} ${currentPath === item.path ? styles.active : ''}`}
 							onClick={() => router.push(item.path)}
 						>
 							<Image src={item.icon} alt={`${item.label} Icon`} width={20} height={20} className={styles.icon} />

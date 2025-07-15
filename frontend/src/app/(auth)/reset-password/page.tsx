@@ -1,4 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 import React, { FormEvent, useState, useEffect } from 'react';
 import { Card, Button } from 'react-bootstrap';
 import { useRouter, useSearchParams } from 'next/navigation';

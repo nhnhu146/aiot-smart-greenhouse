@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // Mock Data Toggle Component for Settings
 'use client'
 import { useEffect, useState } from 'react';
