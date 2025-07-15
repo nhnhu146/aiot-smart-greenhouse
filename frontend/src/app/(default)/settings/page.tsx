@@ -532,7 +532,7 @@ const SystemSettingsPage = () => {
 				</Button>
 			</div>
 		</div>
-	);
+	)
 };
 
 export default SystemSettingsPage;

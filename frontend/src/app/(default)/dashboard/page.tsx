@@ -9,6 +9,7 @@ import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
 import styles from './dashboard.module.scss';
+import publishMessage from '@/hooks/publishMQTT';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
