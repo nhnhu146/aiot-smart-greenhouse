@@ -5,7 +5,7 @@
   border-radius: 12px;
   background-color: #f9f9f9;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -16,11 +16,25 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
   }
+  
+  &:active {
+    background-color: #bbdefb;
+    transform: translateY(0);
+    transition: all 0.05s ease; 
+  }
 }
 
 .active {
   background-color: #64b5f6; 
   box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4); 
+  
+  &:hover {
+    background-color: #42a5f5; 
+  }
+  
+  &:active {
+    background-color: #2196f3;
+  }
 }
 
 .cardBody {
@@ -40,4 +54,9 @@
   font-size: 1.2rem;
   font-weight: 600;
   color: #333;
+}
+
+
+.active .title {
+  color: #fff;
 }

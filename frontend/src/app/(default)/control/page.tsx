@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Container, Row, Col, Card, Badge, Alert, Form } from 'react-bootstrap';
@@ -6,6 +7,12 @@ import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import styles from './control.module.scss';
 
 export const dynamic = 'force-dynamic';
+
+interface LogEntry {
+  timestamp: Date;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
 
 const Control = () => {
 	const { sensorData, sendDeviceControl, isConnected } = useWebSocketContext();

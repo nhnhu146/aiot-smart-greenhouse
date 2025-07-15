@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from 'react-bootstrap';
 import styles from './ActivityCard.module.scss';
 
@@ -11,15 +11,26 @@ type ActivityCardProps = {
 };
 
 const ActivityCard: React.FC<ActivityCardProps> = ({ title, icon, switchState, onSwitchChange }) => {
+  // Local UI state for immediate response
+  const [localActive, setLocalActive] = useState(switchState);
+  
   const handleCardClick = () => {
     if (onSwitchChange) {
-      onSwitchChange(!switchState); // Toggle trạng thái
+      // Update UI immediately
+      setLocalActive(!localActive);
+      // Call callback to update actual state
+      onSwitchChange(!switchState);
     }
   };
+  
+  // Sync local state with prop when prop changes
+  React.useEffect(() => {
+    setLocalActive(switchState);
+  }, [switchState]);
 
   return (
     <Card
-      className={`${styles.card} ${switchState ? styles.active : ''}`}
+      className={`${styles.card} ${localActive ? styles.active : ''}`}
       onClick={handleCardClick}
     >
       <Card.Body className={styles.cardBody}>
