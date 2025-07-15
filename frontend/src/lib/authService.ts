@@ -39,7 +39,7 @@ class AuthService {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ email, password }),
+				body: JSON.stringify({ email: email.trim(), password }),
 			});
 
 			const data = await response.json();
@@ -63,7 +63,7 @@ class AuthService {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ email, password }),
+				body: JSON.stringify({ email: email.trim(), password }),
 			});
 
 			const data = await response.json();
@@ -83,6 +83,42 @@ class AuthService {
 	async signOut(): Promise<void> {
 		this.currentUser = null;
 		this.clearStorage();
+	}
+
+	async forgotPassword(email: string): Promise<AuthResponse> {
+		try {
+			const response = await fetch(`${this.API_BASE_URL}/api/auth/password-reset`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email: email.trim() }),
+			});
+
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Forgot password error:', error);
+			return { success: false, message: 'Network error occurred' };
+		}
+	}
+
+	async resetPassword(token: string, newPassword: string): Promise<AuthResponse> {
+		try {
+			const response = await fetch(`${this.API_BASE_URL}/api/auth/password-reset/confirm`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ token, newPassword }),
+			});
+
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Reset password error:', error);
+			return { success: false, message: 'Network error occurred' };
+		}
 	}
 
 	getCurrentUser(): User | null {

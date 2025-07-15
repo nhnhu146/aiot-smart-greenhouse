@@ -39,7 +39,7 @@ const AppSidebar = () => {
 						<div
 							key={index}
 							className={`${styles.navItem} ${pathname === item.path ? styles.active : ''}`}
-							onClick={() => window.location.assign(item.path)}
+							onClick={() => router.push(item.path)}
 						>
 							<Image src={item.icon} alt={`${item.label} Icon`} width={20} height={20} className={styles.icon} />
 							{item.label}

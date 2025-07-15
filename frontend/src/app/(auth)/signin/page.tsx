@@ -118,6 +118,18 @@ const SignIn = () => {
 						>
 							{loading ? 'Signing In...' : 'Sign In'}
 						</Button>
+
+						{/* Forgot Password Link */}
+						<div className="text-center mt-3">
+							<button
+								type="button"
+								onClick={() => router.push('/forgot-password')}
+								className="btn btn-link text-decoration-none"
+								style={{ color: '#6c757d', fontSize: '14px' }}
+							>
+								Forgot your password?
+							</button>
+						</div>
 					</form>
 				</Card.Body>
 			</Card>

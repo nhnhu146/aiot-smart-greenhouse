@@ -8,6 +8,8 @@ import devicesRouter from './devices';
 import historyRouter from './history';
 import settingsRouter from './settings';
 import alertsRouter from './alerts';
+import authRouter from './auth';
+import userSettingsRouter from './userSettings';
 
 const router = Router();
 
@@ -15,8 +17,9 @@ const router = Router();
 router.use('/sensors', sensorsRouter);
 router.use('/devices', devicesRouter);
 router.use('/history', historyRouter);
-router.use('/settings', settingsRouter);
 router.use('/alerts', alertsRouter);
+router.use('/auth', authRouter);
+router.use('/user-settings', userSettingsRouter);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

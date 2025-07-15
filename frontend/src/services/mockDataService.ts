@@ -14,11 +14,10 @@ interface ChartDataPoint {
 }
 
 class MockDataService {
-	// Developer flag - set to false to disable mock data
 	private useMockData: boolean;
 
 	constructor() {
-		// Initialize from localStorage if available, default to true otherwise
+		// Initialize from localStorage if available, default to true for development
 		const savedPreference = typeof localStorage !== 'undefined'
 			? localStorage.getItem('useMockData')
 			: null;
@@ -26,7 +25,7 @@ class MockDataService {
 		this.useMockData = savedPreference === null ? true : savedPreference === 'true';
 	}
 
-	// Mock sensor data
+	// Mock sensor data with realistic greenhouse values
 	private mockSensorData: SensorData = {
 		humidity: 65,
 		moisture: 45,
@@ -41,7 +40,7 @@ class MockDataService {
 		const data: ChartDataPoint[] = [];
 		const now = new Date();
 
-		// Generate data for last 24 hours (every hour for more detailed history)
+		// Generate data for last 24 hours with realistic greenhouse variations
 		for (let i = 23; i >= 0; i--) {
 			const time = new Date(now.getTime() - i * 60 * 60 * 1000);
 			data.push({
@@ -63,12 +62,12 @@ class MockDataService {
 		return data;
 	}
 
-	// Toggle mock data (for development)
+	// Configuration methods
 	public setUseMockData(enabled: boolean): void {
 		this.useMockData = enabled;
 		console.log(`Mock data ${enabled ? 'enabled' : 'disabled'}`);
 
-		// Save preference to localStorage if available
+		// Save preference to localStorage
 		if (typeof localStorage !== 'undefined') {
 			localStorage.setItem('useMockData', enabled.toString());
 		}
@@ -78,10 +77,10 @@ class MockDataService {
 		return this.useMockData;
 	}
 
-	// Get sensor data with fallback to mock
+	// Get sensor data with API fallback
 	public async getSensorData(): Promise<{ data: SensorData | null; isMock: boolean }> {
 		if (this.useMockData) {
-			// Simulate some variance in mock data
+			// Add realistic variations to mock data
 			const variance = () => (Math.random() - 0.5) * 0.1;
 
 			return {
@@ -95,7 +94,7 @@ class MockDataService {
 			};
 		}
 
-		// Try to fetch real data
+		// Try to fetch real data from API
 		try {
 			const response = await fetch('/api/sensors/latest');
 			if (response.ok) {
@@ -106,8 +105,6 @@ class MockDataService {
 			}
 		} catch (error) {
 			console.warn('Failed to fetch real sensor data, falling back to mock:', error);
-
-			// Fallback to mock data if real API fails
 			return {
 				data: this.mockSensorData,
 				isMock: true
@@ -115,7 +112,7 @@ class MockDataService {
 		}
 	}
 
-	// Get chart data with fallback to mock
+	// Get chart data with API fallback
 	public async getChartData(): Promise<{ data: ChartDataPoint[]; isMock: boolean }> {
 		if (this.useMockData) {
 			return {
@@ -124,7 +121,7 @@ class MockDataService {
 			};
 		}
 
-		// Try to fetch real data
+		// Try to fetch real chart data
 		try {
 			const response = await fetch('/api/history/sensors');
 			if (response.ok) {
@@ -144,8 +141,6 @@ class MockDataService {
 			}
 		} catch (error) {
 			console.warn('Failed to fetch real chart data, falling back to mock:', error);
-
-			// Fallback to mock data if real API fails
 			return {
 				data: this.mockChartData,
 				isMock: true
@@ -153,12 +148,12 @@ class MockDataService {
 		}
 	}
 
-	// Update mock data (for testing different scenarios)
+	// Update mock data for testing scenarios
 	public updateMockSensorData(data: Partial<SensorData>): void {
 		this.mockSensorData = { ...this.mockSensorData, ...data };
 	}
 
-	// Simulate real-time updates to mock data
+	// Start mock data real-time updates
 	public startMockDataUpdates(intervalMs: number = 5000): () => void {
 		const interval = setInterval(() => {
 			if (this.useMockData) {
@@ -175,7 +170,6 @@ class MockDataService {
 			}
 		}, intervalMs);
 
-		// Return cleanup function
 		return () => clearInterval(interval);
 	}
 }
@@ -183,11 +177,10 @@ class MockDataService {
 // Export singleton instance
 const mockDataService = new MockDataService();
 
-// Always expose helper to window for easy toggling in browser console
+// Expose to window for browser console debugging
 if (typeof window !== 'undefined') {
 	(window as any).mockDataService = mockDataService;
 	console.log('MockDataService available at window.mockDataService');
-	console.log('Use window.mockDataService.setUseMockData(false) to disable mock data');
 }
 
 export default mockDataService;

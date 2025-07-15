@@ -6,7 +6,6 @@ import styles from './settings.module.scss';
 import authService, { User } from '@/lib/authService';
 import apiClient from '@/lib/apiClient';
 import mockDataService from '@/services/mockDataService';
-import DevUtils from '@/components/DevUtils/DevUtils';
 import MockDataToggle from '@/components/MockDataToggle/MockDataToggle';
 
 interface ThresholdSettings {
@@ -161,7 +160,6 @@ const SystemSettingsPage = () => {
 
 	return (
 		<div className={styles.container}>
-			<DevUtils />
 			<h2 className={styles.heading}>System Configuration</h2>
 
 			{message && (
@@ -356,9 +354,9 @@ const SystemSettingsPage = () => {
 								onChange={(e) => setNewEmail(e.target.value)}
 								isInvalid={!!emailError}
 							/>
-							<Button 
-								onClick={addEmailRecipient} 
-								variant="success" 
+							<Button
+								onClick={addEmailRecipient}
+								variant="success"
 								className={styles.addButton}
 							>
 								Add

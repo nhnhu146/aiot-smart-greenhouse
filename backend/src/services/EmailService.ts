@@ -260,6 +260,87 @@ export class EmailService {
 	}
 
 	/**
+	 * Send password reset email
+	 */
+	async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+		if (!this.isEnabled) {
+			console.log('Email service is not enabled');
+			return false;
+		}
+
+		try {
+			const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+			const subject = '🔐 Password Reset - Smart Greenhouse System';
+
+			const html = `
+				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+					<h2 style="color: #3498db;">🔐 Password Reset Request</h2>
+					<p>You have requested to reset your password for your Smart Greenhouse account.</p>
+					<p>Click the button below to reset your password:</p>
+					<div style="text-align: center; margin: 30px 0;">
+						<a href="${resetUrl}" 
+						   style="background-color: #3498db; color: white; padding: 12px 30px; 
+						          text-decoration: none; border-radius: 5px; display: inline-block;
+						          font-weight: bold;">
+							Reset Password
+						</a>
+					</div>
+					<p>Or copy and paste this link in your browser:</p>
+					<p style="word-break: break-all; color: #666; background: #f4f4f4; padding: 10px; border-radius: 3px;">
+						${resetUrl}
+					</p>
+					<div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
+						<p style="color: #999; font-size: 12px;">
+							• This link will expire in 1 hour<br>
+							• If you didn't request this reset, please ignore this email<br>
+							• Time: ${new Date().toLocaleString()}
+						</p>
+					</div>
+					<p style="color: #7f8c8d; font-size: 12px;">
+						Smart Greenhouse Security System
+					</p>
+				</div>
+			`;
+
+			await this.sendEmail([email], subject, html);
+			return true;
+		} catch (error) {
+			console.error('Password reset email failed:', error);
+			return false;
+		}
+	}
+
+	/**
+	 * Send password reset confirmation email
+	 */
+	async sendPasswordResetConfirmation(email: string): Promise<void> {
+		if (!this.isEnabled) return;
+
+		const subject = '✅ Password Successfully Reset - Smart Greenhouse';
+
+		const html = `
+			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+				<h2 style="color: #27ae60;">✅ Password Reset Successful</h2>
+				<p>Your password has been successfully reset for your Smart Greenhouse account.</p>
+				<div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #27ae60;">
+					<p style="margin: 0; color: #155724;">
+						<strong>Security Notice:</strong> Your password was changed at ${new Date().toLocaleString()}
+					</p>
+				</div>
+				<p>If you did not make this change, please contact support immediately.</p>
+				<div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
+					<p style="color: #999; font-size: 12px;">
+						Smart Greenhouse Security System<br>
+						This is an automated security notification
+					</p>
+				</div>
+			</div>
+		`;
+
+		await this.sendEmail([email], subject, html);
+	}
+
+	/**
 	 * Generic email sending method
 	 */
 	private async sendEmail(recipients: string[], subject: string, html: string): Promise<void> {

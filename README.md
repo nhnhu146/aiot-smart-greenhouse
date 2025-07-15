@@ -1,25 +1,20 @@
 # 🌱 AIOT Smart Greenhouse System
 
-> **Comprehensive IoT Solution for Smart Agriculture**
+Hệ thống nhà kính thông minh sử dụng IoT với monitoring và điều khiển tự động.
 
-Hệ thống nhà kính thông minh sử dụng công nghệ AIOT (Artificial Intelligence of Things) để giám sát và điều khiển tự động môi trường nhà kính với khả năng cảnh báo email và monitoring thời gian thực.
+## 📖 Documentation
 
-[![System Status](https://img.shields.io/badge/Status-Production%20Ready-green)](https://github.com/nhnhu146/aiot-smart-greenhouse)
-[![Requirements](https://img.shields.io/badge/Requirements-100%25%20Compliant-brightgreen)](./DOCUMENTATION.md#requirements-compliance)
-[![Version](https://img.shields.io/badge/Version-v2.0.0-blue)](https://github.com/nhnhu146/aiot-smart-greenhouse)
+For complete documentation, please visit the [docs/](docs/) directory:
 
-## 📋 Quick Navigation
+- **[📋 Project Overview](docs/PROJECT_OVERVIEW.md)** - Complete system architecture and features
+- **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step setup for development and production
+- **[👨‍💻 Development Guide](docs/DEVELOPMENT.md)** - Coding standards, workflow, and best practices
+- **[🔌 API Documentation](docs/API_DOCUMENTATION.md)** - Complete REST API reference
+- **[🔧 IoT Integration](docs/IOT_INTEGRATION.md)** - ESP32 hardware setup and MQTT communication
+- **[✅ System Status](docs/ERROR_CHECK_REPORT.md)** - Latest health check and error analysis
 
-- 📚 **[Complete Documentation](./docs/README.md)** - Documentation hub và quick start
-- 🚀 **[Getting Started](./docs/getting-started.md)** - Hướng dẫn bắt đầu chi tiết
-- 🏗️ **[System Architecture](./docs/architecture.md)** - Kiến trúc hệ thống
-- 📡 **[MQTT Guide](./docs/mqtt-guide.md)** - Cấu hình MQTT và triggers
-- 🔧 **[API Documentation](./docs/api-documentation.md)** - API reference
-- 👨‍💻 **[Development Guide](./docs/development-guide.md)** - Setup development
-- �️ **[Troubleshooting](./docs/troubleshooting.md)** - Xử lý sự cố
-
-## 👥 Development Team
-1. **Nguyen Van Le Ba Thanh** - 22127390 (Project Lead)
+## Team Members
+1. **Tran Minh Duc** - 22127081 (Project Manager & System Architect)  
 2. **Nguyen Gia Kiet** - 22127221 (Backend Developer)
 3. **Nguyen Hoang Nhu** - 22127314 (Frontend Developer)  
 4. **Vo Thanh Tu** - 21127469 (Hardware Engineer)
@@ -30,8 +25,7 @@ Hệ thống nhà kính thông minh sử dụng công nghệ AIOT (Artificial In
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js 18+ (for development)
-- Modern web browser
+- Node.js 18+ (development only)
 
 ### 1-Minute Setup
 ```bash
@@ -41,235 +35,248 @@ cd aiot-smart-greenhouse
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your settings (see Configuration section)
+# Edit .env with your email settings
 
-# Start everything with Docker
+# Start with Docker
 docker-compose up -d
 
 # Access the system
-# 🌐 Frontend: http://localhost:3000
-# 🔧 Backend: http://localhost:5000
-# 📊 Health: http://localhost:5000/api/health
+# Frontend: http://localhost:3000
+# Backend: http://localhost:5000
+# Login: admin@gmail.com / admin
 ```
 
-### Development Scripts
-```powershell
-# System check and status
-.\scripts\system-check.ps1                 # Basic system check
-.\scripts\system-check.ps1 -Comprehensive  # Full system validation
-.\scripts\quick-check.ps1                  # Status check with service management
-
-# Environment management
-.\scripts\start-dev.ps1                    # Start development environment
-.\scripts\start-prod.ps1                   # Start production environment
-.\scripts\stop-dev.ps1                     # Stop development services
-.\scripts\stop-prod.ps1                    # Stop production services
-
-# Maintenance
-.\scripts\clean-project.ps1                # Clean build artifacts
-.\scripts\clean-project.ps1 -Force         # Aggressive cleanup for Windows long paths
-.\scripts\optimize-project.ps1             # Project optimization and analysis
-.\scripts\setup-email-alerts.ps1           # Configure email alerts
-```
+For detailed setup instructions, see [Deployment Guide](docs/DEPLOYMENT.md).
 
 ---
 
 ## ⚙️ Configuration
 
-### Environment Setup
-Copy `.env.example` to `.env` and configure your specific values:
+### Required Environment Variables
+Copy `.env.example` to `.env` and configure:
 
 ```env
 # Core Settings
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/aiot_greenhouse
-MQTT_BROKER_URL=mqtt://localhost:1883
+PORT=5000
+FRONTEND_URL=http://localhost:3000
 
-# Email Alerts (FR-015)
+# Database
+MONGODB_URI=mongodb://localhost:27017/aiot_greenhouse
+
+# MQTT (ESP32 Communication)
+MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+MQTT_USERNAME=vision
+MQTT_PASSWORD=vision
+
+# Email (Password Reset & Alerts)
 EMAIL_SERVICE=gmail
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-gmail-app-password
-ALERT_RECIPIENTS=admin@example.com,manager@example.com
 
 # Security
 JWT_SECRET=your-super-secret-jwt-key
-SESSION_SECRET=your-session-secret
-
-# Alert Thresholds
-TEMP_MIN_THRESHOLD=18
-TEMP_MAX_THRESHOLD=30
-HUMIDITY_MIN_THRESHOLD=40
-HUMIDITY_MAX_THRESHOLD=80
 ```
 
-> 📚 **[Complete Configuration Guide](./DOCUMENTATION.md#configuration-guide)** - Detailed environment variable documentation
+### User Settings (Database-Managed)
+- **Alert Recipients**: Each user manages their own email list
+- **MQTT Settings**: Users can customize broker settings
+- **Alert Thresholds**: Per-user sensor threshold configuration
 
 ---
 
 ## 🏗️ System Architecture
 
 ```
-┌─────────────────┐    MQTT     ┌─────────────────┐    HTTP/WS   ┌─────────────────┐
-│   ESP32/Arduino │─────────────►│   Backend API   │◄─────────────│   Frontend App  │
-│   Sensors &     │              │   (Node.js)     │              │   (Next.js)     │
-│   Controllers   │              │                 │              │                 │
-└─────────────────┘              └─────────────────┘              └─────────────────┘
-        │                                 │                                │
-        │                                 │ Store                           │
-        │                        ┌─────────────────┐                       │
-        │                        │   MongoDB       │                       │
-        │                        │   Database      │                       │
-        │                        └─────────────────┘                       │
-        │                                 │                                │
-        │                        ┌─────────────────┐              ┌────────▼────────┐
-        │                        │   Alert Service │              │   Email Service │
-        │                        │   Threshold     │──────────────►│   Gmail SMTP    │
-        └─────────────────────────┤   Monitoring    │   Alerts     │   Notifications │
-              Motion Detection    └─────────────────┘              └─────────────────┘
+ESP32 ──MQTT──► Backend ──HTTP/WS──► Frontend
+   │              │                    │
+   │              │                    │
+Sensors         MongoDB             React UI
 ```
 
-### 🎯 Key Features
-- **📊 Real-time Monitoring**: Temperature, humidity, soil moisture, water level, plant height, motion
-- **🔔 Smart Alerts**: Email notifications with professional HTML templates  
-- **🎛️ Device Control**: Remote control of lights, pumps, doors, windows
-- **🛡️ System Reliability**: Hardware watchdog timer, automatic error recovery
-- **📱 Mobile Responsive**: Full responsive design for all devices
-- **🔒 Secure**: JWT authentication, input validation, CORS protection
-
-> 📚 **[Detailed Architecture Guide](./DOCUMENTATION.md#system-architecture)** - Complete technical documentation
+### Technology Stack
+- **Hardware**: ESP32 + Sensors (DHT22, Soil, Water, Motion, etc.)
+- **Backend**: Node.js, Express, TypeScript, MongoDB
+- **Frontend**: Next.js 13+, TypeScript, SCSS
+- **Communication**: MQTT, WebSocket, REST API
+- **Deployment**: Docker, Docker Compose
 
 ---
 
-## 📊 System Status
+## 📊 Features
 
-### Requirements Compliance: **100%** ✅
-- **15/15 Functional Requirements** (FR-001 to FR-015)
-- **8/8 Non-Functional Requirements** (NFR-001 to NFR-008)
+### ✅ Implemented Features
+- **Sensor Monitoring**: Temperature, humidity, soil moisture, water level
+- **Device Control**: Light, pump, door, window automation
+- **Real-time Dashboard**: Live sensor data with charts
+- **Email Alerts**: Customizable threshold-based notifications
+- **User Authentication**: Secure JWT-based login system
+- **Password Reset**: Email-based password recovery
+- **User Settings**: Per-user configuration for alerts and MQTT
+- **Mobile Responsive**: Works on all device sizes
 
-### Key Implementations
-- ✅ **Email Alert System** (FR-015) - Professional HTML templates
-- ✅ **Motion Detection** (FR-010) - PIR sensor with alerts
-- ✅ **Plant Height Monitor** (FR-006) - Ultrasonic sensor tracking
-- ✅ **Watchdog Timer** (NFR-004) - ESP32 auto-recovery
-- ✅ **Real-time Updates** (NFR-007) - WebSocket communication
-
----
-
-## 🛠️ Technology Stack
-
-### Hardware
-- **ESP32**: Main microcontroller with watchdog timer
-- **DHT11/22**: Temperature & humidity sensors
-- **PIR Sensor**: Motion detection
-- **Ultrasonic**: Plant height measurement
-- **Soil Moisture**: Analog soil sensor
-- **Float Switch**: Water level detection
-
-### Software
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Chart.js
-- **Backend**: Node.js, Express.js, TypeScript, MongoDB, MQTT
-- **Infrastructure**: Docker, Docker Compose, Mosquitto MQTT
-- **Email Service**: Nodemailer with Gmail SMTP
-- **Security**: JWT authentication, input validation
+### 🔧 Hardware Support
+- ESP32 microcontroller
+- DHT22 (temperature, humidity)
+- Soil moisture sensor
+- Ultrasonic sensor (water level)
+- PIR motion sensor
+- Rain sensor
+- Light control relay
+- Water pump control
 
 ---
 
-## 🎯 Available Scripts
+## 🛠️ Development
 
-### System Management
-```powershell
-# Quick health check
-.\scripts\simple-check.ps1
+### Local Development
+```bash
+# Backend
+cd backend && npm run dev
 
-# Comprehensive testing
-.\scripts\test-system-compliance.ps1
+# Frontend
+cd frontend && npm run dev
 
-# Email alert setup
-.\scripts\setup-email-alerts.ps1
+# Using Docker (recommended)
+docker-compose -f compose.dev.yml up -d
 ```
 
-### Development
-```powershell
-# Start development environment
-.\scripts\start-dev.ps1
+### Scripts
+```bash
+# System management
+.\scripts\start-dev.ps1     # Start development
+.\scripts\stop-dev.ps1      # Stop development
+.\scripts\system-check.ps1  # Health check
 
-# Stop development environment
-.\scripts\stop-dev.ps1
+# Production
+.\scripts\start-prod.ps1    # Start production
+.\scripts\stop-prod.ps1     # Stop production
 ```
 
-### Production
-```powershell
-# Start production environment
-.\scripts\start-prod.ps1
+### API Endpoints
 
-# Stop production environment
-.\scripts\stop-prod.ps1
+#### Authentication
+```
+POST /api/auth/signin              # User login
+POST /api/auth/forgot-password     # Request password reset
+POST /api/auth/reset-password      # Reset password with token
+```
+
+#### User Settings
+```
+GET    /api/user-settings                    # Get user settings
+PUT    /api/user-settings/alert-recipients   # Update alert emails
+PUT    /api/user-settings/mqtt-config        # Update MQTT settings
+PUT    /api/user-settings/alert-thresholds   # Update sensor thresholds
+POST   /api/user-settings/reset              # Reset to defaults
+```
+
+#### Sensors & Devices
+```
+GET    /api/sensors/current        # Current sensor data
+GET    /api/history               # Historical data
+POST   /api/devices/control       # Control devices
+GET    /api/alerts               # Alert history
 ```
 
 ---
 
-## 📞 Support & Troubleshooting
+## 📡 MQTT Topics
+
+### Sensor Data (ESP32 → Backend)
+```
+greenhouse/sensors/temperature    # Temperature (°C)
+greenhouse/sensors/humidity       # Humidity (%)
+greenhouse/sensors/soil          # Soil moisture (%)
+greenhouse/sensors/water         # Water level (%)
+greenhouse/sensors/motion        # Motion detection (0/1)
+greenhouse/sensors/rain          # Rain detection (0/1)
+greenhouse/sensors/light         # Light intensity (lux)
+```
+
+### Device Control (Backend → ESP32)
+```
+greenhouse/devices/light/control   # on/off
+greenhouse/devices/pump/control    # on/off/auto
+greenhouse/devices/door/control    # open/close
+greenhouse/devices/window/control  # open/close
+```
+
+---
+
+## 🚨 Troubleshooting
 
 ### Common Issues
-- **Backend won't start**: Check MongoDB and MQTT broker status
-- **Email alerts not working**: Verify Gmail app password setup
-- **Frontend not loading**: Check CORS settings and backend connectivity
-- **ESP32 issues**: Monitor serial output and MQTT connectivity
 
-### System Health
-- **Health Check**: `http://localhost:5000/api/health`
-- **Email Status**: `http://localhost:5000/api/alerts/email/status`
-- **System Metrics**: Monitor via Docker logs and API endpoints
+**MQTT Connection Failed**
+```bash
+# Check broker status
+docker ps | grep mosquitto
 
-### Getting Help
-1. Check the **[Complete Documentation](./DOCUMENTATION.md)** for detailed guides
-2. Review system logs: `docker-compose logs -f`
-3. Run diagnostic scripts: `.\scripts\test-system-compliance.ps1`
-4. Verify environment configuration in `.env` file
-
----
-
-## 📋 Project Structure
-
+# Test connection
+mosquitto_pub -h localhost -t "test" -m "hello"
 ```
-aiot-smart-greenhouse/
-├── 📁 backend/           # Node.js API server
-│   ├── src/
-│   │   ├── services/     # MQTT, Email, Alert services
-│   │   ├── models/       # MongoDB schemas
-│   │   ├── routes/       # API endpoints
-│   │   └── types/        # TypeScript definitions
-│   └── package.json
-├── 📁 frontend/          # Next.js web application
-│   ├── src/
-│   │   ├── app/          # App router pages
-│   │   ├── components/   # React components
-│   │   └── lib/          # Utilities and services
-│   └── package.json
-├── 📁 embeded/           # ESP32 Arduino code
-│   └── aiot-greenhouse-embedded.ino
-├── 📁 scripts/           # PowerShell automation scripts
-├── 📋 DOCUMENTATION.md   # Complete system documentation
-├── 🔧 .env.example       # Environment configuration template
-├── 🐳 docker-compose.yml # Container orchestration
-└── 📖 README.md          # This file
+
+**Database Connection Error**
+```bash
+# Check MongoDB
+docker ps | grep mongo
+
+# Restart services
+docker-compose restart
+```
+
+**Email Not Working**
+- Verify Gmail app password (not regular password)
+- Check EMAIL_USER and EMAIL_PASS in .env
+- Test email settings in user settings page
+
+**Permission Denied**
+```bash
+# Linux/macOS
+sudo chown -R $USER:$USER .
+
+# Windows (run as administrator)
+.\scripts\clean-project.ps1 -Force
+```
+
+### Health Check
+```bash
+# Quick system status
+curl http://localhost:5000/api/health
+
+# Comprehensive check
+.\scripts\system-check.ps1 -Comprehensive
 ```
 
 ---
 
-## 🎉 Success Metrics
+## 📝 Notes
 
-- **100% Requirements Compliance** - All FR/NFR requirements met
-- **Production Ready** - Comprehensive testing and error handling
-- **Professional Email System** - HTML templates with multi-trigger support
-- **Hardware Reliability** - Watchdog timer and automatic recovery
-- **Real-time Performance** - Sub-second WebSocket updates
-- **Comprehensive Documentation** - Complete setup and maintenance guides
+### Database Changes
+- **UserSettings Model**: Manages per-user configuration
+- **Alert Recipients**: Moved from environment to database
+- **MQTT Config**: User-customizable with environment defaults
+- **Thresholds**: Per-user sensor alert thresholds
+
+### Environment Unification
+- Unified EMAIL_* variables (removed SMTP_* duplicates)
+- Centralized .env configuration
+- Removed subfolder .env files
+
+### Security
+- JWT-based authentication
+- Rate limiting on all endpoints
+- Email validation for alert recipients
+- Secure password reset with time-limited tokens
 
 ---
 
-**🚀 Ready for Production Deployment!**
+## 📄 License
 
-For complete documentation, configuration guides, API references, and troubleshooting, see **[DOCUMENTATION.md](./DOCUMENTATION.md)**
+This project is for educational purposes as part of university coursework.
 
-*Last Updated: June 28, 2025 | Version: v2.0.0 | Status: Production Ready*
+---
+
+**Last Updated**: July 14, 2025
+**Version**: 2.0.0

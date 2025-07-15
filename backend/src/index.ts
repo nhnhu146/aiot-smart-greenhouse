@@ -1,7 +1,8 @@
 // Load environment variables FIRST before any imports
 import dotenv from 'dotenv';
 import path from 'path';
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// Use root .env file only, not from subfolder
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
@@ -11,6 +12,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 // Import services and middleware
 import { databaseService, mqttService, alertService, webSocketService } from './services';
@@ -18,7 +21,7 @@ import { errorHandler, notFoundHandler } from './middleware';
 import routes from './routes';
 
 // Import models
-import { SensorData, Settings, Alert } from './models';
+import { SensorData, Settings, Alert, PasswordReset, UserSettings } from './models';
 
 // User model interface (replaces Firebase Auth)
 interface User {
@@ -27,10 +30,25 @@ interface User {
 	password: string;
 	createdAt: Date;
 	lastLogin?: Date;
+	lastPasswordReset?: Date;
+}
+
+// Password reset token interface
+interface PasswordResetToken {
+	email: string;
+	token: string;
+	expiresAt: Date;
+	createdAt: Date;
 }
 
 // In-memory user store (replace with database in production)
 const users: Map<string, User> = new Map();
+
+// Make users globally accessible
+global.users = users;
+
+// In-memory password reset tokens store
+const passwordResetTokens: Map<string, PasswordResetToken> = new Map();
 
 // Create default admin user with hashed password
 const createDefaultAdmin = async () => {
@@ -54,20 +72,18 @@ createDefaultAdmin();
 // JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Simple authentication without external libraries
-const generateToken = (payload: any): string => {
-	return Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 24 * 60 * 60 * 1000 })).toString('base64');
+// Proper JWT implementation with signing
+const generateToken = (payload: object): string => {
+	return jwt.sign(payload, JWT_SECRET, {
+		expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+	} as jwt.SignOptions);
 };
 
 const verifyToken = (token: string): any => {
 	try {
-		const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-		if (decoded.exp < Date.now()) {
-			throw new Error('Token expired');
-		}
-		return decoded;
+		return jwt.verify(token, JWT_SECRET);
 	} catch (error) {
-		throw new Error('Invalid token');
+		throw new Error('Invalid or expired token');
 	}
 };
 
@@ -151,7 +167,10 @@ app.post(`${API_PREFIX}/auth/signin`, async (req: Request, res: Response): Promi
 			return;
 		}
 
-		const user = users.get(email);
+		// Trim email to handle whitespace issues
+		const trimmedEmail = email.trim();
+
+		const user = users.get(trimmedEmail);
 		if (!user) {
 			res.status(401).json({
 				success: false,
@@ -199,7 +218,10 @@ app.post(`${API_PREFIX}/auth/signup`, async (req: Request, res: Response): Promi
 			return;
 		}
 
-		if (users.has(email)) {
+		// Trim email to handle whitespace issues
+		const trimmedEmail = email.trim();
+
+		if (users.has(trimmedEmail)) {
 			res.status(409).json({
 				success: false,
 				message: 'User already exists'
@@ -207,14 +229,17 @@ app.post(`${API_PREFIX}/auth/signup`, async (req: Request, res: Response): Promi
 			return;
 		}
 
+		// Hash password before saving
+		const hashedPassword = await bcrypt.hash(password, 10);
+
 		const user: User = {
 			id: Date.now().toString(),
-			email,
-			password, // In production, use bcrypt.hash(password, 10)
+			email: trimmedEmail,
+			password: hashedPassword, // ✅ Password is now properly hashed
 			createdAt: new Date()
 		};
 
-		users.set(email, user);
+		users.set(trimmedEmail, user);
 
 		const token = generateToken({ id: user.id, email: user.email });
 
@@ -226,6 +251,127 @@ app.post(`${API_PREFIX}/auth/signup`, async (req: Request, res: Response): Promi
 		});
 	} catch (error) {
 		console.error('Sign up error:', error);
+		res.status(500).json({ success: false, message: 'Internal server error' });
+	}
+});
+
+// Password reset request
+app.post(`${API_PREFIX}/auth/password-reset`, async (req: Request, res: Response): Promise<void> => {
+	try {
+		const { email } = req.body;
+
+		if (!email) {
+			res.status(400).json({
+				success: false,
+				message: 'Email is required'
+			});
+			return;
+		}
+
+		// Trim email to handle whitespace issues
+		const trimmedEmail = email.trim();
+
+		const user = users.get(trimmedEmail);
+		if (!user) {
+			res.status(404).json({
+				success: false,
+				message: 'User not found'
+			});
+			return;
+		}
+
+		// Generate password reset token
+		const token = crypto.randomBytes(32).toString('hex');
+		const expiresAt = new Date(Date.now() + 3600000); // 1 hour expiration
+
+		// Store password reset token
+		const passwordResetToken: PasswordResetToken = {
+			email: trimmedEmail,
+			token,
+			expiresAt,
+			createdAt: new Date()
+		};
+
+		passwordResetTokens.set(token, passwordResetToken);
+
+		// Send password reset email
+		const { emailService } = await import('./services');
+		const emailSent = await emailService.sendPasswordResetEmail(trimmedEmail, token);
+
+		if (!emailSent) {
+			console.warn('Failed to send password reset email, but continuing...');
+		}
+
+		res.json({
+			success: true,
+			message: 'Password reset link has been sent to your email'
+		});
+	} catch (error) {
+		console.error('Password reset request error:', error);
+		res.status(500).json({ success: false, message: 'Internal server error' });
+	}
+});
+
+// Password reset
+app.post(`${API_PREFIX}/auth/password-reset/confirm`, async (req: Request, res: Response): Promise<void> => {
+	try {
+		const { token, newPassword } = req.body;
+
+		if (!token || !newPassword) {
+			res.status(400).json({
+				success: false,
+				message: 'Token and new password are required'
+			});
+			return;
+		}
+
+		const passwordResetToken = passwordResetTokens.get(token);
+		if (!passwordResetToken) {
+			res.status(400).json({
+				success: false,
+				message: 'Invalid or expired token'
+			});
+			return;
+		}
+
+		// Check if the token is expired
+		if (passwordResetToken.expiresAt < new Date()) {
+			res.status(400).json({
+				success: false,
+				message: 'Token has expired'
+			});
+			return;
+		}
+
+		// Find the user by email
+		const user = users.get(passwordResetToken.email);
+		if (!user) {
+			res.status(404).json({
+				success: false,
+				message: 'User not found'
+			});
+			return;
+		}
+
+		// Hash the new password
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+		// Update the user's password
+		user.password = hashedPassword;
+
+		// Remove the used token
+		passwordResetTokens.delete(token);
+
+		// Send password reset confirmation email
+		const { emailService } = await import('./services');
+		await emailService.sendPasswordResetConfirmation(passwordResetToken.email);
+
+		res.json({
+			success: true,
+			message: 'Password has been reset successfully'
+		});
+	} catch (error) {
+		console.error('Password reset error:', error);
 		res.status(500).json({ success: false, message: 'Internal server error' });
 	}
 });

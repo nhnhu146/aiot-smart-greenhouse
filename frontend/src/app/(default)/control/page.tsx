@@ -5,14 +5,20 @@ import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import styles from './control.module.scss';
 
-// Sensor data state
-var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0, LightLevel = 0;
-var last_water_state = false;
-
 const Control = () => {
 	const { sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
 	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
 	const [userInteraction, setUserInteraction] = useState(false);
+
+	// Sensor values state
+	const [sensorValues, setSensorValues] = useState({
+		humidity: 0,
+		temperature: 0,
+		rain: 0,
+		waterlevel: 0,
+		soil: 0,
+		light: 0
+	});
 
 	const activities = [
 		{ title: 'Lights', icon: '💡', device: 'light' },
@@ -38,115 +44,151 @@ const Control = () => {
 			console.log(`📊 Processing sensor data: ${sensor} = ${value}`);
 
 			// Update sensor values
-			switch (sensor) {
-				case 'humidity':
-					Humidity = parseFloat(value);
-					break;
-				case 'temperature':
-					Temperature = parseFloat(value);
-					break;
-				case 'rain':
-					Rain = parseInt(value, 10);
-					break;
-				case 'water':
-					Waterlevel = parseFloat(value);
-					break;
-				case 'soil':
-					Moisture = parseFloat(value);
-					break;
-				case 'light':
-					LightLevel = parseInt(value, 10);
-					break;
-				default:
-					break;
-			}
+			setSensorValues(prev => {
+				const newValues = { ...prev };
+				switch (sensor) {
+					case 'humidity':
+						newValues.humidity = parseFloat(value);
+						break;
+					case 'temperature':
+						newValues.temperature = parseFloat(value);
+						break;
+					case 'rain':
+						newValues.rain = parseInt(value, 10);
+						break;
+					case 'water':
+						newValues.waterlevel = parseFloat(value);
+						break;
+					case 'soil':
+						newValues.soil = parseFloat(value);
+						break;
+					case 'light':
+						newValues.light = parseInt(value, 10);
+						break;
+					default:
+						console.log(`🔍 Unknown sensor: ${sensor}`);
+				}
+				return newValues;
+			});
 
 			// Automatic control logic (only if user hasn't manually interacted recently)
 			if (!userInteraction) {
 				// Light control
 				if (sensor === 'light') {
-					const shouldTurnOn = LightLevel > 2000;
+					const shouldTurnOn = sensorValues.light > 2000;
 					const currentLightState = switchStates.get('light') || false;
-					if (shouldTurnOn !== currentLightState) {
+					if (currentLightState !== shouldTurnOn) {
 						setSwitchStates((prev) => new Map(prev).set('light', shouldTurnOn));
 						sendDeviceControl('light', shouldTurnOn ? 'HIGH' : 'LOW');
 					}
 				}
 
-				// Ventilation control
-				if ((sensor === 'humidity' || sensor === 'temperature' || sensor === 'rain') &&
-					Humidity > 0 && Temperature > 0 && Rain >= 0) {
-					const shouldOpenWindow = Humidity > 30 && Temperature > 20 && Rain < 200;
-					const shouldOpenFan = Humidity > 30 && Temperature > 20 && Rain >= 200;
-
-					const currentFanState = switchStates.get('fan');
-					const currentWindowState = switchStates.get('window');
-
-					if (shouldOpenWindow !== currentWindowState) {
-						setSwitchStates((prev) => new Map(prev).set('window', shouldOpenWindow));
-						sendDeviceControl('window', shouldOpenWindow ? 'HIGH' : 'LOW');
-					}
-
-					if (shouldOpenFan !== currentFanState) {
-						setSwitchStates((prev) => new Map(prev).set('fan', shouldOpenFan));
-						sendDeviceControl('fan', shouldOpenFan ? 'HIGH' : 'LOW');
+				// Fan control based on temperature
+				if (sensor === 'temperature') {
+					const shouldTurnOn = sensorValues.temperature > 28;
+					const currentFanState = switchStates.get('fan') || false;
+					if (currentFanState !== shouldTurnOn) {
+						setSwitchStates((prev) => new Map(prev).set('fan', shouldTurnOn));
+						sendDeviceControl('fan', shouldTurnOn ? 'HIGH' : 'LOW');
 					}
 				}
 
-				// Watering control
-				if ((sensor === 'soil' || sensor === 'water') && Moisture > 0 && Waterlevel >= 0) {
-					const shouldTurnOnPump = Moisture > 4000 && Waterlevel === 1;
-					const currentPumpState = switchStates.get('pump');
-
-					// Reset notification state
-					if (Waterlevel === 1 && last_water_state === false) {
-						last_water_state = true;
+				// Pump control based on soil moisture
+				if (sensor === 'soil') {
+					const shouldTurnOn = sensorValues.soil < 30;
+					const currentPumpState = switchStates.get('pump') || false;
+					if (currentPumpState !== shouldTurnOn) {
+						setSwitchStates((prev) => new Map(prev).set('pump', shouldTurnOn));
+						sendDeviceControl('pump', shouldTurnOn ? 'HIGH' : 'LOW');
 					}
+				}
 
-					if (Waterlevel === 0 && last_water_state === true) {
-						last_water_state = false;
-					}
-
-					if (shouldTurnOnPump !== currentPumpState) {
-						setSwitchStates((prev) => new Map(prev).set('pump', shouldTurnOnPump));
-						sendDeviceControl('pump', shouldTurnOnPump ? 'HIGH' : 'LOW');
+				// Window control based on humidity
+				if (sensor === 'humidity') {
+					const shouldOpen = sensorValues.humidity > 80;
+					const currentWindowState = switchStates.get('window') || false;
+					if (currentWindowState !== shouldOpen) {
+						setSwitchStates((prev) => new Map(prev).set('window', shouldOpen));
+						sendDeviceControl('window', shouldOpen ? 'HIGH' : 'LOW');
 					}
 				}
 			}
 		}
-	}, [sensorData, userInteraction, switchStates, sendDeviceControl]);
+	}, [sensorData, userInteraction, switchStates, sendDeviceControl, sensorValues]);
 
-	// Reset user interaction flag after some time
+	// Reset user interaction flag after 5 minutes
 	useEffect(() => {
 		if (userInteraction) {
-			const timer = setTimeout(() => {
+			const timeout = setTimeout(() => {
 				setUserInteraction(false);
-			}, 30000);
+			}, 5 * 60 * 1000); // 5 minutes
 
-			return () => clearTimeout(timer);
+			return () => clearTimeout(timeout);
 		}
 	}, [userInteraction]);
 
 	return (
-		<Container className={styles["activity-container"]}>
-			<div className="d-flex justify-content-between align-items-center mb-3">
-				<h3 className={styles["activity-title"]}>Let&apos;s control your Greenhouse devices</h3>
-				<div className={`badge ${isConnected ? 'bg-success' : 'bg-danger'}`}>
-					{isConnected ? '🟢 Connected' : '🔴 Disconnected'}
-				</div>
-			</div>
-			<Row className={styles["activity-row"]}>
+		<Container fluid className={styles.controlContainer}>
+			<Row className="mb-4">
+				<Col>
+					<h2 className={styles.pageTitle}>Device Control</h2>
+					<p className={styles.subtitle}>
+						Manage your greenhouse devices manually or let the system auto-control based on sensors
+					</p>
+					<div className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
+						{isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+					</div>
+				</Col>
+			</Row>
+
+			<Row>
 				{activities.map((activity, index) => (
-					<Col key={index} xs={12} md={6} lg={4} className={styles["activity-card-wrapper"]}>
-						<ActivityCard
-							title={activity.title}
-							icon={activity.icon}
-							switchId={`switch-${activity.title}`}
-							switchState={switchStates.get(activity.device) || false}
-							onSwitchChange={(state) => handleSwitchChange(activity.device, state)}
-						/>
+					<Col lg={4} md={6} sm={12} key={index} className="mb-4">
+						<div className={!isConnected ? styles.disabled : ''}>
+							<ActivityCard
+								{...activity}
+								switchId={activity.device}
+								switchState={switchStates.get(activity.device) || false}
+								onSwitchChange={isConnected ? (state) => handleSwitchChange(activity.device, state) : undefined}
+							/>
+						</div>
 					</Col>
 				))}
+			</Row>
+
+			{/* Sensor Values Display */}
+			<Row className="mt-4">
+				<Col>
+					<div className={styles.sensorDisplay}>
+						<h5>Current Sensor Values</h5>
+						<div className={styles.sensorGrid}>
+							<div className={styles.sensorItem}>
+								<span>Temperature:</span>
+								<span>{sensorValues.temperature.toFixed(1)}°C</span>
+							</div>
+							<div className={styles.sensorItem}>
+								<span>Humidity:</span>
+								<span>{sensorValues.humidity.toFixed(1)}%</span>
+							</div>
+							<div className={styles.sensorItem}>
+								<span>Soil Moisture:</span>
+								<span>{sensorValues.soil.toFixed(1)}%</span>
+							</div>
+							<div className={styles.sensorItem}>
+								<span>Light Level:</span>
+								<span>{sensorValues.light}</span>
+							</div>
+							<div className={styles.sensorItem}>
+								<span>Water Level:</span>
+								<span>{sensorValues.waterlevel.toFixed(1)}%</span>
+							</div>
+							<div className={styles.sensorItem}>
+								<span>Rain:</span>
+								<span>{sensorValues.rain ? 'Yes' : 'No'}</span>
+							</div>
+						</div>
+					</div>
+				</Col>
 			</Row>
 		</Container>
 	);

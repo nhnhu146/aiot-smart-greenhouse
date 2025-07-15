@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { Alert, Settings } from '../models';
+import { Alert, Settings, UserSettings } from '../models';
 import { sendPushNotification } from './PushNotificationService';
 
 export interface AlertData {
@@ -35,11 +35,11 @@ class NotificationService {
 	private loadEmailConfig(): EmailConfig {
 		return {
 			enabled: process.env.EMAIL_ENABLED === 'true',
-			host: process.env.SMTP_HOST || 'smtp.gmail.com',
-			port: parseInt(process.env.SMTP_PORT || '587'),
-			secure: process.env.SMTP_SECURE === 'true',
-			user: process.env.SMTP_USER || '',
-			pass: process.env.SMTP_PASS || '',
+			host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+			port: parseInt(process.env.EMAIL_PORT || '587'),
+			secure: process.env.EMAIL_SECURE === 'true',
+			user: process.env.EMAIL_USER || '',
+			pass: process.env.EMAIL_PASS || '',
 			recipients: []
 		};
 	}
@@ -64,13 +64,13 @@ class NotificationService {
 		console.log(`[${requestId}] [triggerAlert] Start:`, alertData);
 		try {
 			// Tạo alertKey chi tiết hơn, bao gồm cả giá trị và loại cảnh báo
-			const alertKey = `${alertData.type}_${alertData.level}_${alertData.currentValue ? Math.floor(alertData.currentValue/5)*5 : 'na'}`;
+			const alertKey = `${alertData.type}_${alertData.level}_${alertData.currentValue ? Math.floor(alertData.currentValue / 5) * 5 : 'na'}`;
 			const now = Date.now();
 
 			// Kiểm tra cooldown để tránh spam
 			const lastAlert = this.lastAlertTime.get(alertKey);
 			if (lastAlert && (now - lastAlert) < this.alertCooldown) {
-				console.log(`[${requestId}] [triggerAlert] Cooldown active for ${alertKey}, skipping. Last alert: ${new Date(lastAlert).toISOString()}, Time left: ${Math.round((this.alertCooldown - (now - lastAlert))/1000)}s`);
+				console.log(`[${requestId}] [triggerAlert] Cooldown active for ${alertKey}, skipping. Last alert: ${new Date(lastAlert).toISOString()}, Time left: ${Math.round((this.alertCooldown - (now - lastAlert)) / 1000)}s`);
 				return;
 			}
 
@@ -148,8 +148,23 @@ class NotificationService {
 
 	private async getEmailRecipients(): Promise<string[]> {
 		try {
-			const settings = await Settings.findOne().lean();
-			return settings?.notifications?.emailRecipients || [];
+			// Get all user settings and collect unique alert recipients
+			const allUserSettings = await UserSettings.find({}).lean();
+			const allRecipients = new Set<string>();			// Collect all alert recipients from all users
+			allUserSettings.forEach(userSettings => {
+				if (userSettings.alertRecipients && Array.isArray(userSettings.alertRecipients)) {
+					userSettings.alertRecipients.forEach((email: string) => allRecipients.add(email));
+				}
+			});
+
+			// If no user settings exist, fallback to environment variable or settings
+			if (allRecipients.size === 0) {
+				const settings = await Settings.findOne().lean();
+				const fallbackRecipients = settings?.notifications?.emailRecipients || [];
+				fallbackRecipients.forEach((email: string) => allRecipients.add(email));
+			}
+
+			return Array.from(allRecipients);
 		} catch (error) {
 			console.error('Error getting email recipients:', error);
 			return [];
