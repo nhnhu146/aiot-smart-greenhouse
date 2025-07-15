@@ -1,74 +1,74 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Nav } from 'react-bootstrap';
-import Image from 'react-bootstrap/Image';
-import { usePathname } from 'next/navigation';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/app/firebase/config';
+import { Nav, Image } from 'react-bootstrap';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
+import authService, { User } from '@/lib/authService';
 import styles from './Sidebar.module.scss';
 
 const navItems = [
-  { label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },
-  { label: 'Control', icon: '/activity.svg', path: '/control' },
-  { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' },
-  { label: 'History', icon: '/cloud.svg', path: '/history' },
-  { label: 'Settings', icon: '/settings.svg', path: '/settings' },
+	{ label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },
+	{ label: 'Control', icon: '/activity.svg', path: '/control' },
+	// { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' }, // Hidden for now
+	{ label: 'History', icon: '/cloud.svg', path: '/history' },
+	{ label: 'MQTT Examples', icon: '/setup.svg', path: '/mqtt-examples' },
+	{ label: 'Settings', icon: '/settings.svg', path: '/settings' },
 ];
 
 const AppSidebar = () => {
-  const pathname = usePathname();
-  const [user] = useAuthState(auth);
-  const router = useRouter();
+	const router = useRouter();
+	const [user, setUser] = useState<User | null>(null);
+	const [currentPath, setCurrentPath] = useState('');
 
-  const [userSession, setUserSession] = useState<string | null>(null);
+	useEffect(() => {
+		const currentUser = authService.getCurrentUser();
+		setUser(currentUser);
 
-  useEffect(() => {
-    const session = sessionStorage.getItem('user');
-    setUserSession(session);
-    if (!user && !session) {
-      router.push('/signin');
-    }
-  }, [user, router]);
+		// Get current path on client side only
+		if (typeof window !== 'undefined') {
+			setCurrentPath(window.location.pathname);
+		}
+	}, []);
 
-  return (
-    <div className={styles.sidebarWrapper}>
-      <div className={styles.sidebarContent}>
-        <Image className={styles.logo} src="/logo.svg" alt="GreenHouse Logo" width={170} height={100} />
+	const handleSignOut = async () => {
+		await authService.signOut();
+		setUser(null);
+		router.push('/signin');
+	};
 
-        <Nav className="flex-column d-flex">
-          {navItems.map((item, index) => (
-            <div
-              key={index}
-              className={`${styles.navItem} ${pathname === item.path ? styles.active : ''}`}
-              onClick={() => window.location.assign(item.path)}
-            >
-              <Image src={item.icon} alt={`${item.label} Icon`} width={20} height={20} className={styles.icon} />
-              {item.label}
-            </div>
-          ))}
-        </Nav>
+	return (
+		<div className={styles.sidebarWrapper}>
+			<div className={styles.sidebarContent}>
+				<Image className={styles.logo} src="/logo.svg" alt="GreenHouse Logo" width={170} height={100} />
 
-        <div
-          className={styles.signOut}
-          onClick={() => {
-            signOut(auth);
-            sessionStorage.removeItem('user');
-            router.push('/signin');
-          }}
-        >
-          <Image src='/logout.svg' alt='Logout Icon' width={20} height={20} className={styles.icon} />
-          Sign out
-        </div>
+				<Nav className="flex-column d-flex">
+					{navItems.map((item, index) => (
+						<div
+							key={index}
+							className={`${styles.navItem} ${currentPath === item.path ? styles.active : ''}`}
+							onClick={() => router.push(item.path)}
+						>
+							<Image src={item.icon} alt={`${item.label} Icon`} width={20} height={20} className={styles.icon} />
+							{item.label}
+						</div>
+					))}
+				</Nav>
 
-        <div className={styles.avatarWrapper}>
-          <Image src="/avatar.svg" alt="Avatar" width={40} height={40} className={styles.icon} />
-          <p className='my-2'>User</p>
-        </div>
-      </div>
-    </div>
-  );
+				<div
+					className={styles.signOut}
+					onClick={handleSignOut}
+				>
+					<Image src='/logout.svg' alt='Logout Icon' width={20} height={20} className={styles.icon} />
+					Sign out
+				</div>
+
+				<div className={styles.avatarWrapper}>
+					<Image src="/avatar.svg" alt="Avatar" width={30} height={30} className={styles.icon} />
+					<p className='my-2'>{user?.email || 'User'}</p>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default AppSidebar;

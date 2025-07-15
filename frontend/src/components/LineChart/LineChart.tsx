@@ -1,166 +1,163 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
+	Chart as ChartJS,
+	CategoryScale,
+	LinearScale,
+	PointElement,
+	LineElement,
+	Title,
+	Tooltip,
+	Legend,
 } from 'chart.js';
-import { CDBContainer } from 'cdbreact';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import mockDataService, { type ChartDataPoint } from '@/services/mockDataService';
 
 // Register the components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-interface WeekData {
-    distance: number | null;
-    humidity: number | null;
-    moisture: number | null;
-    temperature: number | null;
-}
+// Format time to UTC+7 (Vietnam timezone) - showing only HH:MM:SS for charts
+const formatTimeVN = (timestamp: string | Date) => {
+	const date = new Date(timestamp);
+	return date.toLocaleString('vi-VN', {
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hour12: false,
+		timeZone: 'Asia/Ho_Chi_Minh'
+	});
+};
 
-const AppLineChart = () => {
-    const [weekData, setWeekData] = useState<WeekData[]>([]);
-    const [error, setError] = useState("");
-    const [data, setData] = useState({
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-        datasets: [
-            {
-                label: 'Actual development',
-                fill: false,
-                lineTension: 0.1,
-                backgroundColor: 'rgba(15, 107, 67, 0.5)',
-                borderColor: 'rgb(15, 107, 67)',
-                borderCapStyle: 'butt',
-                borderDash: [],
-                borderDashOffset: 0.0,
-                borderJoinStyle: 'miter',
-                pointBorderColor: 'rgba(75,192,192,1)',
-                pointBackgroundColor: '#fff',
-                pointBorderWidth: 1,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: 'rgba(71, 225, 167, 0.5)',
-                pointHoverBorderColor: 'rgb(71, 225, 167)',
-                pointHoverBorderWidth: 2,
-                pointRadius: 1,
-                pointHitRadius: 10,
-                data: [] as number[], // Initialize with an empty array of numbers
-            },
-            {
-                label: 'Predicted development',
-                fill: false,
-                lineTension: 0.1,
-                backgroundColor: 'rgba(35, 156, 234, 0.5)',
-                borderColor: 'rgb(35, 156, 234)',
-                borderCapStyle: 'butt',
-                borderDash: [10, 5],
-                borderDashOffset: 0.0,
-                borderJoinStyle: 'miter',
-                pointBorderColor: 'rgba(75,192,192,1)',
-                pointBackgroundColor: '#fff',
-                pointBorderWidth: 1,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: 'rgba(71, 225, 167, 0.5)',
-                pointHoverBorderColor: 'rgb(71, 225, 167)',
-                pointHoverBorderWidth: 2,
-                pointRadius: 1,
-                pointHitRadius: 10,
-                data: [] as number[], // Initialize with an empty array of numbers
-            },
-        ],
-    });
+const AppLineChart: React.FC = () => {
+	const { persistentSensorData, isConnected } = useWebSocketContext();
+	const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const response = await fetch("/api/predict", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ startDate: "2024-12-16" }),
-                });
+	// Create chart data from persistent sensor state
+	useEffect(() => {
+		if (persistentSensorData && isConnected) {
+			const { temperature, humidity, soil } = persistentSensorData;
 
-                const result = await response.json();
+			// Only create data point if we have at least one sensor value
+			if (temperature || humidity || soil) {
+				const currentTime = formatTimeVN(new Date());
 
-                if (response.ok) {
-                    setWeekData(result.weeksData);
+				const newDataPoint: ChartDataPoint = {
+					time: currentTime,
+					temperature: temperature?.value || 0,
+					humidity: humidity?.value || 0,
+					soilMoisture: soil?.value || 0
+				};
 
-                    const actualData: number[] = [];
-                    const predictedData: number[] = [];
+				setChartData(prev => {
+					// Add new point and keep only last 24 points
+					const updated = [...prev, newDataPoint];
+					const latest24 = updated.slice(-24);
 
-                    // Extract distance data and calculate predicted productivity
-                    result.weeksData.forEach((week: WeekData) => {
-                        // Calculate actual value, ensuring it's a number or null
-                        const actual = (week.distance !== null) ? Math.max(0, 4.5 - week.distance) : null;
+					console.log('📈 Chart updated with persistent sensor data:', newDataPoint);
+					return latest24;
+				});
 
-                        // Calculate predicted productivity if all conditions are met
-                        const predict = (week.distance !== null && week.humidity !== null && week.moisture !== null && week.temperature !== null)
-                            ? (
-                                (2.77485584e-01 * (predictedData.length + 1) +
-                                    8.57036005e-05 * week.moisture -
-                                    6.74238917e-03 * week.temperature +
-                                    1.21854438e-02 * week.humidity -
-                                    1.109296820227019) < 0
-                                    ? 0
-                                    : Math.round(
-                                        (2.77485584e-01 * (predictedData.length + 1) +
-                                            8.57036005e-05 * week.moisture -
-                                            6.74238917e-03 * week.temperature +
-                                            1.21854438e-02 * week.humidity -
-                                            1.109296820227019) * 100
-                                    ) / 100
-                            ) : (
-                                (2.77485584e-01 * (predictedData.length + 1) +
-                                    8.57036005e-05 * 4095 -
-                                    6.74238917e-03 * 29 +
-                                    1.21854438e-02 * 57 -
-                                    1.109296820227019) < 0
-                                    ? 0
-                                    : Math.round(
-                                        (2.77485584e-01 * (predictedData.length + 1) +
-                                            8.57036005e-05 * 4095 -
-                                            6.74238917e-03 * 28 +
-                                            1.21854438e-02 * 57 -
-                                            1.109296820227019) * 100
-                                    ) / 100
-                            );
+				setIsLoading(false);
+			}
+		}
+	}, [persistentSensorData, isConnected]);
+	// Initial data fetch as fallback
+	useEffect(() => {
+		const fetchInitialData = async () => {
+			try {
+				const result = await mockDataService.getChartData();
 
-                        // Push the actual and predicted values to their respective arrays
-                        if (actual !== null)
-                            actualData.push(actual);
-                        if (predict !== null)
-                            predictedData.push(predict);
-                    });
+				// Format timestamps to UTC+7 with HH:MM:SS format
+				const formattedData = result.data.map(point => ({
+					...point,
+					time: formatTimeVN(point.time)
+				}));
 
+				// Only set if we don't have persistent data yet
+				if (chartData.length === 0) {
+					setChartData(formattedData);
+					console.log(result.isMock ? '📊 Initial mock chart data loaded' : '📊 Initial API chart data loaded');
+				}
 
-                    // Update data with correct typing
-                    setData(prevData => ({
-                        ...prevData,
-                        datasets: [
-                            { ...prevData.datasets[0], data: actualData },
-                            { ...prevData.datasets[1], data: predictedData },
-                        ],
-                    }));
-                } else {
-                    setError(result.error || "An error occurred while fetching data.");
-                }
-            } catch (err) {
-                setError("Could not connect to the API.");
-            }
-        }
+				setIsLoading(false);
+			} catch (error) {
+				console.error('Failed to fetch initial chart data:', error);
+				setIsLoading(false);
+			}
+		};
 
-        fetchData();
-    }, []);
+		if (isLoading) {
+			fetchInitialData();
+		}
+	}, [isLoading, chartData.length]);
 
-    return (
-        <CDBContainer>
-            <Line data={data} options={{ responsive: true }} />
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-        </CDBContainer>
-    );
+	if (isLoading) {
+		return (
+			<div style={{
+				display: 'flex',
+				justifyContent: 'center',
+				alignItems: 'center',
+				height: '300px'
+			}}>
+				<div>Loading chart...</div>
+			</div>
+		);
+	}
+
+	const data = {
+		labels: chartData.map(point => point.time),
+		datasets: [
+			{
+				label: 'Temperature (°C)',
+				data: chartData.map(point => Math.round(point.temperature * 10) / 10),
+				borderColor: 'rgb(255, 99, 132)',
+				backgroundColor: 'rgba(255, 99, 132, 0.2)',
+				tension: 0.1,
+			},
+			{
+				label: 'Humidity (%)',
+				data: chartData.map(point => Math.round(point.humidity * 10) / 10),
+				borderColor: 'rgb(54, 162, 235)',
+				backgroundColor: 'rgba(54, 162, 235, 0.2)',
+				tension: 0.1,
+			},
+			{
+				label: 'Soil Moisture (%)',
+				data: chartData.map(point => Math.round(point.soilMoisture * 10) / 10),
+				borderColor: 'rgb(75, 192, 192)',
+				backgroundColor: 'rgba(75, 192, 192, 0.2)',
+				tension: 0.1,
+			}
+		],
+	};
+
+	const options = {
+		responsive: true,
+		plugins: {
+			legend: {
+				position: 'top' as const,
+			},
+			title: {
+				display: true,
+				text: 'Sensor Data Trends (Last 24 Hours)',
+			},
+		},
+		scales: {
+			y: {
+				beginAtZero: true,
+				suggestedMax: 100,
+			},
+		},
+	};
+
+	return (
+		<div style={{ width: '100%', height: '400px' }}>
+			<Line data={data} options={options} />
+		</div>
+	);
 };
 
 export default AppLineChart;

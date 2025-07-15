@@ -1,15 +1,12 @@
-"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form } from 'react-bootstrap';
-import ActivityCard from '../../../components/ActivityCard/ActivityCard';
-import publishMessage from '@/hooks/publishMQTT';
-import useMQTT from '@/hooks/useMQTT';
-import pushNoti from '@/hooks/pushNoti';
+'use client';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Container, Row, Col, Card, Badge, Alert, Form } from 'react-bootstrap';
+import ActivityCard from '@/components/ActivityCard/ActivityCard';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import styles from './control.module.scss';
 
-var Humidity = 0, Temperature = 0, Rain = 0, Waterlevel = 0, Moisture = 0;
-var noti_sent = false, last_water_state = false;
+export const dynamic = 'force-dynamic';
 
 interface LogEntry {
   timestamp: Date;
@@ -18,308 +15,417 @@ interface LogEntry {
 }
 
 const Control = () => {
-  const { messages, clearMessages } = useMQTT();
-  const [switchStates, setSwitchStates] = useState(new Map([['HKT_greenhouse/lights', false]]));
-  const [userInteraction, setUserInteraction] = useState(false);
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-  
-  // Threshold states
-  const [thresholds, setThresholds] = useState({
-    temperature: 25,
-    humidity: 60,
-    moisture: 40,
-    light: 2000
-  });
+	const { sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
+	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
+	const [userInteraction, setUserInteraction] = useState(false);
+	const [autoMode, setAutoMode] = useState(true);
+	const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const activities = [
-    { title: 'Lights', icon: '💡', topic: 'HKT_greenhouse/lights' },
-    { title: 'Fan', icon: '🌬️', topic: 'HKT_greenhouse/fan' },
-    { title: 'Watering', icon: '💧', topic: 'HKT_greenhouse/watering' },
-    { title: 'Window', icon: '🪟', topic: 'HKT_greenhouse/window' },
-    { title: 'Door', icon: '🚪', topic: 'HKT_greenhouse/door' },
-  ];
+	// Sensor values state
+	const [sensorValues, setSensorValues] = useState({
+		humidity: 0,
+		temperature: 0,
+		rain: 0,
+		waterlevel: 0,
+		soil: 0,
+		light: 0
+	});
 
-  // Add a log entry
-  const addLogEntry = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
-    setLogEntries(prev => [{
-      timestamp: new Date(),
-      message,
-      type
-    }, ...prev].slice(0, 100)); // Keep only the last 100 entries
-  };
+	const activities = useMemo(() => [
+		{
+			title: 'Lighting System',
+			icon: '💡',
+			device: 'light',
+			description: 'LED grow lights for optimal plant growth'
+		},
+		{
+			title: 'Ventilation Fan',
+			icon: '🌬️',
+			device: 'fan',
+			description: 'Air circulation and temperature control'
+		},
+		{
+			title: 'Water Pump',
+			icon: '💧',
+			device: 'pump',
+			description: 'Automated watering system'
+		},
+		{
+			title: 'Window Control',
+			icon: '🪟',
+			device: 'window',
+			description: 'Automated window opening/closing'
+		},
+		{
+			title: 'Door Access',
+			icon: '🚪',
+			device: 'door',
+			description: 'Greenhouse door management'
+		},
+	], []);
 
-  useEffect(() => {
-    // Add initial log entry
-    addLogEntry('System initialized', 'info');
-  }, []);
+	const handleSwitchChange = useCallback((device: string, state: boolean) => {
+		setSwitchStates((prev) => new Map(prev).set(device, state));
+		const action = state ? 'HIGH' : 'LOW';
+		sendDeviceControl(device, action);
+		setUserInteraction(true);
 
-  const handleSwitchChange = (topic: string, state: boolean) => {
-    setSwitchStates((prev) => new Map(prev).set(topic, state));
-    const message = state ? 'HIGH' : 'LOW';
-    publishMessage(topic, message);
-    
-    // Log the action
-    const deviceName = activities.find(a => a.topic === topic)?.title || topic.split('/').pop() || '';
-    addLogEntry(`${deviceName} turned ${state ? 'ON' : 'OFF'}`, state ? 'success' : 'info');
-  };
+		// Clear user interaction flag after 5 minutes to re-enable auto mode
+		setTimeout(() => setUserInteraction(false), 5 * 60 * 1000);
+	}, [sendDeviceControl]);
 
-  const handleThresholdChange = (type: string, value: number) => {
-    setThresholds(prev => ({
-      ...prev,
-      [type]: value
-    }));
-    
-    // Log the threshold change
-    addLogEntry(`${type.charAt(0).toUpperCase() + type.slice(1)} threshold set to ${value}`, 'info');
-  };
+	const toggleAutoMode = useCallback(() => {
+		setAutoMode(prev => {
+			const newAutoMode = !prev;
+			if (newAutoMode) {
+				setUserInteraction(false); // Enable auto control when turning on auto mode
+			}
+			return newAutoMode;
+		});
+	}, []);
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      messages.forEach(async (msg) => {
-        if (msg.startsWith("Photonresistor value")) {
-          const value = parseInt(msg.split(" ")[2], 10);
-          const shouldTurnOn = value > thresholds.light; // Use threshold
-          const currentLightState = switchStates.get('HKT_greenhouse/lights') || false;
-          
-          if (value > thresholds.light && !currentLightState) {
-            addLogEntry(`Light level high (${value}), turning lights on`, 'warning');
-          }
-          
-          if (shouldTurnOn !== currentLightState) {
-            setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/lights', shouldTurnOn));
-            publishMessage('HKT_greenhouse/lights', shouldTurnOn ? 'HIGH' : 'LOW');
-          }
-          clearMessages();
-        }
+	// Memoize automation logic to prevent unnecessary rerenders
+	const automationLogic = useCallback((sensor: string, value: any, currentSensorValues: any) => {
+		if (!autoMode || userInteraction) return;
 
-        if (msg.startsWith("PIR value")) {
-          const value = parseInt(msg.split(" ")[2], 10);
-          const shouldOpenDoor = value === 1;
-          const currentDoorState = switchStates.get('HKT_greenhouse/door');
-          
-          if (value === 1 && !currentDoorState) {
-            addLogEntry(`Motion detected, opening door`, 'info');
-          }
-          
-          if (shouldOpenDoor !== currentDoorState) {
-            setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/door', shouldOpenDoor));
-            publishMessage('HKT_greenhouse/door', shouldOpenDoor ? 'HIGH' : 'LOW');
-          }
-          clearMessages();
-        }
+		const numValue = typeof value === 'object' ? value.value : parseFloat(value);
 
-        if (msg.startsWith("Humidity value") || msg.startsWith("Temperature value") || msg.startsWith("Rain value")) {
-          if (msg.startsWith("Humidity value")) Humidity = parseFloat(msg.split(" ")[2]);
-          if (msg.startsWith("Temperature value")) Temperature = parseFloat(msg.split(" ")[2]);
-          if (msg.startsWith("Rain value")) Rain = parseInt(msg.split(" ")[2], 10);
+		// Light control based on light sensor
+		if (sensor === 'light') {
+			const shouldTurnOn = numValue < 500;
+			setSwitchStates((prev) => {
+				const currentState = prev.get('light') || false;
+				if (currentState !== shouldTurnOn) {
+					sendDeviceControl('light', shouldTurnOn ? 'HIGH' : 'LOW');
+					return new Map(prev).set('light', shouldTurnOn);
+				}
+				return prev;
+			});
+		}
 
-          if (typeof Humidity === "number" && typeof Temperature === "number" && typeof Rain === "number") {
-            // Use thresholds
-            const shouldOpenWindow = Humidity > thresholds.humidity && Temperature > thresholds.temperature && Rain < 200;
-            const shouldOpenFan = Humidity > thresholds.humidity && Temperature > thresholds.temperature && Rain >= 200;
-            const currentFanState = switchStates.get('HKT_greenhouse/fan');
-            const currentWindowState = switchStates.get('HKT_greenhouse/window');
+		// Fan control based on temperature
+		if (sensor === 'temperature') {
+			const shouldTurnOn = numValue > 28;
+			setSwitchStates((prev) => {
+				const currentState = prev.get('fan') || false;
+				if (currentState !== shouldTurnOn) {
+					sendDeviceControl('fan', shouldTurnOn ? 'HIGH' : 'LOW');
+					return new Map(prev).set('fan', shouldTurnOn);
+				}
+				return prev;
+			});
+		}
 
-            if (Temperature > thresholds.temperature && !currentFanState && !currentWindowState) {
-              addLogEntry(`Temperature above threshold (${Temperature}°C)`, 'warning');
-            }
-            
-            if (Humidity > thresholds.humidity && !currentFanState && !currentWindowState) {
-              addLogEntry(`Humidity above threshold (${Humidity}%)`, 'warning');
-            }
+		// Pump control based on soil moisture
+		if (sensor === 'soil') {
+			const shouldTurnOn = numValue < 30;
+			setSwitchStates((prev) => {
+				const currentState = prev.get('pump') || false;
+				if (currentState !== shouldTurnOn) {
+					sendDeviceControl('pump', shouldTurnOn ? 'HIGH' : 'LOW');
+					return new Map(prev).set('pump', shouldTurnOn);
+				}
+				return prev;
+			});
+		}
 
-            if (shouldOpenWindow !== currentWindowState) {
-              setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/window', shouldOpenWindow));
-              publishMessage('HKT_greenhouse/window', shouldOpenWindow ? 'HIGH' : 'LOW');
-              if (shouldOpenWindow) {
-                addLogEntry(`Opening window due to high temperature/humidity`, 'info');
-              }
-            }
+		// Window control based on temperature and humidity
+		if (sensor === 'temperature' || sensor === 'humidity') {
+			const shouldOpen = currentSensorValues.temperature > 30 || currentSensorValues.humidity > 80;
+			setSwitchStates((prev) => {
+				const currentState = prev.get('window') || false;
+				if (currentState !== shouldOpen) {
+					sendDeviceControl('window', shouldOpen ? 'HIGH' : 'LOW');
+					return new Map(prev).set('window', shouldOpen);
+				}
+				return prev;
+			});
+		}
+	}, [autoMode, userInteraction, sendDeviceControl]);
 
-            if (shouldOpenFan !== currentFanState) {
-              setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/fan', shouldOpenFan));
-              publishMessage('HKT_greenhouse/fan', shouldOpenFan ? 'HIGH' : 'LOW');
-              if (shouldOpenFan) {
-                addLogEntry(`Turning on fan due to high temperature/humidity while raining`, 'info');
-              }
-            }
+	// Process sensor data from WebSocket - Fixed dependency issues
+	useEffect(() => {
+		if (!sensorData) return;
 
-            const lcdMessage = `Humidity: ${Humidity.toFixed(2)} | Temperature: ${Temperature.toFixed(2)}`;
-            publishMessage("HKT_greenhouse/lcd", lcdMessage);
-          }
-          clearMessages();
-        }
+		const { sensor, data } = sensorData;
+		let value = typeof data === 'object' ? data.value : data;
 
-        if (msg.startsWith("Moisture value") || msg.startsWith("Float switch value")) {
-          if (msg.startsWith("Moisture value")) Moisture = parseFloat(msg.split(" ")[2]);
-          if (msg.startsWith("Float switch value")) Waterlevel = parseFloat(msg.split(" ")[3]);
+		console.log(`📊 Processing sensor data: ${sensor} = ${value}`);
+		setLastUpdate(new Date());
 
-          // Use threshold
-          const shouldTurnOnPump = Moisture > thresholds.moisture && Waterlevel === 1;
-          const currentPumpState = switchStates.get('HKT_greenhouse/watering');
+		// Update sensor values
+		setSensorValues(prev => {
+			const newValues = { ...prev };
+			switch (sensor) {
+				case 'humidity':
+					newValues.humidity = parseFloat(value);
+					break;
+				case 'temperature':
+					newValues.temperature = parseFloat(value);
+					break;
+				case 'rain':
+					newValues.rain = parseInt(value, 10);
+					break;
+				case 'water':
+					newValues.waterlevel = parseFloat(value);
+					break;
+				case 'soil':
+					newValues.soil = parseFloat(value);
+					break;
+				case 'light':
+					newValues.light = parseInt(value, 10);
+					break;
+				default:
+					console.log(`🔍 Unknown sensor: ${sensor}`);
+			}
 
-          if (Moisture > thresholds.moisture && !currentPumpState) {
-            addLogEntry(`Soil is dry (moisture: ${Moisture})`, 'warning');
-          }
+			// Run automation logic with current sensor values
+			automationLogic(sensor, value, newValues);
 
-          if (Waterlevel === 1 && last_water_state === false) {
-            noti_sent = false;
-            last_water_state = true;
-            addLogEntry(`Water tank refilled`, 'success');
-          }
+			return newValues;
+		});
+	}, [sensorData, automationLogic]); // Reduced dependencies
 
-          if (Waterlevel === 0 && noti_sent === false) {
-            pushNoti("HKT GreenHouse Notification", "Water level is low. Please refill the water tank");
-            sendEmail({
-              to: 'nguyengiakiet2345@gmail.com',
-              subject: 'HKT GreenHouse Notification',
-              text: 'Water level is low. Please refill the water tank',
-            });
-            noti_sent = true;
-            addLogEntry(`Water level low, notification sent`, 'error');
-          }
+	const getSensorStatus = useCallback((sensor: string, value: number) => {
+		switch (sensor) {
+			case 'temperature':
+				if (value < 18) return { status: 'danger', text: 'Too Cold' };
+				if (value > 32) return { status: 'danger', text: 'Too Hot' };
+				if (value > 28) return { status: 'warning', text: 'Warm' };
+				return { status: 'success', text: 'Optimal' };
+			case 'humidity':
+				if (value < 40) return { status: 'warning', text: 'Low' };
+				if (value > 80) return { status: 'danger', text: 'High' };
+				return { status: 'success', text: 'Good' };
+			case 'soil':
+				if (value < 30) return { status: 'danger', text: 'Dry' };
+				if (value > 70) return { status: 'warning', text: 'Wet' };
+				return { status: 'success', text: 'Moist' };
+			default:
+				return { status: 'info', text: 'Normal' };
+		}
+	}, []);
 
-          if (shouldTurnOnPump !== currentPumpState) {
-            setSwitchStates((prev) => new Map(prev).set('HKT_greenhouse/watering', shouldTurnOnPump));
-            publishMessage('HKT_greenhouse/watering', shouldTurnOnPump ? 'HIGH' : 'LOW');
-            if (shouldTurnOnPump) {
-              addLogEntry(`Starting watering system due to dry soil`, 'info');
-            }
-          }
-          clearMessages();
-        }
-      });
-    }
-  }, [messages, userInteraction, switchStates, thresholds]);
+	return (
+		<Container fluid className={styles.controlContainer}>
+			{/* Header Section */}
+			<Row className="mb-4">
+				<Col>
+					<div className={styles.header}>
+						<h2 className={styles.title}>🎛️ Greenhouse Control Center</h2>
+						<p className={styles.subtitle}>
+							Monitor and control your smart greenhouse devices and automation
+						</p>
+					</div>
+				</Col>
+			</Row>
 
-  async function sendEmail(emailData) {
-    try {
-      const res = await fetch('/api/send-mail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(emailData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        console.log('Email sent successfully:', data.response);
-      } else {
-        console.error('Failed to send email:', data.error);
-      }
-    } catch (error) {
-      console.error('Error while sending email:', error);
-    }
-  }
+			{/* Status Bar */}
+			<Row className="mb-4">
+				<Col lg={6}>
+					<Card className={styles.statusCard}>
+						<Card.Body>
+							<div className={styles.statusItem}>
+								<span>Connection Status:</span>
+								<Badge bg={isConnected ? 'success' : 'danger'}>
+									{isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+								</Badge>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+				<Col lg={6}>
+					<Card className={styles.statusCard}>
+						<Card.Body>
+							<div className={styles.statusItem}>
+								<span>Automation Mode:</span>
+								<Form.Check
+									type="switch"
+									id="auto-mode-switch"
+									label={autoMode ? "🤖 Auto" : "👤 Manual"}
+									checked={autoMode}
+									onChange={toggleAutoMode}
+									disabled={!isConnected}
+								/>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-  };
+			{/* Alerts */}
+			{userInteraction && autoMode && (
+				<Alert variant="info" className="mb-4">
+					<Alert.Heading>Manual Override Active</Alert.Heading>
+					<p>Auto-control is temporarily disabled due to manual interaction. It will resume in 5 minutes.</p>
+				</Alert>
+			)}
 
-  return (
-    <Container className={styles["activity-container"]}>
-      <h3 className={styles["activity-title"]}>GreenHouse Control</h3>
-      
-      {/* Device controls section */}
-      <Row className={styles["activity-row"]}>
-        {activities.map((activity, index) => (
-          <Col key={index} xs={12} md={6} lg={4} className={styles["activity-card-wrapper"]}>
-            <ActivityCard
-              title={activity.title}
-              icon={activity.icon}
-              switchId={`switch-${activity.title}`}
-              switchState={switchStates.get(activity.topic) || false}
-              onSwitchChange={(state) => handleSwitchChange(activity.topic, state)}
-            />
-          </Col>
-        ))}
-      </Row>
-      
-      {/* Threshold controls section */}
-      <Card className={styles["threshold-card"]}>
-        <h4 className={styles["threshold-title"]}>Alert Thresholds</h4>
-        
-        <div className={styles["threshold-item"]}>
-          <div className={styles["threshold-label"]}>
-            <span>Temperature (°C)</span>
-            <span className={styles["threshold-value"]}>{thresholds.temperature}°C</span>
-          </div>
-          <Form.Range 
-            min={15} 
-            max={40} 
-            step={1}
-            value={thresholds.temperature}
-            onChange={(e) => handleThresholdChange('temperature', parseInt(e.target.value))}
-          />
-        </div>
-        
-        <div className={styles["threshold-item"]}>
-          <div className={styles["threshold-label"]}>
-            <span>Humidity (%)</span>
-            <span className={styles["threshold-value"]}>{thresholds.humidity}%</span>
-          </div>
-          <Form.Range 
-            min={30} 
-            max={90} 
-            step={1}
-            value={thresholds.humidity}
-            onChange={(e) => handleThresholdChange('humidity', parseInt(e.target.value))}
-          />
-        </div>
-        
-        <div className={styles["threshold-item"]}>
-          <div className={styles["threshold-label"]}>
-            <span>Soil Moisture</span>
-            <span className={styles["threshold-value"]}>{thresholds.moisture}</span>
-          </div>
-          <Form.Range 
-            min={0} 
-            max={4000} 
-            step={100}
-            value={thresholds.moisture}
-            onChange={(e) => handleThresholdChange('moisture', parseInt(e.target.value))}
-          />
-        </div>
-        
-        <div className={styles["threshold-item"]}>
-          <div className={styles["threshold-label"]}>
-            <span>Light Level</span>
-            <span className={styles["threshold-value"]}>{thresholds.light}</span>
-          </div>
-          <Form.Range 
-            min={500} 
-            max={4000} 
-            step={100}
-            value={thresholds.light}
-            onChange={(e) => handleThresholdChange('light', parseInt(e.target.value))}
-          />
-        </div>
-      </Card>
-      
-      {/* System log section */}
-      <Card className={styles["log-card"]}>
-        <h4 className={styles["log-title"]}>System Activity Log</h4>
-        
-        <ul className={styles["log-list"]}>
-          {logEntries.length === 0 ? (
-            <li className={styles["log-item"]}>No activity recorded yet</li>
-          ) : (
-            logEntries.map((entry, index) => (
-              <li key={index} className={styles["log-item"]}>
-                <span className={styles["log-timestamp"]}>{formatTimestamp(entry.timestamp)}</span>
-                <span className={`${styles["log-message"]} ${styles[`log-${entry.type}`]}`}>
-                  {entry.message}
-                </span>
-              </li>
-            ))
-          )}
-        </ul>
-      </Card>
-    </Container>
-  );
+			{!isConnected && (
+				<Alert variant="warning" className="mb-4">
+					<Alert.Heading>Connection Lost</Alert.Heading>
+					<p>Unable to connect to the greenhouse system. Please check your network connection.</p>
+				</Alert>
+			)}
+
+			{/* Device Control Section */}
+			<Row className="mb-4">
+				<Col>
+					<h4 className={styles.sectionTitle}>Device Controls</h4>
+				</Col>
+			</Row>
+
+			<Row>
+				{activities.map((activity, index) => (
+					<Col lg={4} md={6} sm={12} key={index} className="mb-4">
+						<div className={!isConnected ? styles.disabled : ''}>
+							<Card className={styles.deviceCard}>
+								<Card.Body>
+									<div className={styles.deviceHeader}>
+										<span className={styles.deviceIcon}>{activity.icon}</span>
+										<div>
+											<h6 className={styles.deviceTitle}>{activity.title}</h6>
+											<small className={styles.deviceDescription}>{activity.description}</small>
+										</div>
+									</div>
+									<ActivityCard
+										{...activity}
+										switchId={activity.device}
+										switchState={switchStates.get(activity.device) || false}
+										onSwitchChange={isConnected ? (state) => handleSwitchChange(activity.device, state) : undefined}
+									/>
+								</Card.Body>
+							</Card>
+						</div>
+					</Col>
+				))}
+			</Row>
+
+			{/* Sensor Monitor Section */}
+			<Row className="mt-5">
+				<Col>
+					<h4 className={styles.sectionTitle}>Sensor Monitor</h4>
+					<p className={styles.lastUpdate}>
+						Last Update: {lastUpdate.toLocaleTimeString()}
+					</p>
+				</Col>
+			</Row>
+
+			<Row>
+				<Col lg={4} md={6} className="mb-3">
+					<Card className={styles.sensorCard}>
+						<Card.Body>
+							<div className={styles.sensorHeader}>
+								<span className={styles.sensorIcon}>🌡️</span>
+								<div>
+									<h6>Temperature</h6>
+									<Badge bg={getSensorStatus('temperature', sensorValues.temperature).status}>
+										{getSensorStatus('temperature', sensorValues.temperature).text}
+									</Badge>
+								</div>
+							</div>
+							<div className={styles.sensorValue}>
+								{sensorValues.temperature.toFixed(1)}°C
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+
+				<Col lg={4} md={6} className="mb-3">
+					<Card className={styles.sensorCard}>
+						<Card.Body>
+							<div className={styles.sensorHeader}>
+								<span className={styles.sensorIcon}>💧</span>
+								<div>
+									<h6>Humidity</h6>
+									<Badge bg={getSensorStatus('humidity', sensorValues.humidity).status}>
+										{getSensorStatus('humidity', sensorValues.humidity).text}
+									</Badge>
+								</div>
+							</div>
+							<div className={styles.sensorValue}>
+								{sensorValues.humidity.toFixed(1)}%
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+
+				<Col lg={4} md={6} className="mb-3">
+					<Card className={styles.sensorCard}>
+						<Card.Body>
+							<div className={styles.sensorHeader}>
+								<span className={styles.sensorIcon}>🌱</span>
+								<div>
+									<h6>Soil Moisture</h6>
+									<Badge bg={getSensorStatus('soil', sensorValues.soil).status}>
+										{getSensorStatus('soil', sensorValues.soil).text}
+									</Badge>
+								</div>
+							</div>
+							<div className={styles.sensorValue}>
+								{sensorValues.soil.toFixed(1)}%
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+
+				<Col lg={4} md={6} className="mb-3">
+					<Card className={styles.sensorCard}>
+						<Card.Body>
+							<div className={styles.sensorHeader}>
+								<span className={styles.sensorIcon}>☀️</span>
+								<div>
+									<h6>Light Level</h6>
+									<Badge bg="info">Normal</Badge>
+								</div>
+							</div>
+							<div className={styles.sensorValue}>
+								{sensorValues.light} lux
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+
+				<Col lg={4} md={6} className="mb-3">
+					<Card className={styles.sensorCard}>
+						<Card.Body>
+							<div className={styles.sensorHeader}>
+								<span className={styles.sensorIcon}>🪣</span>
+								<div>
+									<h6>Water Level</h6>
+									<Badge bg={sensorValues.waterlevel < 20 ? 'danger' : 'success'}>
+										{sensorValues.waterlevel < 20 ? 'Low' : 'Good'}
+									</Badge>
+								</div>
+							</div>
+							<div className={styles.sensorValue}>
+								{sensorValues.waterlevel.toFixed(1)}%
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+
+				<Col lg={4} md={6} className="mb-3">
+					<Card className={styles.sensorCard}>
+						<Card.Body>
+							<div className={styles.sensorHeader}>
+								<span className={styles.sensorIcon}>🌧️</span>
+								<div>
+									<h6>Rain Sensor</h6>
+									<Badge bg={sensorValues.rain ? 'primary' : 'secondary'}>
+										{sensorValues.rain ? 'Raining' : 'Clear'}
+									</Badge>
+								</div>
+							</div>
+							<div className={styles.sensorValue}>
+								{sensorValues.rain ? 'Yes' : 'No'}
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
+		</Container>
+	);
 };
 
 export default Control;

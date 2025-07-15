@@ -1,0 +1,69 @@
+.historyContainer {
+  padding: 1.5rem;
+}
+
+.heading {
+  font-size: 1.8rem;
+  color: #2b512b;
+  margin-bottom: 1.5rem;
+  margin-left: 0.5rem;
+}
+
+.alertBanner {
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+.statusMessage {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #666;
+  margin: 2rem 0;
+}
+
+.historyCard {
+  width: 100%;
+  height: 100px;
+  border-radius: 15px;
+  margin: 10px 0;
+  box-shadow: 0 0 10px rgba(87, 174, 9, 0.3);
+  border: none;
+  outline: none;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 15px rgba(87, 174, 9, 0.4);
+  }
+}
+
+.timeStamp {
+  margin-bottom: 0.5rem;
+  color: #444;
+}
+
+.sensorData {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.sensorItem {
+  margin-right: 1.5rem;
+  
+  &:last-child {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .sensorData {
+    flex-direction: column;
+  }
+  
+  .sensorItem {
+    margin-right: 0;
+    margin-bottom: 0.25rem;
+  }
+}

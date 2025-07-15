@@ -18,13 +18,15 @@
 // Base card style that all cards will inherit
 .baseCard {
   border-radius: 20px;
-  box-shadow: 0 4px 16px rgba(87, 174, 9, 0.1);
+  box-shadow: 0 6px 25px rgba(87, 174, 9, 0.15);
   padding: 1rem;
   background-color: #ffffff;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+  border: none;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 30px rgba(87, 174, 9, 0.2);
+  }
 
 // Common title style for all cards
 .cardTitle {
@@ -99,8 +101,17 @@
 
 // Card: Used to display real-time gauge charts (humidity, temperature, etc.)
 .doughnutCard {
-  @extend .baseCard;
-  box-shadow: 0 4px 12px rgba(87, 174, 9, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(87, 174, 9, 0.15);
+  padding: 1rem;
+  background-color: #ffffff;
+  border: none;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(87, 174, 9, 0.2);
+  }
+
 
   .chartTitle {
     @extend .cardTitle;
