@@ -44,12 +44,12 @@ For complete documentation, please visit the [docs/](docs/) directory:
 - **[🔧 IoT Integration](docs/IOT_INTEGRATION.md)** - ESP32 hardware setup and MQTT
 
 ## 🏆 Team Members
-1. **Tran Minh Duc** - 22127081 (Project Manager & System Architect)  
-2. **Nguyen Gia Kiet** - 22127221 (Backend Developer)
-3. **Nguyen Hoang Nhu** - 22127314 (Frontend Developer)  
-4. **Vo Thanh Tu** - 21127469 (Hardware Engineer)
+1. **Nguyen Van Le Ba Thanh** - 22127390  
+2. **Nguyen Gia Kiet** - 22127221 
+3. **Nguyen Hoang Nhu** - 22127314  
+4. **Vo Thanh Tu** - 21127469
 
-## � Technology Stack
+## ⚙️ Technology Stack
 - **Frontend**: Next.js 13, React, TypeScript, Bootstrap
 - **Backend**: Node.js, Express, TypeScript, Socket.io
 - **Database**: MongoDB with Mongoose ODM
