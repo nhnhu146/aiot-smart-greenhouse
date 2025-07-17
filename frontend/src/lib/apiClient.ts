@@ -68,6 +68,45 @@ class ApiClient {
 		});
 	}
 
+	// New threshold and email APIs
+	async saveThresholds(thresholds: any): Promise<{ success: boolean; message: string }> {
+		return this.request('/api/settings/thresholds', {
+			method: 'POST',
+			body: JSON.stringify(thresholds),
+		});
+	}
+
+	async saveEmailRecipients(recipients: string[]): Promise<{ success: boolean; message: string }> {
+		return this.request('/api/settings/email-recipients', {
+			method: 'POST',
+			body: JSON.stringify({ recipients }),
+		});
+	}
+
+	async saveEmailAlerts(emailAlerts: any): Promise<{ success: boolean; message: string }> {
+		return this.request('/api/settings/email-alerts', {
+			method: 'POST',
+			body: JSON.stringify(emailAlerts),
+		});
+	}
+
+	async testEmail(recipients: string[]): Promise<{ success: boolean; message: string }> {
+		return this.request('/api/settings/test-email', {
+			method: 'POST',
+			body: JSON.stringify({ recipients }),
+		});
+	}
+
+	async getEmailStatus(): Promise<{ success: boolean; data: any }> {
+		return this.request('/api/settings/email-status');
+	}
+
+	async resetSettings(): Promise<{ success: boolean; message: string }> {
+		return this.request('/api/settings/reset', {
+			method: 'POST',
+		});
+	}
+
 	// Chat API (using backend instead of Hugging Face)
 	async askQuestion(question: string): Promise<any> {
 		return this.request('/api/chat', {

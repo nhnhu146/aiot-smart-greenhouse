@@ -167,7 +167,7 @@ class MockDataService {
 
 				// Map API response to ChartDataPoint format
 				const mappedData: ChartDataPoint[] = apiResponse.data.sensors.map((sensor: any) => ({
-					time: sensor.timestamp,
+					time: sensor.createdAt, // Fix: use createdAt instead of timestamp
 					temperature: sensor.temperature,
 					humidity: sensor.humidity,
 					soilMoisture: sensor.soilMoisture

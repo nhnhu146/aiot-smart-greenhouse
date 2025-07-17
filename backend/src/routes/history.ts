@@ -76,13 +76,18 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	res.json(response);
 }));
 
-// GET /api/history/sensors - Lấy lịch sử cảm biến
+// GET /api/history/sensors - Lấy lịch sử cảm biến (chỉ 24h gần nhất)
 router.get('/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
 	const { page = 1, limit = 100, from, to } = req.query as any;
 
 	const query: any = {};
 
-	if (from || to) {
+	// Default to last 24 hours if no date range specified
+	if (!from && !to) {
+		const last24Hours = new Date();
+		last24Hours.setHours(last24Hours.getHours() - 24);
+		query.createdAt = { $gte: last24Hours };
+	} else if (from || to) {
 		query.createdAt = {};
 		if (from) query.createdAt.$gte = from;
 		if (to) query.createdAt.$lte = to;
@@ -92,7 +97,7 @@ router.get('/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req
 
 	const [data, total] = await Promise.all([
 		SensorData.find(query)
-			.sort({ createdAt: -1 })
+			.sort({ createdAt: -1 }) // Sort by newest first
 			.skip(skip)
 			.limit(limit)
 			.lean(),
@@ -101,7 +106,7 @@ router.get('/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req
 
 	const response: APIResponse = {
 		success: true,
-		message: 'Sensor history retrieved successfully',
+		message: 'Sensor history retrieved successfully (last 24 hours)',
 		data: {
 			sensors: data,
 			pagination: {
@@ -111,7 +116,8 @@ router.get('/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req
 				totalPages: Math.ceil(total / limit),
 				hasNext: page < Math.ceil(total / limit),
 				hasPrev: page > 1
-			}
+			},
+			timeRange: !from && !to ? 'last24Hours' : 'custom'
 		},
 		timestamp: new Date().toISOString()
 	};

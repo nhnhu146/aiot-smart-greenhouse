@@ -1,10 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
-import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Badge } from 'react-bootstrap';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Container, Row, Col, Card, Badge, Alert, Form } from 'react-bootstrap';
 import AppLineChart from '@/components/LineChart/LineChart';
 import AppSemiDoughnutChart from '@/components/SemiDoughnutChart/SemiDoughnutChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
+import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
@@ -40,28 +41,182 @@ const formatTimeVN = (timestamp?: string | Date) => {
 };
 
 const Dashboard = () => {
-	const { persistentSensorData, isConnected } = useWebSocketContext();
+	const { persistentSensorData, sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
 	const [data, setData] = useState<SensorData | null>(null);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
 
+	// Device control states
+	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
+	const [userInteraction, setUserInteraction] = useState(false);
+	const [autoMode, setAutoMode] = useState(true);
+	const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+	// Sensor values state - Use null for no data available
+	const [sensorValues, setSensorValues] = useState({
+		humidity: null as number | null,
+		temperature: null as number | null,
+		rain: null as number | null,
+		waterlevel: null as number | null,
+		soil: null as number | null,
+		light: null as number | null
+	});
+
+	const activities = useMemo(() => [
+		{
+			title: 'Lighting System',
+			icon: '💡',
+			device: 'light',
+			description: 'LED grow lights for optimal plant growth'
+		},
+		{
+			title: 'Ventilation Fan',
+			icon: '🌬️',
+			device: 'fan',
+			description: 'Air circulation and temperature control'
+		},
+		{
+			title: 'Water Pump',
+			icon: '💧',
+			device: 'pump',
+			description: 'Automated watering system'
+		},
+		{
+			title: 'Window Control',
+			icon: '🪟',
+			device: 'window',
+			description: 'Automated window opening/closing'
+		},
+		{
+			title: 'Door Access',
+			icon: '🚪',
+			device: 'door',
+			description: 'Greenhouse door management'
+		},
+	], []);
+
+	const handleSwitchChange = useCallback((device: string, state: boolean) => {
+		setSwitchStates((prev) => new Map(prev).set(device, state));
+		const action = state ? 'HIGH' : 'LOW';
+		sendDeviceControl(device, action);
+		setUserInteraction(true);
+
+		// Clear user interaction flag after 5 minutes to re-enable auto mode
+		setTimeout(() => setUserInteraction(false), 5 * 60 * 1000);
+	}, [sendDeviceControl]);
+
+	const toggleAutoMode = useCallback(() => {
+		setAutoMode(prev => {
+			const newAutoMode = !prev;
+			if (newAutoMode) {
+				setUserInteraction(false); // Enable auto control when turning on auto mode
+			}
+			return newAutoMode;
+		});
+	}, []);
+
+	// Memoize automation logic to prevent unnecessary rerenders
+	const automationLogic = useCallback((sensor: string, value: any, currentSensorValues: any) => {
+		if (!autoMode || userInteraction) return;
+
+		const numValue = typeof value === 'object' ? value.value : parseFloat(value);
+		if (isNaN(numValue)) return;
+
+		// Light control based on light sensor
+		if (sensor === 'light') {
+			const shouldTurnOn = numValue < 500;
+			setSwitchStates((prev) => {
+				const currentState = prev.get('light') || false;
+				if (currentState !== shouldTurnOn) {
+					sendDeviceControl('light', shouldTurnOn ? 'HIGH' : 'LOW');
+					return new Map(prev).set('light', shouldTurnOn);
+				}
+				return prev;
+			});
+		}
+
+		// Pump control based on soil moisture
+		if (sensor === 'soil') {
+			const shouldTurnOn = numValue < 30; // If soil moisture < 30%, turn on pump
+			setSwitchStates((prev) => {
+				const currentState = prev.get('pump') || false;
+				if (currentState !== shouldTurnOn) {
+					sendDeviceControl('pump', shouldTurnOn ? 'HIGH' : 'LOW');
+					return new Map(prev).set('pump', shouldTurnOn);
+				}
+				return prev;
+			});
+		}
+
+		// Fan control based on temperature
+		if (sensor === 'temperature') {
+			const shouldTurnOn = numValue > 30; // If temperature > 30°C, turn on fan
+			setSwitchStates((prev) => {
+				const currentState = prev.get('fan') || false;
+				if (currentState !== shouldTurnOn) {
+					sendDeviceControl('fan', shouldTurnOn ? 'HIGH' : 'LOW');
+					return new Map(prev).set('fan', shouldTurnOn);
+				}
+				return prev;
+			});
+		}
+	}, [autoMode, userInteraction, sendDeviceControl]);
+
+	// Helper function to safely parse sensor values
+	const parseSensorValue = useCallback((value: any): number | null => {
+		if (value === null || value === undefined) return null;
+		if (typeof value === 'object' && value.value !== undefined) {
+			return parseFloat(value.value);
+		}
+		const parsed = parseFloat(value);
+		return isNaN(parsed) ? null : parsed;
+	}, []);
+
+	// Handle real-time sensor data from WebSocket
+	useEffect(() => {
+		if (sensorData) {
+			console.log('🔄 Processing real-time sensor data:', sensorData);
+
+			const newSensorValues = {
+				humidity: parseSensorValue(sensorData.humidity),
+				temperature: parseSensorValue(sensorData.temperature),
+				rain: parseSensorValue(sensorData.rain),
+				waterlevel: parseSensorValue(sensorData.waterlevel),
+				soil: parseSensorValue(sensorData.soil),
+				light: parseSensorValue(sensorData.light)
+			};
+
+			setSensorValues(newSensorValues);
+			setLastUpdate(new Date());
+
+			// Apply automation logic for each sensor
+			Object.entries(newSensorValues).forEach(([sensor, value]) => {
+				if (value !== null) {
+					automationLogic(sensor, value, newSensorValues);
+				}
+			});
+		}
+	}, [sensorData, parseSensorValue, automationLogic]);
+
 	// Handle real-time persistent sensor data updates
 	useEffect(() => {
-		if (persistentSensorData && isConnected) {
+		if (persistentSensorData) {
 			const { temperature, humidity, soil } = persistentSensorData;
 
-			// Create sensor data object from persistent state
-			if (temperature || humidity || soil) {
-				const sensorDataObj: SensorData = {
-					temperature: temperature?.value || 0,
-					humidity: humidity?.value || 0,
-					moisture: soil?.value || 0,
-					timestamp: new Date().toISOString()
-				};
+			// Create sensor data object from persistent state - always try to use persistent data
+			const sensorDataObj: SensorData = {
+				temperature: temperature?.value || 0,
+				humidity: humidity?.value || 0,
+				moisture: soil?.value || 0,
+				timestamp: new Date().toISOString()
+			};
 
+			// Always update with persistent data if available, regardless of connection status
+			if (temperature || humidity || soil) {
 				setData(sensorDataObj);
 				setIsUsingMockData(false);
+				setIsLoading(false); // Stop loading once we have data
 
 				// Get latest timestamp from sensors
 				const timestamps = [temperature?.timestamp, humidity?.timestamp, soil?.timestamp]
@@ -77,7 +232,7 @@ const Dashboard = () => {
 				console.log('📊 Dashboard updated from persistent sensor data');
 			}
 		}
-	}, [persistentSensorData, isConnected]);
+	}, [persistentSensorData]);
 
 	// Initial data fetch
 	useEffect(() => {
@@ -210,7 +365,7 @@ const Dashboard = () => {
 		return () => clearInterval(interval);
 	}, [persistentSensorData, isConnected]);
 
-	if (isLoading) {
+	if (isLoading && !data) {
 		return (
 			<div style={{
 				display: 'flex',
@@ -223,7 +378,8 @@ const Dashboard = () => {
 		);
 	}
 
-	if (!data) {
+	// Only show "No data available" if we've finished loading and truly have no data
+	if (!isLoading && !data && !persistentSensorData) {
 		return (
 			<div style={{
 				display: 'flex',
@@ -239,7 +395,7 @@ const Dashboard = () => {
 	return (
 		<Container className={styles.dashboardContainer}>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-				<h3>Welcome to GreenHouse</h3>
+				<h3>Smart Greenhouse Dashboard</h3>
 				<div className="d-flex gap-2">
 					{isUsingMockData && (
 						<Badge bg="warning" text="dark" style={{ fontSize: '12px' }}>
@@ -264,6 +420,79 @@ const Dashboard = () => {
 				</Col>
 			</Row>
 
+			{/* Device Control Section */}
+			<Row className="mb-4">
+				<Col>
+					<Card className={styles.controlCard}>
+						<Card.Header className="d-flex justify-content-between align-items-center">
+							<h5 className="mb-0">🎛️ Device Control Center</h5>
+							<div className="d-flex align-items-center gap-3">
+								<Form.Check
+									type="switch"
+									id="auto-mode-switch"
+									label={`Auto Mode ${autoMode ? 'ON' : 'OFF'}`}
+									checked={autoMode}
+									onChange={toggleAutoMode}
+									className={autoMode ? 'text-success' : 'text-warning'}
+								/>
+								{userInteraction && (
+									<Badge bg="warning" text="dark">
+										Manual Override Active
+									</Badge>
+								)}
+							</div>
+						</Card.Header>
+						<Card.Body>
+							{!isConnected && (
+								<Alert variant="warning" className="mb-3">
+									⚠️ WebSocket disconnected. Device control may not work properly.
+								</Alert>
+							)}
+
+							<Row>
+								{activities.map((activity) => (
+									<Col key={activity.device} lg={4} md={6} className="mb-3">
+										<ActivityCard
+											title={activity.title}
+											icon={activity.icon}
+											switchId={activity.device}
+											switchState={switchStates.get(activity.device) || false}
+											onSwitchChange={(state: boolean) => handleSwitchChange(activity.device, state)}
+										/>
+									</Col>
+								))}
+							</Row>
+
+							{/* Automation Status */}
+							{autoMode && !userInteraction && (
+								<Alert variant="info" className="mt-3 mb-0">
+									🤖 <strong>Automation Active:</strong> Devices are being controlled automatically based on sensor readings.
+									<br />
+									<small>
+										• Light: ON when light level &lt; 500 |
+										• Pump: ON when soil moisture &lt; 30% |
+										• Fan: ON when temperature &gt; 30°C
+									</small>
+								</Alert>
+							)}
+
+							{userInteraction && (
+								<Alert variant="warning" className="mt-3 mb-0">
+									👋 <strong>Manual Control:</strong> User interaction detected. Automation will resume in 5 minutes.
+								</Alert>
+							)}
+
+							{!autoMode && (
+								<Alert variant="secondary" className="mt-3 mb-0">
+									⏸️ <strong>Auto Mode Disabled:</strong> All devices are under manual control.
+								</Alert>
+							)}
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
+
+			{/* Charts Section */}
 			<Row className={`my-3 align-items-center justify-content-center ${styles.chartRow}`}>
 				<Col sm={8}>
 					<Card className={styles.chartCard}>
@@ -280,7 +509,7 @@ const Dashboard = () => {
 					<Card className={styles.doughnutCard}>
 						<AppSemiDoughnutChart
 							label="Humidity"
-							value={data.humidity}
+							value={data?.humidity || 0}
 							maxValue={90}
 							unit='%'
 						/>
@@ -290,7 +519,7 @@ const Dashboard = () => {
 					<Card className={styles.doughnutCard}>
 						<AppSemiDoughnutChart
 							label="Moisture"
-							value={data.moisture}
+							value={data?.moisture || 0}
 							maxValue={100}
 							unit='%'
 						/>
@@ -300,7 +529,7 @@ const Dashboard = () => {
 					<Card className={styles.doughnutCard}>
 						<AppSemiDoughnutChart
 							label="Temperature"
-							value={data.temperature}
+							value={data?.temperature || 0}
 							maxValue={50}
 							unit='°C'
 						/>

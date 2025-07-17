@@ -9,11 +9,18 @@ export interface ThresholdConfig {
 	waterLevelThreshold: { min: number; max: number };
 }
 
+export interface EmailAlertsConfig {
+	temperature: boolean;
+	humidity: boolean;
+	soilMoisture: boolean;
+	waterLevel: boolean;
+}
+
 class AlertService {
 	private currentThresholds: ThresholdConfig | null = null;
 	private lastCheckedValues: Map<string, number> = new Map();
 	private emailRecipients: string[] = [];
-	private emailAlerts = {
+	private emailAlerts: EmailAlertsConfig = {
 		temperature: true,
 		humidity: true,
 		soilMoisture: true,
@@ -31,21 +38,21 @@ class AlertService {
 			const settings = await Settings.findOne().lean();
 			if (settings && settings.notifications?.emailRecipients) {
 				this.emailRecipients = settings.notifications.emailRecipients;
-				console.log(`Email recipients loaded: ${this.emailRecipients.length} recipients`);
+				console.log(`📧 Email recipients loaded: ${this.emailRecipients.length} recipients`);
 			} else {
-				console.log('No email recipients configured');
+				console.log('⚠️ No email recipients configured');
 				this.emailRecipients = [];
 			}
 
 			// Load email alert settings
 			if (settings && settings.emailAlerts) {
 				this.emailAlerts = settings.emailAlerts;
-				console.log('Email alert settings loaded:', this.emailAlerts);
+				console.log('📧 Email alert settings loaded:', this.emailAlerts);
 			} else {
-				console.log('No email alert settings found, using defaults');
+				console.log('⚠️ No email alert settings found, using defaults');
 			}
 		} catch (error) {
-			console.error('Error loading email recipients and alert settings:', error);
+			console.error('❌ Error loading email recipients and alert settings:', error);
 			this.emailRecipients = [];
 		}
 	}
@@ -61,13 +68,13 @@ class AlertService {
 					soilMoistureThreshold: settings.soilMoistureThreshold,
 					waterLevelThreshold: settings.waterLevelThreshold
 				};
-				console.log('Alert thresholds loaded:', this.currentThresholds);
+				console.log('⚙️ Alert thresholds loaded:', this.currentThresholds);
 			} else {
-				console.log('No settings found, using default thresholds');
+				console.log('⚠️ No settings found, using default thresholds');
 				this.setDefaultThresholds();
 			}
 		} catch (error) {
-			console.error('Error loading thresholds:', error);
+			console.error('❌ Error loading thresholds:', error);
 			this.setDefaultThresholds();
 		}
 	}
@@ -79,6 +86,7 @@ class AlertService {
 			soilMoistureThreshold: { min: 30, max: 70 },
 			waterLevelThreshold: { min: 20, max: 90 }
 		};
+		console.log('🔧 Using default thresholds:', this.currentThresholds);
 	}
 
 	// Main function to check all sensor thresholds
@@ -102,8 +110,7 @@ class AlertService {
 
 		console.log(`[${traceId}] 📊 Current thresholds:`, this.currentThresholds);
 
-		// THAY ĐỔI: Thực thi tuần tự thay vì song song
-		// Loại bỏ Promise.all để tránh gửi thông báo trùng lặp
+		// Sequential execution to avoid duplicate alerts
 		await this.checkTemperature(sensorData.temperature, traceId);
 		await this.checkHumidity(sensorData.humidity, traceId);
 		await this.checkSoilMoisture(sensorData.soilMoisture, traceId);

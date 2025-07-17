@@ -7,6 +7,8 @@ interface SensorData {
 	sensor: string;
 	data: any;
 	timestamp: string;
+	topic?: string;
+	value?: number; // For backward compatibility
 }
 
 interface PersistentSensorState {
@@ -65,16 +67,23 @@ export default function useWebSocket(): UseWebSocketReturn {
 			setSensorData(data);
 
 			// Update persistent sensor state
-			const value = typeof data.data === 'object' ? data.data.value : parseFloat(data.data) || 0;
-			setPersistentSensorData(prev => ({
-				...prev,
-				[data.sensor]: {
-					value,
-					timestamp: data.timestamp
-				}
-			}));
+			const value = typeof data.data === 'object' ? data.data.value :
+				data.data !== undefined ? parseFloat(data.data) :
+					data.value !== undefined ? data.value : 0;
 
-			console.log(`📊 Sensor ${data.sensor} updated: ${value} (persistent state maintained)`);
+			if (!isNaN(value)) {
+				setPersistentSensorData(prev => ({
+					...prev,
+					[data.sensor]: {
+						value,
+						timestamp: data.timestamp || new Date().toISOString()
+					}
+				}));
+
+				console.log(`📊 Sensor ${data.sensor} updated: ${value} (persistent state maintained)`);
+			} else {
+				console.warn(`⚠️ Invalid sensor value received for ${data.sensor}:`, data);
+			}
 		});
 	}, []);
 
@@ -136,8 +145,11 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		// Data events - Use callbacks to prevent UI blocking
 		newSocket.on('sensor:data', updateSensorData);
+		newSocket.on('sensor-data', updateSensorData); // Legacy compatibility
 		newSocket.on('device:status', updateDeviceStatus);
+		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
 		newSocket.on('alert:new', updateAlerts);
+		newSocket.on('alert', updateAlerts); // Legacy compatibility
 
 		newSocket.on('notification', (notification: any) => {
 			console.log('🔔 Notification:', notification);

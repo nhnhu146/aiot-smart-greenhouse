@@ -527,12 +527,15 @@ function setupMQTTHandlers() {
 				// Save to database using correct model structure
 				await saveSensorDataToDatabase(sensorType, sensorValue);
 
-				// Broadcast sensor data to WebSocket clients
+				// Broadcast sensor data to WebSocket clients with complete data
 				webSocketService.broadcastSensorData(topic, {
-					value: sensorValue,
 					type: sensorType,
-					timestamp: new Date().toISOString()
+					value: sensorValue,
+					timestamp: new Date().toISOString(),
+					quality: 'good'
 				});
+
+				console.log(`📡 Broadcasted ${sensorType} sensor data: ${sensorValue}`);
 
 				// Check alerts
 				if (alertService) {

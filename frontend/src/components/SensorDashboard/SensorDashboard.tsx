@@ -39,21 +39,27 @@ interface SensorCardProps {
 	color: string;
 }
 
-const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color }) => (
-	<Card className="h-100 shadow-sm" style={{ outline: 'none', border: 'none', borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.08)' }}>
-		<Card.Body className="d-flex align-items-center">
-			<div className={`me-3 fs-1 text-${color}`}>
-				{icon}
-			</div>
-			<div>
-				<Card.Title className="mb-1 fs-6">{title}</Card.Title>
-				<Card.Text className="mb-0 fs-4 fw-bold">
-					{value} <small className="text-muted">{unit}</small>
-				</Card.Text>
-			</div>
-		</Card.Body>
-	</Card>
-);
+const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color }) => {
+	// Display "N/A" if value is invalid or empty
+	const displayValue = value === '--' || value === '0' || value === '' || value === null || value === undefined ? 'N/A' : value;
+	const isValidValue = displayValue !== 'N/A';
+
+	return (
+		<Card className="h-100 shadow-sm" style={{ outline: 'none', border: 'none', borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.08)' }}>
+			<Card.Body className="d-flex align-items-center">
+				<div className={`me-3 fs-1 text-${color}`} style={{ opacity: isValidValue ? 1 : 0.5 }}>
+					{icon}
+				</div>
+				<div>
+					<Card.Title className="mb-1 fs-6">{title}</Card.Title>
+					<Card.Text className="mb-0 fs-4 fw-bold" style={{ color: isValidValue ? 'inherit' : '#6c757d' }}>
+						{displayValue} {isValidValue && <small className="text-muted">{unit}</small>}
+					</Card.Text>
+				</div>
+			</Card.Body>
+		</Card>
+	);
+};
 
 const SensorDashboard: React.FC = () => {
 	const { persistentSensorData, isConnected } = useWebSocketContext();
@@ -75,15 +81,19 @@ const SensorDashboard: React.FC = () => {
 
 			// Update each sensor that has data
 			Object.entries(persistentSensorData).forEach(([sensorType, sensorInfo]: [string, any]) => {
-				if (sensorInfo && sensorInfo.value !== undefined) {
-					updatedSensors[sensorType as keyof typeof sensors] = {
-						value: sensorInfo.value.toString(),
-						timestamp: sensorInfo.timestamp
-					};
+				if (sensorInfo && sensorInfo.value !== undefined && sensorInfo.value !== null) {
+					// Only update with valid numeric values
+					const numericValue = parseFloat(sensorInfo.value);
+					if (!isNaN(numericValue)) {
+						updatedSensors[sensorType as keyof typeof sensors] = {
+							value: numericValue.toFixed(1),
+							timestamp: sensorInfo.timestamp
+						};
 
-					// Track latest update time
-					if (!latestTimestamp || new Date(sensorInfo.timestamp) > new Date(latestTimestamp)) {
-						latestTimestamp = sensorInfo.timestamp;
+						// Track latest update time
+						if (!latestTimestamp || new Date(sensorInfo.timestamp) > new Date(latestTimestamp)) {
+							latestTimestamp = sensorInfo.timestamp;
+						}
 					}
 				}
 			});
@@ -94,6 +104,16 @@ const SensorDashboard: React.FC = () => {
 			}
 
 			console.log('📊 SensorDashboard updated with persistent data');
+		} else if (!isConnected) {
+			// Show N/A when disconnected
+			setSensors({
+				temperature: { value: 'N/A', timestamp: null },
+				humidity: { value: 'N/A', timestamp: null },
+				soil: { value: 'N/A', timestamp: null },
+				water: { value: 'N/A', timestamp: null },
+				light: { value: 'N/A', timestamp: null },
+				rain: { value: 'N/A', timestamp: null }
+			});
 		}
 	}, [persistentSensorData, isConnected]);
 

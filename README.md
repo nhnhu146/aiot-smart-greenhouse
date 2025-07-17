@@ -1,53 +1,119 @@
 # 🌱 AIOT Smart Greenhouse System
 
-Hệ thống nhà kính thông minh sử dụng IoT với monitoring và điều khiển tự động. **Hệ thống đã hoạt động ổn định với MQTT, WebSocket real-time updates, database và frontend đầy đủ.**
+A comprehensive IoT-based smart greenhouse monitoring and control system built with modern web technologies. Features real-time sensor monitoring, automated device control, intelligent alerting, and a responsive web dashboard.
 
-## � Quick Start
+![System Status](https://img.shields.io/badge/Status-Production%20Ready-green)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![Version](https://img.shields.io/badge/Version-2.0.0-orange)
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+ (development only)
+- Docker 20.10+ with Docker Compose v2
+- 2GB RAM minimum, 10GB disk space
+- Internet connection for MQTT and email services
 
-### 1-Minute Setup
+### One-Click Deployment
 ```bash
-# Clone and setup
-git clone <repository-url>
+# Clone the repository
+git clone https://github.com/nhnhu146/aiot-smart-greenhouse.git
 cd aiot-smart-greenhouse
 
-# Configure environment  
-cp .env.example .env
-
-# Start with Docker
-docker-compose up -d
-
-# Access the system
-# Frontend: http://localhost:3000
-# Backend: http://localhost:5000
-# Login: admin@gmail.com / admin
+# Start all services
+docker compose down --rmi all && docker compose -f compose.local.yml up -d --build
 ```
 
-## ✅ System Status (July 2025)
-- **MQTT Connection**: ✅ Working - Connected to mqtt.noboroto.id.vn:1883
-- **WebSocket Real-time**: ✅ Working - Frontend updates automatically
-- **Database**: ✅ MongoDB running with sensor data storage
-- **Frontend**: ✅ React Next.js with error-free console
-- **Backend**: ✅ Node.js API with optimized performance
+**Access the application:**
+- 🌐 **Frontend Dashboard**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:5000/api
+- 📊 **Database**: MongoDB on localhost:27017
 
-## �📖 Documentation
+**Default Login:**
+- **Email**: `admin@greenhouse.com`
+- **Password**: `admin123`
 
-For complete documentation, please visit the [docs/](docs/) directory:
+## 📊 Features
 
-- **[📋 Project Overview](docs/PROJECT_OVERVIEW.md)** - System architecture and features
-- **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Setup for development and production
-- **[👨‍💻 Development Guide](docs/DEVELOPMENT.md)** - Coding standards and workflow
-- **[🔌 API Documentation](docs/API_DOCUMENTATION.md)** - Complete REST API reference
-- **[🔧 IoT Integration](docs/IOT_INTEGRATION.md)** - ESP32 hardware setup and MQTT
+### 🌡️ Real-time Monitoring
+- **Live Sensor Data**: Temperature, humidity, soil moisture, water level, light intensity, rain detection
+- **Interactive Dashboard**: Charts, gauges, and real-time status indicators
+- **Historical Analytics**: Trend analysis with data export capabilities
+- **WebSocket Communication**: Instant updates without page refresh
+
+### 🎛️ Smart Control System
+- **Automated Devices**: Intelligent control of lights, pumps, fans, windows, and doors
+- **Manual Override**: User-controlled device operation when needed
+- **Automation Rules**: Temperature-based fan control, soil moisture-based irrigation
+- **Safety Features**: Automatic alerts and emergency shutdowns
+
+### 🚨 Intelligent Alerts
+- **Configurable Thresholds**: Custom min/max values for all sensors
+- **Multi-channel Notifications**: Email alerts, push notifications, dashboard alerts
+- **Severity Levels**: Info, warning, high, and critical alert classifications
+- **Test Functionality**: Verify alert configuration with test notifications
+
+### ⚙️ Advanced Configuration
+- **Dynamic Settings**: Real-time threshold updates without system restart
+- **Email Management**: Multiple recipients with customizable alert preferences
+- **Data Source Control**: Switch between real sensor data and mock data for testing
+- **Persistent Storage**: All configurations automatically saved to database
+
+## 🧪 Testing Guide
+
+### Quick Test Commands
+```bash
+# System health check
+curl http://localhost:5000/api/health
+
+# Test WebSocket connection (check browser console)
+# Should see: "✅ Connected to WebSocket server"
+
+# Test authentication
+curl -X POST http://localhost:5000/api/auth/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@greenhouse.com","password":"admin123"}'
+
+# Test sensor data
+curl http://localhost:5000/api/sensors/latest
+```
+
+### Manual Testing Steps
+1. **Login**: Access dashboard with provided credentials
+2. **Real-time Data**: Verify sensor values update automatically
+3. **Device Control**: Test manual pump/fan/light controls
+4. **Settings**: Configure email alerts and send test notification
+5. **Mock Data**: Enable mock data for testing without physical sensors
+
+## 📚 Documentation
+
+### Complete Guides
+- 📖 **[System Architecture](docs/SYSTEM_ARCHITECTURE.md)**: Technical architecture and data flow
+- 🚀 **[Deployment Guide](docs/DEPLOYMENT.md)**: Complete setup and deployment instructions
+
+### System Status ✅
+- **Authentication**: ✅ JWT-based secure login system
+- **Real-time Data**: ✅ WebSocket live sensor updates  
+- **Device Control**: ✅ Manual and automated device operation
+- **Alert System**: ✅ Configurable email notifications
+- **Database**: ✅ MongoDB with optimized schema
+- **Docker Deployment**: ✅ Production-ready containers
+- **MQTT Integration**: ✅ IoT sensor data processing
+- **Mock Data Testing**: ✅ Simulation for development
 
 ## 🏆 Team Members
 1. **Nguyen Van Le Ba Thanh** - 22127390  
 2. **Nguyen Gia Kiet** - 22127221 
 3. **Nguyen Hoang Nhu** - 22127314  
 4. **Vo Thanh Tu** - 21127469
+
+---
+
+**⭐ Star this repository if you find it useful!**
+
+For detailed technical documentation and troubleshooting, see the [docs/](docs/) directory.
+
+*Built with ❤️ using Next.js, Node.js, MongoDB, and Docker*
 
 ## ⚙️ Technology Stack
 - **Frontend**: Next.js 13, React, TypeScript, Bootstrap

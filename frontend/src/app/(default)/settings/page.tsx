@@ -1,16 +1,13 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Card, Form, Button, Alert, Spinner, Row, Col, Badge, Tab, Tabs } from 'react-bootstrap';
+import apiClient from '@/lib/apiClient';
+import MockDataToggle from '@/components/MockDataToggle/MockDataToggle';
+import withAuth from '@/components/withAuth/withAuth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
-
-import React, { useEffect, useState } from 'react';
-import { Card, Button, Form, Alert, Spinner } from 'react-bootstrap';
-import styles from './settings.module.scss';
-import authService, { User } from '@/lib/authService';
-import apiClient from '@/lib/apiClient';
-import mockDataService from '@/services/mockDataService';
-import MockDataToggle from '@/components/MockDataToggle/MockDataToggle';
 
 interface ThresholdSettings {
 	temperatureThreshold: { min: number; max: number };
@@ -19,14 +16,20 @@ interface ThresholdSettings {
 	waterLevelThreshold: { min: number; max: number };
 }
 
-interface EmailAlerts {
+interface EmailAlertsConfig {
 	temperature: boolean;
 	humidity: boolean;
 	soilMoisture: boolean;
 	waterLevel: boolean;
 }
 
-const SystemSettingsPage = () => {
+interface SystemMessage {
+	type: 'success' | 'error' | 'warning' | 'info';
+	text: string;
+}
+
+const SettingsPage = () => {
+	// State management
 	const [thresholds, setThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
 		humidityThreshold: { min: 40, max: 80 },
@@ -35,70 +38,146 @@ const SystemSettingsPage = () => {
 	});
 
 	const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
-	const [emailAlerts, setEmailAlerts] = useState<EmailAlerts>({
+	const [emailAlerts, setEmailAlerts] = useState<EmailAlertsConfig>({
 		temperature: true,
 		humidity: true,
 		soilMoisture: true,
 		waterLevel: true
 	});
+
 	const [newEmail, setNewEmail] = useState('');
-	const [schedule, setSchedule] = useState('08:00');
-	const [controlMode, setControlMode] = useState('auto');
-	const [user, setUser] = useState<User | null>(null);
 	const [emailError, setEmailError] = useState('');
-	const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+	const [message, setMessage] = useState<SystemMessage | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [testingEmail, setTestingEmail] = useState(false);
-	const [isUsingMockData, setIsUsingMockData] = useState(false);
+	const [activeTab, setActiveTab] = useState('thresholds');
+	const [emailStatus, setEmailStatus] = useState<any>(null);
 
-	useEffect(() => {
-		const currentUser = authService.getCurrentUser();
-		setUser(currentUser);
-		if (currentUser?.email && !emailRecipients.includes(currentUser.email)) {
-			setEmailRecipients([currentUser.email]);
-		}
-		// Check mock data status
-		setIsUsingMockData(mockDataService.isUsingMockData());
-		loadSettings();
-	}, []); // Remove emailRecipients dependency to prevent infinite loop
+	// Track unsaved changes
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+	const [originalThresholds, setOriginalThresholds] = useState<ThresholdSettings>({
+		temperatureThreshold: { min: 18, max: 30 },
+		humidityThreshold: { min: 40, max: 80 },
+		soilMoistureThreshold: { min: 30, max: 70 },
+		waterLevelThreshold: { min: 20, max: 90 }
+	});
+	const [originalEmailRecipients, setOriginalEmailRecipients] = useState<string[]>([]);
+	const [originalEmailAlerts, setOriginalEmailAlerts] = useState<EmailAlertsConfig>({
+		temperature: true,
+		humidity: true,
+		soilMoisture: true,
+		waterLevel: true
+	});
 
-	const loadSettings = async () => {
+	const loadSettings = useCallback(async () => {
 		try {
+			setLoading(true);
 			const response = await apiClient.getSettings();
-			if (response.success && response.data) {
-				setThresholds({
-					temperatureThreshold: response.data.temperatureThreshold,
-					humidityThreshold: response.data.humidityThreshold,
-					soilMoistureThreshold: response.data.soilMoistureThreshold,
-					waterLevelThreshold: response.data.waterLevelThreshold
-				});
 
+			if (response.success && response.data) {
+				// Load thresholds
+				if (response.data.temperatureThreshold) {
+					const loadedThresholds = {
+						temperatureThreshold: response.data.temperatureThreshold,
+						humidityThreshold: response.data.humidityThreshold,
+						soilMoistureThreshold: response.data.soilMoistureThreshold,
+						waterLevelThreshold: response.data.waterLevelThreshold
+					};
+					setThresholds(loadedThresholds);
+					setOriginalThresholds(loadedThresholds);
+				}
+
+				// Load email recipients
 				if (response.data.notifications?.emailRecipients) {
 					setEmailRecipients(response.data.notifications.emailRecipients);
+					setOriginalEmailRecipients(response.data.notifications.emailRecipients);
 				}
 
+				// Load email alert settings
 				if (response.data.emailAlerts) {
 					setEmailAlerts(response.data.emailAlerts);
+					setOriginalEmailAlerts(response.data.emailAlerts);
 				}
+
+				// Reset unsaved changes flag after loading
+				setHasUnsavedChanges(false);
 			}
 		} catch (error) {
 			console.error('Error loading settings:', error);
+			showMessage('error', 'Failed to load settings');
+		} finally {
+			setLoading(false);
+		}
+	}, []);
+
+	// Load settings on component mount
+	useEffect(() => {
+		loadSettings();
+		loadEmailStatus();
+	}, [loadSettings]);
+
+	const loadEmailStatus = async () => {
+		try {
+			const response = await apiClient.getEmailStatus();
+			setEmailStatus(response.data);
+		} catch (error) {
+			console.error('Error loading email status:', error);
 		}
 	};
 
+	// Check if settings have unsaved changes
+	const checkForChanges = useCallback(() => {
+		const thresholdsChanged = JSON.stringify(thresholds) !== JSON.stringify(originalThresholds);
+		const emailRecipientsChanged = JSON.stringify(emailRecipients) !== JSON.stringify(originalEmailRecipients);
+		const emailAlertsChanged = JSON.stringify(emailAlerts) !== JSON.stringify(originalEmailAlerts);
+
+		const hasChanges = thresholdsChanged || emailRecipientsChanged || emailAlertsChanged;
+		setHasUnsavedChanges(hasChanges);
+		return hasChanges;
+	}, [thresholds, originalThresholds, emailRecipients, originalEmailRecipients, emailAlerts, originalEmailAlerts]);
+
+	// Check for changes whenever settings change
+	useEffect(() => {
+		checkForChanges();
+	}, [checkForChanges]);
+
+	// Confirmation dialog for unsaved changes
+	const confirmAction = (action: () => void, actionName: string) => {
+		if (hasUnsavedChanges) {
+			const confirmed = window.confirm(
+				`You have unsaved changes. Are you sure you want to ${actionName} without saving?`
+			);
+			if (confirmed) {
+				action();
+			}
+		} else {
+			action();
+		}
+	};
+
+	const showMessage = (type: SystemMessage['type'], text: string) => {
+		setMessage({ type, text });
+		setTimeout(() => setMessage(null), 5000);
+	};
+
 	const isValidEmail = (email: string): boolean => {
-		const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		return regex.test(email);
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		return emailRegex.test(email);
 	};
 
 	const addEmailRecipient = () => {
+		if (!newEmail.trim()) {
+			setEmailError('Please enter an email address');
+			return;
+		}
+
 		if (!isValidEmail(newEmail)) {
-			setEmailError('Invalid email format');
+			setEmailError('Please enter a valid email address');
 			return;
 		}
 
 		if (emailRecipients.includes(newEmail)) {
-			setEmailError('Email already added');
+			setEmailError('Email address already exists');
 			return;
 		}
 
@@ -111,428 +190,459 @@ const SystemSettingsPage = () => {
 		setEmailRecipients(emailRecipients.filter(e => e !== email));
 	};
 
-	const testEmail = async (email: string) => {
+	const testEmail = async () => {
+		if (emailRecipients.length === 0) {
+			showMessage('warning', 'Please add at least one email recipient');
+			return;
+		}
+
+		// Check for unsaved changes before testing
+		if (hasUnsavedChanges) {
+			const confirmed = window.confirm(
+				'You have unsaved changes to your email settings. Please save your changes first before testing email functionality.'
+			);
+			if (!confirmed) {
+				return;
+			}
+			showMessage('warning', 'Please save your settings first before testing email');
+			return;
+		}
+
 		setTestingEmail(true);
 		try {
-			const response = await fetch('/api/auth/test-email', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email })
-			});
-
-			const data = await response.json();
-			setMessage({
-				type: data.success ? 'success' : 'error',
-				text: data.message
-			});
+			const response = await apiClient.testEmail(emailRecipients);
+			showMessage('success', response.message || 'Test email sent successfully');
 		} catch (error) {
-			setMessage({
-				type: 'error',
-				text: 'Failed to send test email'
-			});
+			showMessage('error', 'Failed to send test email');
 		} finally {
 			setTestingEmail(false);
-			setTimeout(() => setMessage(null), 5000);
 		}
 	};
 
-	const handleSave = async () => {
+	const saveThresholds = async () => {
 		setLoading(true);
 		try {
-			// Save thresholds and email recipients
-			await apiClient.saveSettings({
-				...thresholds,
-				autoControl: { light: true, pump: true, door: true },
-				notifications: {
-					email: true,
-					threshold: true,
-					emailRecipients
-				},
-				emailAlerts
-			});
-
-			setMessage({
-				type: 'success',
-				text: 'Settings saved successfully!'
-			});
+			await apiClient.saveThresholds(thresholds);
+			setOriginalThresholds({ ...thresholds });
+			setHasUnsavedChanges(false);
+			showMessage('success', 'Alert thresholds saved successfully!');
 		} catch (error) {
-			setMessage({
-				type: 'error',
-				text: 'Error saving settings. Please try again.'
-			});
+			showMessage('error', 'Failed to save thresholds');
 		} finally {
 			setLoading(false);
-			setTimeout(() => setMessage(null), 5000);
 		}
 	};
 
-	const handleReset = () => {
+	const saveEmailSettings = async () => {
+		setLoading(true);
+		try {
+			// Save email recipients
+			if (emailRecipients.length > 0) {
+				await apiClient.saveEmailRecipients(emailRecipients);
+			}
+
+			// Save email alert configuration
+			await apiClient.saveEmailAlerts(emailAlerts);
+
+			// Update original values
+			setOriginalEmailRecipients([...emailRecipients]);
+			setOriginalEmailAlerts({ ...emailAlerts });
+			setHasUnsavedChanges(false);
+
+			showMessage('success', 'Email settings saved successfully!');
+		} catch (error) {
+			showMessage('error', 'Failed to save email settings');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const resetToDefaults = () => {
 		setThresholds({
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
 			soilMoistureThreshold: { min: 30, max: 70 },
 			waterLevelThreshold: { min: 20, max: 90 }
 		});
-		setEmailRecipients(user?.email ? [user.email] : []);
+
 		setEmailAlerts({
 			temperature: true,
 			humidity: true,
 			soilMoisture: true,
 			waterLevel: true
 		});
-		setSchedule('08:00');
-		setControlMode('auto');
-		setEmailError('');
-		setMessage(null);
+
+		showMessage('info', 'Settings reset to defaults');
 	};
 
 	return (
-		<div className={styles.container}>
-			<h2 className={styles.heading}>System Configuration</h2>
+		<Container className="py-4">
+			<div className="d-flex justify-content-between align-items-center mb-4">
+				<div className="d-flex align-items-center gap-3">
+					<h2 className="mb-0">⚙️ System Configuration</h2>
+					{hasUnsavedChanges && (
+						<Badge bg="warning" text="dark">
+							⚠️ Unsaved Changes
+						</Badge>
+					)}
+				</div>
+				<Badge bg={emailStatus?.enabled ? 'success' : 'secondary'}>
+					Email: {emailStatus?.enabled ? 'Enabled' : 'Disabled'}
+				</Badge>
+			</div>
 
 			{message && (
-				<Alert variant={message.type === 'success' ? 'success' : 'danger'}>
+				<Alert variant={message.type === 'success' ? 'success' :
+					message.type === 'error' ? 'danger' :
+						message.type === 'warning' ? 'warning' : 'info'}>
 					{message.text}
 				</Alert>
 			)}
 
-			{/* Data Source Control */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Data Source Configuration</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<MockDataToggle onToggle={(isMock) => setIsUsingMockData(isMock)} />
-				</Card.Body>
-			</Card>
+			<Tabs
+				activeKey={activeTab}
+				onSelect={(k) => setActiveTab(k || 'thresholds')}
+				className="mb-4"
+				fill
+			>
+				{/* Threshold Settings Tab */}
+				<Tab eventKey="thresholds" title="🎯 Alert Thresholds">
+					<Card>
+						<Card.Header>
+							<h5 className="mb-0">Sensor Alert Thresholds</h5>
+						</Card.Header>
+						<Card.Body>
+							<Row>
+								{/* Temperature Settings */}
+								<Col md={6} className="mb-4">
+									<h6>🌡️ Temperature (°C)</h6>
+									<Row>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Minimum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.temperatureThreshold.min}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														temperatureThreshold: {
+															...thresholds.temperatureThreshold,
+															min: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Maximum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.temperatureThreshold.max}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														temperatureThreshold: {
+															...thresholds.temperatureThreshold,
+															max: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+									</Row>
+								</Col>
 
-			{/* Temperature Thresholds */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Temperature Thresholds (°C)</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<div className="row">
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Minimum Temperature</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.temperatureThreshold.min}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										temperatureThreshold: {
-											...thresholds.temperatureThreshold,
-											min: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Maximum Temperature</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.temperatureThreshold.max}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										temperatureThreshold: {
-											...thresholds.temperatureThreshold,
-											max: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-					</div>
-				</Card.Body>
-			</Card>
+								{/* Humidity Settings */}
+								<Col md={6} className="mb-4">
+									<h6>💧 Humidity (%)</h6>
+									<Row>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Minimum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.humidityThreshold.min}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														humidityThreshold: {
+															...thresholds.humidityThreshold,
+															min: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Maximum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.humidityThreshold.max}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														humidityThreshold: {
+															...thresholds.humidityThreshold,
+															max: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+									</Row>
+								</Col>
 
-			{/* Humidity Thresholds */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Humidity Thresholds (%)</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<div className="row">
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Minimum Humidity</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.humidityThreshold.min}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										humidityThreshold: {
-											...thresholds.humidityThreshold,
-											min: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Maximum Humidity</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.humidityThreshold.max}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										humidityThreshold: {
-											...thresholds.humidityThreshold,
-											max: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-					</div>
-				</Card.Body>
-			</Card>
+								{/* Soil Moisture Settings */}
+								<Col md={6} className="mb-4">
+									<h6>🌱 Soil Moisture (%)</h6>
+									<Row>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Minimum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.soilMoistureThreshold.min}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														soilMoistureThreshold: {
+															...thresholds.soilMoistureThreshold,
+															min: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Maximum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.soilMoistureThreshold.max}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														soilMoistureThreshold: {
+															...thresholds.soilMoistureThreshold,
+															max: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+									</Row>
+								</Col>
 
-			{/* Soil Moisture Thresholds */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Soil Moisture Thresholds (%)</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<div className="row">
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Minimum Soil Moisture</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.soilMoistureThreshold.min}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										soilMoistureThreshold: {
-											...thresholds.soilMoistureThreshold,
-											min: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Maximum Soil Moisture</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.soilMoistureThreshold.max}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										soilMoistureThreshold: {
-											...thresholds.soilMoistureThreshold,
-											max: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-					</div>
-				</Card.Body>
-			</Card>
+								{/* Water Level Settings */}
+								<Col md={6} className="mb-4">
+									<h6>🚰 Water Level (%)</h6>
+									<Row>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Minimum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.waterLevelThreshold.min}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														waterLevelThreshold: {
+															...thresholds.waterLevelThreshold,
+															min: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+										<Col>
+											<Form.Group className="mb-2">
+												<Form.Label>Maximum</Form.Label>
+												<Form.Control
+													type="number"
+													value={thresholds.waterLevelThreshold.max}
+													onChange={(e) => setThresholds({
+														...thresholds,
+														waterLevelThreshold: {
+															...thresholds.waterLevelThreshold,
+															max: Number(e.target.value)
+														}
+													})}
+												/>
+											</Form.Group>
+										</Col>
+									</Row>
+								</Col>
+							</Row>
 
-			{/* Water Level Thresholds */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Water Level Thresholds (%)</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<div className="row">
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Minimum Water Level</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.waterLevelThreshold.min}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										waterLevelThreshold: {
-											...thresholds.waterLevelThreshold,
-											min: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-						<div className="col-md-6">
-							<Form.Group className={styles.formGroup}>
-								<Form.Label>Maximum Water Level</Form.Label>
-								<Form.Control
-									type="number"
-									value={thresholds.waterLevelThreshold.max}
-									onChange={(e) => setThresholds({
-										...thresholds,
-										waterLevelThreshold: {
-											...thresholds.waterLevelThreshold,
-											max: Number(e.target.value)
-										}
-									})}
-								/>
-							</Form.Group>
-						</div>
-					</div>
-				</Card.Body>
-			</Card>
+							<div className="d-flex gap-2">
+								<Button
+									variant={hasUnsavedChanges ? "success" : "primary"}
+									onClick={saveThresholds}
+									disabled={loading}
+								>
+									{loading ? <Spinner size="sm" /> : hasUnsavedChanges ? '💾 Save Changes' : '💾 Save Thresholds'}
+								</Button>
+								<Button
+									variant="outline-secondary"
+									onClick={() => confirmAction(resetToDefaults, "reset to defaults")}
+								>
+									🔄 Reset to Defaults
+								</Button>
+							</div>
+						</Card.Body>
+					</Card>
+				</Tab>
 
-			{/* Email Settings */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Email Alert Recipients</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<Form.Group className={styles.formGroup}>
-						<Form.Label>Add Email Recipient</Form.Label>
-						<div className="d-flex gap-2">
-							<Form.Control
-								type="email"
-								placeholder="Enter email address"
-								value={newEmail}
-								onChange={(e) => setNewEmail(e.target.value)}
-								isInvalid={!!emailError}
-							/>
-							<Button
-								onClick={addEmailRecipient}
-								variant="success"
-								className={styles.addButton}
-							>
-								Add
-							</Button>
-						</div>
-						<Form.Control.Feedback type="invalid">
-							{emailError}
-						</Form.Control.Feedback>
-					</Form.Group>
-
-					{emailRecipients.length > 0 && (
-						<div className={styles.emailList}>
-							<Form.Label>Current Recipients:</Form.Label>
-							{emailRecipients.map((email, index) => (
-								<div key={index} className={styles.emailItem}>
-									<span>{email}</span>
-									<div>
-										<Button
-											size="sm"
-											variant="outline-info"
-											onClick={() => testEmail(email)}
-											disabled={testingEmail}
-											className="me-2"
-										>
-											{testingEmail ? <Spinner size="sm" /> : 'Test'}
+				{/* Email Settings Tab */}
+				<Tab eventKey="email" title="📧 Email Alerts">
+					<Card>
+						<Card.Header>
+							<h5 className="mb-0">Email Alert Configuration</h5>
+						</Card.Header>
+						<Card.Body>
+							{/* Email Recipients */}
+							<div className="mb-4">
+								<h6>📧 Email Recipients</h6>
+								<Row>
+									<Col md={8}>
+										<Form.Control
+											type="email"
+											placeholder="Enter email address"
+											value={newEmail}
+											onChange={(e) => setNewEmail(e.target.value)}
+											onKeyPress={(e) => e.key === 'Enter' && addEmailRecipient()}
+											isInvalid={!!emailError}
+										/>
+										{emailError && (
+											<Form.Control.Feedback type="invalid">
+												{emailError}
+											</Form.Control.Feedback>
+										)}
+									</Col>
+									<Col md={4}>
+										<Button variant="outline-primary" onClick={addEmailRecipient}>
+											➕ Add
 										</Button>
-										<Button
-											size="sm"
-											variant="outline-danger"
-											onClick={() => removeEmailRecipient(email)}
-										>
-											Remove
-										</Button>
+									</Col>
+								</Row>
+
+								{emailRecipients.length > 0 && (
+									<div className="mt-3">
+										<h6>Current Recipients:</h6>
+										{emailRecipients.map((email, index) => (
+											<div key={index} className="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+												<span>{email}</span>
+												<Button
+													size="sm"
+													variant="outline-danger"
+													onClick={() => removeEmailRecipient(email)}
+												>
+													🗑️ Remove
+												</Button>
+											</div>
+										))}
 									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</Card.Body>
-			</Card>
+								)}
+							</div>
 
-			{/* Email Alert Settings */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Email Alert Settings</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<p className="text-muted mb-3">Configure which alerts should trigger email notifications</p>
+							{/* Email Alert Types */}
+							<div className="mb-4">
+								<h6>🚨 Alert Types</h6>
+								<p className="text-muted">Configure which alerts should trigger email notifications</p>
 
-					<div className="row">
-						<div className="col-md-6">
-							<Form.Check
-								type="switch"
-								id="temperature-email-switch"
-								label="Temperature Alerts"
-								checked={emailAlerts.temperature}
-								onChange={(e) => setEmailAlerts({
-									...emailAlerts,
-									temperature: e.target.checked
-								})}
-								className="mb-3"
-							/>
+								<Row>
+									<Col md={6}>
+										<Form.Check
+											type="switch"
+											id="temperature-email-switch"
+											label="🌡️ Temperature Alerts"
+											checked={emailAlerts.temperature}
+											onChange={(e) => setEmailAlerts({
+												...emailAlerts,
+												temperature: e.target.checked
+											})}
+										/>
+									</Col>
+									<Col md={6}>
+										<Form.Check
+											type="switch"
+											id="humidity-email-switch"
+											label="💧 Humidity Alerts"
+											checked={emailAlerts.humidity}
+											onChange={(e) => setEmailAlerts({
+												...emailAlerts,
+												humidity: e.target.checked
+											})}
+										/>
+									</Col>
+									<Col md={6}>
+										<Form.Check
+											type="switch"
+											id="soil-email-switch"
+											label="🌱 Soil Moisture Alerts"
+											checked={emailAlerts.soilMoisture}
+											onChange={(e) => setEmailAlerts({
+												...emailAlerts,
+												soilMoisture: e.target.checked
+											})}
+										/>
+									</Col>
+									<Col md={6}>
+										<Form.Check
+											type="switch"
+											id="water-email-switch"
+											label="🚰 Water Level Alerts"
+											checked={emailAlerts.waterLevel}
+											onChange={(e) => setEmailAlerts({
+												...emailAlerts,
+												waterLevel: e.target.checked
+											})}
+										/>
+									</Col>
+								</Row>
+							</div>
 
-							<Form.Check
-								type="switch"
-								id="humidity-email-switch"
-								label="Humidity Alerts"
-								checked={emailAlerts.humidity}
-								onChange={(e) => setEmailAlerts({
-									...emailAlerts,
-									humidity: e.target.checked
-								})}
-								className="mb-3"
-							/>
-						</div>
+							<div className="d-flex gap-2">
+								<Button
+									variant={hasUnsavedChanges ? "success" : "primary"}
+									onClick={saveEmailSettings}
+									disabled={loading}
+								>
+									{loading ? <Spinner size="sm" /> : hasUnsavedChanges ? '💾 Save Changes' : '💾 Save Email Settings'}
+								</Button>
+								<Button
+									variant="outline-info"
+									onClick={testEmail}
+									disabled={testingEmail || emailRecipients.length === 0 || hasUnsavedChanges}
+									title={hasUnsavedChanges ? "Please save settings before testing email" : ""}
+								>
+									{testingEmail ? <Spinner size="sm" /> : '📧 Send Test Email'}
+								</Button>
+							</div>
+						</Card.Body>
+					</Card>
+				</Tab>
 
-						<div className="col-md-6">
-							<Form.Check
-								type="switch"
-								id="soil-email-switch"
-								label="Soil Moisture Alerts"
-								checked={emailAlerts.soilMoisture}
-								onChange={(e) => setEmailAlerts({
-									...emailAlerts,
-									soilMoisture: e.target.checked
-								})}
-								className="mb-3"
-							/>
-
-							<Form.Check
-								type="switch"
-								id="water-email-switch"
-								label="Water Level Alerts"
-								checked={emailAlerts.waterLevel}
-								onChange={(e) => setEmailAlerts({
-									...emailAlerts,
-									waterLevel: e.target.checked
-								})}
-								className="mb-3"
-							/>
-						</div>
-					</div>
-				</Card.Body>
-			</Card>
-
-			{/* Schedule Settings */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Schedule Settings</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<Form.Group className={styles.formGroup}>
-						<Form.Label>Auto Watering Time</Form.Label>
-						<Form.Control
-							type="time"
-							value={schedule}
-							onChange={(e) => setSchedule(e.target.value)}
-						/>
-					</Form.Group>
-				</Card.Body>
-			</Card>
-
-			{/* Control Parameters */}
-			<Card className={styles.card}>
-				<Card.Header className={styles.cardHeader}>Control Parameters</Card.Header>
-				<Card.Body className={styles.cardBody}>
-					<Form.Group className={styles.formGroup}>
-						<Form.Label>Mode</Form.Label>
-						<Form.Select
-							value={controlMode}
-							onChange={(e) => setControlMode(e.target.value)}
-						>
-							<option value="auto">Automatic</option>
-							<option value="manual">Manual</option>
-						</Form.Select>
-					</Form.Group>
-				</Card.Body>
-			</Card>
-
-			<div className={styles.actions}>
-				<Button variant="secondary" onClick={handleReset}>Reset to Default</Button>
-				<Button
-					variant="success"
-					onClick={handleSave}
-					disabled={loading}
-				>
-					{loading ? <Spinner size="sm" className="me-2" /> : null}
-					Save Settings
-				</Button>
-			</div>
-		</div>
-	)
+				{/* Data Source Tab */}
+				<Tab eventKey="data" title="📊 Data Source">
+					<Card>
+						<Card.Header>
+							<h5 className="mb-0">Data Source Configuration</h5>
+						</Card.Header>
+						<Card.Body>
+							<MockDataToggle />
+							<div className="mt-3">
+								<Alert variant="info">
+									<h6>📝 Information</h6>
+									<ul className="mb-0">
+										<li><strong>Real Data:</strong> Live sensor data from MQTT broker</li>
+										<li><strong>Mock Data:</strong> Simulated data for testing and development</li>
+										<li>Changes take effect immediately and affect all connected clients</li>
+									</ul>
+								</Alert>
+							</div>
+						</Card.Body>
+					</Card>
+				</Tab>
+			</Tabs>
+		</Container>
+	);
 };
 
-export default SystemSettingsPage;
+export default withAuth(SettingsPage);

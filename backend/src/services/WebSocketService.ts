@@ -1,155 +1,218 @@
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
+
+interface SensorData {
+	type: string;
+	value: number;
+	timestamp: string;
+	quality?: 'good' | 'fair' | 'poor';
+}
+
+interface DeviceStatus {
+	device: string;
+	status: string;
+	timestamp: string;
+}
+
+interface AlertData {
+	id: string;
+	type: string;
+	level: string;
+	message: string;
+	timestamp: string;
+}
 
 class WebSocketService {
 	private io: Server | null = null;
-	private connectedClients = new Map<string, any>();
+	private connectedClients: Map<string, Socket> = new Map();
 
 	initialize(httpServer: HttpServer) {
 		this.io = new Server(httpServer, {
 			cors: {
 				origin: process.env.FRONTEND_URL || "http://localhost:3000",
-				methods: ["GET", "POST"]
-			}
+				methods: ["GET", "POST"],
+				credentials: true
+			},
+			pingTimeout: 60000,
+			pingInterval: 25000
 		});
 
-		this.setupEventHandlers();
+		this.io.on('connection', (socket: Socket) => {
+			console.log(`📡 WebSocket client connected: ${socket.id}`);
+			this.connectedClients.set(socket.id, socket);
+
+			// Send welcome message with current status
+			socket.emit('connection-status', {
+				status: 'connected',
+				clientId: socket.id,
+				timestamp: new Date().toISOString()
+			});
+
+			// Handle client disconnect
+			socket.on('disconnect', (reason) => {
+				console.log(`📡 WebSocket client disconnected: ${socket.id} - ${reason}`);
+				this.connectedClients.delete(socket.id);
+			});
+
+			// Handle device control requests from client
+			socket.on('device-control', (data) => {
+				console.log(`🎮 Device control request from ${socket.id}:`, data);
+				// Broadcast to all clients for real-time feedback
+				socket.broadcast.emit('device-control-update', {
+					...data,
+					requestedBy: socket.id,
+					timestamp: new Date().toISOString()
+				});
+			});
+
+			// Handle ping requests for connection health
+			socket.on('ping', () => {
+				socket.emit('pong', { timestamp: new Date().toISOString() });
+			});
+		});
+
 		console.log('✅ WebSocket service initialized');
 	}
 
-	private setupEventHandlers() {
-		if (!this.io) return;
-
-		this.io.on('connection', (socket) => {
-			console.log(`🔌 Client connected: ${socket.id}`);
-			this.connectedClients.set(socket.id, socket);
-
-			// Handle device control commands from frontend
-			socket.on('device:control', (data) => {
-				console.log('📡 Device control command received:', data);
-				this.handleDeviceControl(data);
-			});
-
-			// Handle sensor data requests
-			socket.on('sensors:subscribe', () => {
-				console.log('📊 Client subscribed to sensor data');
-				// Client will automatically receive sensor data via broadcastSensorData
-			});
-
-			socket.on('disconnect', () => {
-				console.log(`🔌 Client disconnected: ${socket.id}`);
-				this.connectedClients.delete(socket.id);
-			});
-		});
-
-		// Listen to MQTT sensor data and broadcast to all WebSocket clients - now handled in index.ts
-		// this.setupMQTTBridge();
-	}
-
-	private setupMQTTBridge() {
-		// Bridge MQTT messages to WebSocket clients - removed to avoid circular dependencies
-		// MQTT handling is now done directly in index.ts
-		console.log('[WS] MQTT bridge setup skipped - handled in main application');
-	}
-
-	private handleDeviceControl(data: any) {
-		const { device, action, value } = data;
-
-		// Import mqttService dynamically to avoid circular dependency
-		const { mqttService } = require('./MQTTService');
-
-		// Map frontend device names to MQTT topics
-		const deviceTopicMap: { [key: string]: string } = {
-			'light': 'greenhouse/devices/light/control',
-			'pump': 'greenhouse/devices/pump/control',
-			'door': 'greenhouse/devices/door/control',
-			'window': 'greenhouse/devices/window/control',
-			'fan': 'greenhouse/devices/pump/control' // Map fan to pump for now
-		};
-
-		const mqttTopic = deviceTopicMap[device];
-		if (!mqttTopic) {
-			console.error('Unknown device type:', device);
-			return;
-		}
-
-		console.log(`[WS] Device control request: ${device} -> ${action} (${value})`);
-		console.log(`[WS] Publishing to MQTT: ${mqttTopic} -> ${action}`);
-
-		// Use the MQTT service to publish device control
-		if (mqttService && mqttService.isClientConnected()) {
-			mqttService.publish(mqttTopic, action);
-		} else {
-			console.error('[WS] MQTT service not available or not connected');
-		}
-	}
-
 	// Broadcast sensor data to all connected clients
-	broadcastSensorData(topic: string, data: any) {
+	broadcastSensorData(topic: string, data: SensorData) {
 		if (!this.io) {
-			console.log('[WS-ERROR] WebSocket server not initialized');
+			console.error('❌ WebSocket not initialized');
 			return;
 		}
 
-		const sensorType = this.extractSensorType(topic);
-		const wsData = {
-			sensor: sensorType,
-			data,
-			timestamp: new Date().toISOString()
+		const sensorUpdate = {
+			topic,
+			sensor: data.type,
+			data: {
+				value: data.value,
+				timestamp: data.timestamp,
+				quality: data.quality || 'good'
+			},
+			timestamp: data.timestamp
 		};
 
-		console.log(`[WS-BROADCAST] Broadcasting ${sensorType} data to clients:`, wsData);
-		this.io.emit('sensor:data', wsData);
+		console.log(`📡 Broadcasting sensor data: ${data.type} = ${data.value}`);
+
+		// Emit to general sensor data channel
+		this.io.emit('sensor:data', sensorUpdate);
+
+		// Also emit to specific sensor channel for targeted listening
+		this.io.emit(`sensor:${data.type}`, sensorUpdate);
+
+		// Legacy format for backward compatibility
+		this.io.emit('sensor-data', sensorUpdate);
+		this.io.emit(`sensor-${data.type}`, sensorUpdate);
 	}
 
 	// Broadcast device status to all connected clients
-	broadcastDeviceStatus(topic: string, status: any) {
-		if (!this.io) return;
+	broadcastDeviceStatus(topic: string, status: DeviceStatus) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
 
-		const deviceType = this.extractDeviceType(topic);
-		this.io.emit('device:status', {
-			device: deviceType,
-			status,
-			timestamp: new Date().toISOString()
-		});
+		const deviceUpdate = {
+			topic,
+			device: status.device,
+			status: status.status,
+			timestamp: status.timestamp
+		};
+
+		console.log(`📡 Broadcasting device status: ${status.device} = ${status.status}`);
+		this.io.emit('device-status', deviceUpdate);
+		this.io.emit(`device-${status.device}`, deviceUpdate);
 	}
 
 	// Broadcast alerts to all connected clients
-	broadcastAlert(alert: any) {
-		if (!this.io) return;
+	broadcastAlert(alert: AlertData) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
 
-		this.io.emit('alert:new', alert);
+		console.log(`🚨 Broadcasting alert: ${alert.type} - ${alert.level}`);
+		this.io.emit('alert', alert);
+
+		// Send high priority alerts to specific channel
+		if (alert.level === 'critical' || alert.level === 'high') {
+			this.io.emit('priority-alert', alert);
+		}
 	}
 
 	// Send notification to specific client or all clients
 	sendNotification(notification: any, clientId?: string) {
-		if (!this.io) return;
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
 
 		if (clientId && this.connectedClients.has(clientId)) {
-			this.connectedClients.get(clientId).emit('notification', notification);
+			const client = this.connectedClients.get(clientId);
+			client?.emit('notification', notification);
+			console.log(`📬 Notification sent to client ${clientId}`);
 		} else {
 			this.io.emit('notification', notification);
+			console.log('📬 Notification broadcast to all clients');
 		}
 	}
 
-	private extractSensorType(topic: string): string {
-		// Extract sensor type from topic like "greenhouse/sensors/temperature"
-		const parts = topic.split('/');
-		return parts[parts.length - 1];
+	// Send system status updates
+	broadcastSystemStatus(status: {
+		mqtt: boolean;
+		database: boolean;
+		email: boolean;
+		timestamp: string;
+	}) {
+		if (!this.io) return;
+
+		this.io.emit('system-status', status);
+		console.log('📊 System status broadcast:', status);
 	}
 
-	private extractDeviceType(topic: string): string {
-		// Extract device type from topic like "greenhouse/devices/pump/control"
-		const parts = topic.split('/');
-		return parts[parts.length - 2];
+	// Send configuration updates
+	broadcastConfigUpdate(config: any) {
+		if (!this.io) return;
+
+		this.io.emit('config-update', {
+			...config,
+			timestamp: new Date().toISOString()
+		});
+		console.log('⚙️ Configuration update broadcast');
 	}
 
 	// Get connection statistics
 	getStats() {
 		return {
 			connectedClients: this.connectedClients.size,
-			clients: Array.from(this.connectedClients.keys())
+			clientIds: Array.from(this.connectedClients.keys()),
+			isActive: this.io !== null
 		};
+	}
+
+	// Send heartbeat to maintain connections
+	sendHeartbeat() {
+		if (!this.io) return;
+
+		this.io.emit('heartbeat', {
+			timestamp: new Date().toISOString(),
+			connectedClients: this.connectedClients.size
+		});
+	}
+
+	// Graceful shutdown
+	shutdown() {
+		if (this.io) {
+			console.log('🔄 Shutting down WebSocket service...');
+			this.io.emit('server-shutdown', {
+				message: 'Server is shutting down',
+				timestamp: new Date().toISOString()
+			});
+			this.io.close();
+			this.io = null;
+			this.connectedClients.clear();
+			console.log('✅ WebSocket service shutdown complete');
+		}
 	}
 }
 

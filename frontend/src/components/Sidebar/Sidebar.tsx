@@ -8,7 +8,6 @@ import styles from './Sidebar.module.scss';
 
 const navItems = [
 	{ label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },
-	{ label: 'Control', icon: '/activity.svg', path: '/control' },
 	// { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' }, // Hidden for now
 	{ label: 'History', icon: '/cloud.svg', path: '/history' },
 	{ label: 'MQTT Examples', icon: '/setup.svg', path: '/mqtt-examples' },
