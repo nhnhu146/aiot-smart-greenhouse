@@ -4,50 +4,46 @@
 
 ### System Requirements
 - **Docker**: 20.10+ with Docker Compose v2
-- **Hardware**: Minimum 4GB RAM, 20GB disk space
+- **Hardware**: Minimum 2GB RAM, 10GB disk space
 - **Network**: Internet access for MQTT broker and email services
 - **OS**: Linux (Ubuntu 20.04+), Windows 10+, or macOS 10.15+
 
 ### Required Services
 - MongoDB 7.0+ (included in Docker setup)
+- Redis 7.2+ (included in Docker setup)
 - MQTT Broker (external: mqtt.noboroto.id.vn)
-- Email Service (optional SMTP credentials)
 
-## 🔧 Quick Start (Local Development)
+## 🚀 One-Command Deployment
 
-### 1. Clone Repository
+### Production Deployment
 ```bash
+# Clone and deploy in one go
 git clone https://github.com/nhnhu146/aiot-smart-greenhouse.git
 cd aiot-smart-greenhouse
+docker compose up -d
 ```
 
-### 2. Environment Configuration
+### Development with Rebuild
+```bash
+# Clean rebuild for development
+docker compose down --rmi all && docker compose up -d --build
+```
 
-Create `.env` file in the root directory:
+## 🔧 Environment Configuration
+
+Create `.env` file in the root directory (optional - system has sensible defaults):
 ```env
-# Database Configuration
+# Database Configuration (optional)
 MONGODB_USER=greenhouse_user
 MONGODB_PASSWORD=greenhouse_secure_2024
 
-# MQTT Configuration
-MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+# MQTT Configuration (optional)
 MQTT_USERNAME=vision
 MQTT_PASSWORD=vision
 
-# Application Configuration
-NODE_ENV=development
-PORT=5000
-FRONTEND_URL=http://localhost:3000
-
-# Email Configuration (Optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# Security
-JWT_SECRET=your-super-secure-jwt-secret-key-minimum-64-characters-long
-CORS_ORIGIN=http://localhost:3000
+# Push Notifications (optional)
+PUSHSAFER_PRIVATE_KEY=your_pushsafer_key
+```
 ```
 
 ### 3. Start Services (Local Development)

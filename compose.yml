@@ -20,6 +20,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      - greenhouse-network
 
   # Backend API
   backend:
@@ -31,10 +33,13 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 5000
       MONGODB_URI: mongodb://${MONGODB_USER:-greenhouse_user}:${MONGODB_PASSWORD:-greenhouse_password}@mongodb:27017/aiot_greenhouse?authSource=admin
+      REDIS_URL: redis://redis:6379
       MQTT_BROKER_URL: mqtt://mqtt.noboroto.id.vn:1883
       MQTT_USERNAME: ${MQTT_USERNAME:-vision}
       MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
@@ -44,19 +49,22 @@ services:
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
       PUSHSAFER_PRIVATE_KEY: ${PUSHSAFER_PRIVATE_KEY:-jRAkGUU3spPjSUr2kT6q}
+      FRONTEND_URL: http://frontend:3000
     ports:
       - "5000:5000"
     volumes:
       - ./backend/logs:/app/logs
-
+      - ./backend/src:/app/src:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      - greenhouse-network
 
-  # Frontend (Next.js)
+  # Frontend Application  
   frontend:
     build:
       context: ./frontend
@@ -67,22 +75,23 @@ services:
       backend:
         condition: service_healthy
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5000
-      NEXT_PUBLIC_SERVER_URL: http://localhost:5000
-      NEXT_PUBLIC_MQTT_URL: mqtt://mqtt.noboroto.id.vn:1883
-      NEXT_PUBLIC_MQTT_USERNAME: ${MQTT_USERNAME:-vision}
-      NEXT_PUBLIC_MQTT_PASSWORD: ${MQTT_PASSWORD:-vision}
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:5000}
     ports:
       - "3000:3000"
-
+    volumes:
+      - ./frontend/src:/app/src:ro
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      - greenhouse-network
 
-  # Redis (for caching and session storage)
+  # Redis Cache
   redis:
     image: redis:7.2-alpine
     container_name: aiot_greenhouse_redis
@@ -91,12 +100,14 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
+    networks:
+      - greenhouse-network
 
 volumes:
   mongodb_data:
@@ -105,6 +116,5 @@ volumes:
     driver: local
 
 networks:
-  default:
-    external: true
-    name: multi-domain
+  greenhouse-network:
+    driver: bridge

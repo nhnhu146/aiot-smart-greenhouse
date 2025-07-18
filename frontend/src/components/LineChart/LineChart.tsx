@@ -18,10 +18,13 @@ import mockDataService, { type ChartDataPoint } from '@/services/mockDataService
 // Register the components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Format time to UTC+7 (Vietnam timezone) - showing only HH:MM:SS for charts
+// Format time to UTC+7 (Vietnam timezone) - showing date and time for proper comparison
 const formatTimeVN = (timestamp: string | Date) => {
 	const date = new Date(timestamp);
 	return date.toLocaleString('vi-VN', {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
 		hour: '2-digit',
 		minute: '2-digit',
 		second: '2-digit',
@@ -56,8 +59,20 @@ const AppLineChart: React.FC = () => {
 					const updated = [...prev, newDataPoint];
 					const latest24 = updated.slice(-24);
 
+					// Sort by actual datetime to ensure chronological order (oldest to newest)
+					const sortedData = latest24.sort((a, b) => {
+						// Parse the Vietnam time string back to Date for proper comparison
+						const [timeA, dateA] = a.time.includes(' ') ? a.time.split(' ') : [a.time, new Date().toLocaleDateString('vi-VN')];
+						const [timeB, dateB] = b.time.includes(' ') ? b.time.split(' ') : [b.time, new Date().toLocaleDateString('vi-VN')];
+
+						const fullDateTimeA = new Date(`${dateA} ${timeA}`).getTime();
+						const fullDateTimeB = new Date(`${dateB} ${timeB}`).getTime();
+
+						return fullDateTimeB - fullDateTimeA;
+					});
+
 					console.log('📈 Chart updated with persistent sensor data:', newDataPoint);
-					return latest24;
+					return sortedData;
 				});
 
 				setIsLoading(false);
@@ -76,9 +91,17 @@ const AppLineChart: React.FC = () => {
 					time: formatTimeVN(point.time)
 				}));
 
+				// Sort by original timestamp to ensure chronological order (oldest to newest)
+				const sortedData = formattedData.sort((a, b) => {
+					// Parse full datetime string for proper comparison
+					const dateTimeA = new Date(a.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
+					const dateTimeB = new Date(b.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
+					return dateTimeA - dateTimeB;
+				});
+
 				// Only set if we don't have persistent data yet
 				if (chartData.length === 0) {
-					setChartData(formattedData);
+					setChartData(sortedData);
 					console.log(result.isMock ? '📊 Initial mock chart data loaded' : '📊 Initial API chart data loaded');
 				}
 
@@ -108,7 +131,11 @@ const AppLineChart: React.FC = () => {
 	}
 
 	const data = {
-		labels: chartData.map(point => point.time),
+		labels: chartData.map(point => {
+			// Extract only time part for display on x-axis
+			const timePart = point.time.split(', ')[1] || point.time;
+			return timePart;
+		}),
 		datasets: [
 			{
 				label: 'Temperature (°C)',

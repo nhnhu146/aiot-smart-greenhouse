@@ -20,8 +20,11 @@ A comprehensive IoT-based smart greenhouse monitoring and control system built w
 git clone https://github.com/nhnhu146/aiot-smart-greenhouse.git
 cd aiot-smart-greenhouse
 
-# Start all services
-docker compose down --rmi all && docker compose -f compose.local.yml up -d --build
+# Production deployment with single command
+docker compose up -d
+
+# For development with live rebuild
+docker compose down --rmi all && docker compose up -d --build
 ```
 
 **Access the application:**

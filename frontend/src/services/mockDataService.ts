@@ -59,13 +59,11 @@ class MockDataService {
 		const now = new Date();
 
 		// Generate data for last 24 hours with realistic greenhouse variations
+		// Generate from oldest to newest (left to right on x-axis)
 		for (let i = 23; i >= 0; i--) {
 			const time = new Date(now.getTime() - i * 60 * 60 * 1000);
 			data.push({
-				time: time.toLocaleString('en-US', {
-					year: 'numeric',
-					month: '2-digit',
-					day: '2-digit',
+				time: time.toLocaleTimeString('en-US', {
 					hour: '2-digit',
 					minute: '2-digit',
 					second: '2-digit',
@@ -77,7 +75,14 @@ class MockDataService {
 			});
 		}
 
-		return data;
+		// Sort by time to ensure proper chronological order (oldest to newest)
+		return data.sort((a, b) => {
+			// Convert time strings back to full date for proper comparison
+			const baseDate = new Date().toDateString();
+			const dateA = new Date(`${baseDate} ${a.time}`);
+			const dateB = new Date(`${baseDate} ${b.time}`);
+			return dateA.getTime() - dateB.getTime();
+		});
 	}
 
 	// Configuration methods

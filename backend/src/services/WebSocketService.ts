@@ -34,7 +34,8 @@ class WebSocketService {
 				credentials: true
 			},
 			pingTimeout: 60000,
-			pingInterval: 25000
+			pingInterval: 25000,
+			transports: ['websocket', 'polling']
 		});
 
 		this.io.on('connection', (socket: Socket) => {
@@ -46,6 +47,18 @@ class WebSocketService {
 				status: 'connected',
 				clientId: socket.id,
 				timestamp: new Date().toISOString()
+			});
+
+			// Handle device control commands from frontend
+			socket.on('device-control', (data: { device: string; action: string; value?: any }) => {
+				console.log(`🎮 Device control received from ${socket.id}:`, data);
+				this.handleDeviceControl(socket, data);
+			});
+
+			// Handle real-time chart data requests
+			socket.on('request-chart-data', () => {
+				console.log(`📊 Chart data requested by ${socket.id}`);
+				this.sendLatestChartData(socket);
 			});
 
 			// Handle client disconnect
@@ -197,6 +210,57 @@ class WebSocketService {
 		this.io.emit('heartbeat', {
 			timestamp: new Date().toISOString(),
 			connectedClients: this.connectedClients.size
+		});
+	}
+
+	// Handle device control from frontend
+	private handleDeviceControl(socket: Socket, data: { device: string; action: string; value?: any }) {
+		try {
+			// Import MQTT service dynamically to avoid circular dependency
+			const { mqttService } = require('./MQTTService');
+
+			// Publish device control command to MQTT broker
+			if (mqttService && mqttService.isClientConnected()) {
+				mqttService.publishDeviceControl(data.device, data.action);
+				console.log(`📡 MQTT command sent: ${data.device} -> ${data.action}`);
+			} else {
+				console.warn('⚠️ MQTT service not available for device control');
+			}
+
+			// Broadcast device status update to all clients for real-time feedback
+			this.broadcastDeviceStatus(`greenhouse/devices/${data.device}/status`, {
+				device: data.device,
+				status: data.action,
+				timestamp: new Date().toISOString()
+			});
+
+			// Send confirmation back to requesting client
+			socket.emit('device-control-response', {
+				success: true,
+				device: data.device,
+				action: data.action,
+				mqttSent: mqttService?.isClientConnected() || false,
+				timestamp: new Date().toISOString()
+			});
+
+			console.log(`✅ Device control processed: ${data.device} -> ${data.action}`);
+		} catch (error) {
+			console.error('❌ Device control error:', error);
+			socket.emit('device-control-response', {
+				success: false,
+				error: 'Failed to process device control',
+				timestamp: new Date().toISOString()
+			});
+		}
+	}
+
+	// Send latest chart data to specific client
+	private sendLatestChartData(socket: Socket) {
+		// This would fetch latest sensor data from database
+		// For now, send a placeholder response
+		socket.emit('chart-data-response', {
+			timestamp: new Date().toISOString(),
+			message: 'Chart data request received - implement database fetch here'
 		});
 	}
 
