@@ -116,6 +116,6 @@ volumes:
     driver: local
 
 networks:
-  default:
+  greenhouse-network:
     external: true
     name: multi-domain
