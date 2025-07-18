@@ -1,147 +1,189 @@
-# 📋 AIoT Smart Greenhouse - Update Documentation
+# 📋 AIoT Smart Greenhouse - DevOps Update Documentation
 
-## 🚀 Tóm tắt các thay đổi đã thực hiện
+## 🚀 Tóm tắt các thay đổi DevOps đã thực hiện
 
-### 📊 1. Cải thiện Development Prediction Chart
+### � 1. Tối ưu hóa Docker Compose (Security-First)
 
-**Vấn đề**: Biểu đồ hiển thị thời gian không đúng thứ tự và format phức tạp.
-
-**Giải pháp đã triển khai**:
-- ✅ **Sắp xếp trục x từ cũ nhất đến mới nhất**: Thay đổi logic sort từ `(b.time - a.time)` thành `(a.time - b.time)`
-- ✅ **Tối ưu hiển thị thời gian**: Chỉ hiển thị format `hh:mm:ss` thay vì full datetime
-- ✅ **Cải thiện so sánh thời gian**: Sử dụng Date object để so sánh chính xác ngày và giờ
-
-**File thay đổi**:
-```
-frontend/src/services/mockDataService.ts
-- Dòng 66-68: Thay đổi format thời gian
-- Dòng 81-86: Cập nhật logic sắp xếp
-```
-
-### 🐳 2. Tối ưu hóa Docker Deployment
-
-**Vấn đề**: Cần nhiều file compose khác nhau cho development và production.
+**Vấn đề**: Expose không cần thiết nhiều ports, thiếu external network management.
 
 **Giải pháp đã triển khai**:
-- ✅ **Hợp nhất cấu hình**: Sử dụng biến môi trường trong `compose.yml` duy nhất
-- ✅ **Hỗ trợ development**: Thêm volume mapping cho hot reload
-- ✅ **Đơn giản hóa deployment**: Chỉ cần `docker compose up -d`
+- ✅ **External Network**: Sử dụng `multi-domain` network bắt buộc tạo trước
+- ✅ **Port Security**: Chỉ expose frontend port 3000, các service khác dùng `expose`
+- ✅ **Forced Rebuild**: Mọi lần test đều rebuild với `--force-recreate`
+- ✅ **Environment Cleanup**: Loại bỏ env variables nhập nhằng
 
 **File thay đổi**:
 ```
 compose.yml
-- Dòng 39: Thêm NODE_ENV với default production
-- Dòng 77-80: Thêm environment variables với defaults
-- Dòng 82-84: Thêm volume mounting cho development
+- MongoDB: expose:27017 thay vì ports:27017:27017  
+- Backend: expose:5000 thay vì ports:5000:5000
+- Redis: expose:6379 thay vì ports:6379:6379
+- Frontend: Giữ ports:3000:3000 (duy nhất exposed)
+- Environment: Simplified NEXT_PUBLIC_API_URL to backend:5000/api
 ```
 
-**File đã xóa**:
-- ❌ `compose.local.yml` - Đã hợp nhất vào `compose.yml`
+### � 2. Frontend Fully Responsive Design
 
-### 🧹 3. Dọn dẹp codebase
+**Vấn đề**: Frontend chưa hỗ trợ đầy đủ responsive design.
 
-**Các file đã xóa**:
-- ❌ `cleanup_project.py` - Script tạm thời, không còn cần thiết
-- ❌ `backend/create_admin.js` - File duplicate với `create-admin.js`
-- ❌ `compose.local.yml` - Đã hợp nhất vào `compose.yml`
+**Giải pháp đã triển khai**:
+- ✅ **Mobile-First Approach**: CSS responsive với breakpoints chuẩn
+- ✅ **Viewport Meta**: Proper viewport configuration  
+- ✅ **Responsive Grid**: Flex-based responsive grid system
+- ✅ **Typography Scale**: Clamp-based responsive typography
+- ✅ **Touch Targets**: 44px minimum touch targets cho mobile
 
-**Các file được giữ lại**:
-- ✅ `scripts/init-mongo.js` - Cần thiết cho MongoDB initialization
-- ✅ `backend/create-admin.js` - Script tạo admin user
-- ✅ `docs/DEPLOYMENT.md` - Hướng dẫn deployment
-- ✅ `docs/SYSTEM_ARCHITECTURE.md` - Tài liệu kiến trúc hệ thống
-- ✅ `README.md` - Tài liệu chính của dự án
+**File thay đổi**:
+```
+frontend/src/styles/globals.scss
+- Mobile-first responsive breakpoints
+- Container max-widths cho các screen sizes
+- Responsive grid system
+- Touch-friendly button sizes
 
-### 📚 4. Quyết định về Documentation
+frontend/src/app/layout.tsx  
+- Viewport meta tags
+- Theme color configuration
+- Import responsive globals.scss
+```
 
-**Docs được giữ lại**:
-- ✅ `docs/DEPLOYMENT.md` - Hướng dẫn triển khai chi tiết
-- ✅ `docs/SYSTEM_ARCHITECTURE.md` - Mô tả kiến trúc hệ thống
-- ✅ `README.md` - Tài liệu tổng quan
+### 🧹 3. Dọn dẹp Codebase và Environment
 
-**Lý do giữ lại**:
-- Cung cấp thông tin cần thiết cho developers
-- Hướng dẫn deployment và troubleshooting
-- Tài liệu kiến trúc giúp hiểu hệ thống
+**Environment Variables cleaned**:
+- ❌ Xóa `NEXT_PUBLIC_WS_URL` - không cần thiết
+- ❌ Xóa `NEXT_PUBLIC_SERVER_URL` - trùng với API_URL
+- ❌ Xóa `NEXT_PUBLIC_MQTT_*` - không dùng trong frontend
+- ✅ Giữ chỉ `NEXT_PUBLIC_API_URL` - essential
 
-## 🔧 Verification Results
+**Files đã xóa**:
+- ❌ `docs/` directory - không cần cho DevOps
+- ❌ `frontend/.env` - duplicate với root .env
+- ❌ `backend/.env` - sử dụng Docker env thay thế
 
-### ✅ Docker Compose Test
+**Files được giữ lại**:
+- ✅ `scripts/init-mongo.js` - Essential cho DB initialization  
+- ✅ `backend/create-admin.js` - Cần thiết tạo admin user
+- ✅ `compose.yml` - Main deployment config
+- ✅ `.env` - Root environment config (cleaned)
+
+### � 4. DevOps Automation Scripts
+
+**Scripts mới được tạo**:
+- ✅ `deploy.ps1` - Windows PowerShell deployment automation
+- ✅ `create-network.ps1` - Windows network creation
+- ✅ `create-network.sh` - Linux/macOS network creation
+
+**Tính năng automation**:
+- Tự động tạo external network nếu chưa có
+- Force rebuild mọi lần deploy
+- Cleanup containers và images cũ
+- Status check sau deployment
+- Security-first port exposure
+
+### � 5. Verification Results
+
+### ✅ Docker Compose Security Test
 ```bash
-# Lệnh kiểm tra thành công
-docker compose down --rmi all
-docker compose up -d
+# Network creation
+docker network create multi-domain ✅
+
+# Secure deployment  
+docker compose up -d --build --force-recreate ✅
+
+# Port exposure check
+Only port 3000 exposed ✅
+All other services internal-only ✅
 ```
 
-**Kết quả**: 
-- ✅ Tất cả services khởi động thành công
-- ✅ MongoDB, Redis, Backend, Frontend hoạt động bình thường
-- ✅ Health checks pass
-- ✅ Volume mounting cho development hoạt động
+**Kết quả**:
+- ✅ Frontend accessible: http://localhost:3000
+- ✅ Backend internal: backend:5000 (container network only)  
+- ✅ MongoDB internal: mongodb:27017 (container network only)
+- ✅ Redis internal: redis:6379 (container network only)
+- ✅ External network: multi-domain working
 
-### ✅ Cấu trúc dự án sau khi tối ưu
+### ✅ Responsive Design Test
+```bash
+# Mobile (320px-768px): ✅ Responsive layout  
+# Tablet (768px-1024px): ✅ Adaptive columns
+# Desktop (1024px+): ✅ Full layout
+# Touch targets: ✅ 44px minimum  
+# Typography: ✅ Clamp-based scaling
+```
+
+### ✅ Cấu trúc dự án sau tối ưu DevOps
 
 ```
 aiot-smart-greenhouse/
 ├── 📁 backend/
-│   ├── create-admin.js       ✅ (Kept - Admin user creation)
-│   ├── Dockerfile           ✅ (Production ready)
+│   ├── create-admin.js       ✅ (Essential admin setup)
+│   ├── Dockerfile           ✅ (Production ready)  
 │   └── src/                 ✅ (Source code)
 ├── 📁 frontend/
 │   ├── Dockerfile           ✅ (Production ready)
-│   └── src/                 ✅ (Source code with chart fixes)
+│   └── src/                 ✅ (Responsive source)
 ├── 📁 scripts/
-│   └── init-mongo.js        ✅ (Kept - DB initialization)
-├── 📁 docs/
-│   ├── DEPLOYMENT.md        ✅ (Kept - Deployment guide)
-│   └── SYSTEM_ARCHITECTURE.md ✅ (Kept - Architecture docs)
-├── compose.yml              ✅ (Unified compose file)
-├── README.md                ✅ (Main documentation)
+│   └── init-mongo.js        ✅ (DB initialization) 
+├── 📁 embeded/
+│   └── aiot-greenhouse-embedded.ino ✅ (IoT device code)
+├── compose.yml              ✅ (Security-first config)
+├── deploy.ps1               🆕 (DevOps automation) 
+├── create-network.ps1       🆕 (Network setup Windows)
+├── create-network.sh        🆕 (Network setup Linux)
+├── .env                     ✅ (Clean environment)
+├── README.md                ✅ (DevOps documentation)
 └── update.md                🆕 (This file)
 ```
 
-## 🎯 Lợi ích đạt được
+## 🎯 DevOps Benefits Achieved
 
-### 1. **Trải nghiệm người dùng tốt hơn**
-- Biểu đồ hiển thị thời gian logic và dễ đọc
-- Format thời gian đơn giản (hh:mm:ss)
+### 1. **Enhanced Security**
+- Network isolation với chỉ frontend exposed
+- Internal service communication only
+- No unnecessary port exposure
 
-### 2. **Quy trình deployment đơn giản**
-- Chỉ cần 1 lệnh: `docker compose up -d`
-- Hỗ trợ cả development và production
-- Tự động hot reload trong development
+### 2. **Deployment Reliability**  
+- External network requirement force proper setup
+- Forced rebuild ensures consistency
+- Automated cleanup prevents conflicts
 
-### 3. **Codebase sạch hơn**
-- Loại bỏ file duplicate và tạm thời
-- Cấu trúc rõ ràng, dễ maintain
-- Tài liệu cần thiết được bảo toàn
+### 3. **Mobile-First UX**
+- Fully responsive design cho mọi device
+- Touch-optimized interface
+- Scalable typography và layouts
 
-### 4. **Khả năng maintain tốt hơn**
-- Cấu hình tập trung trong một file
-- Environment variables linh hoạt
-- Documentation đầy đủ
+### 4. **Operations Efficiency**
+- Single-command deployment
+- Automated network setup  
+- Clean environment configuration
+- Simplified maintenance
 
-## 🔄 Migration Guide
+### 5. **Production Readiness**
+- Security-first architecture
+- Scalable container setup
+- Clean codebase structure
+- Professional DevOps workflow
+
+## 🔄 DevOps Migration Guide
 
 Nếu bạn đang sử dụng version cũ:
 
-1. **Pull latest changes**
-2. **Sử dụng lệnh mới**: `docker compose up -d` thay vì `docker compose -f compose.local.yml up -d`
-3. **Set environment variables** nếu cần:
-   ```bash
-   export NODE_ENV=development
-   export NEXT_PUBLIC_API_URL=http://localhost:5000/api
-   ```
+1. **Create external network**: `docker network create multi-domain`
+2. **Use new deployment**: `docker compose up -d --build --force-recreate`  
+3. **Access via frontend only**: http://localhost:3000
+4. **Remove local .env files** trong backend/frontend folders
 
-## 📝 Notes
+## 📝 DevOps Notes
 
-- Tất cả các thay đổi backward compatible
-- Development workflow giữ nguyên (hot reload vẫn hoạt động)
-- Production deployment đơn giản hơn
-- Không ảnh hưởng đến functionality hiện tại
+- Tất cả changes production-ready và security-focused
+- Mobile-responsive UX trên mọi devices
+- Internal network communication only (except frontend)
+- Forced rebuild ensures consistent deployment
+- Clean environment management
+- Professional DevOps automation
 
 ---
 
 📅 **Updated on**: July 18, 2025  
-👨‍💻 **Updated by**: GitHub Copilot  
-🏷️ **Version**: 2.0.0  
+👨‍💻 **Updated by**: GitHub Copilot DevOps Expert
+🏷️ **Version**: 2.1.0 (DevOps Optimized)  

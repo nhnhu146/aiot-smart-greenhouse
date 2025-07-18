@@ -1,36 +1,39 @@
 # 🌱 AIOT Smart Greenhouse System
 
-A comprehensive IoT-based smart greenhouse monitoring and control system built with modern web technologies. Features real-time sensor monitoring, automated device control, intelligent alerting, and a responsive web dashboard.
+A comprehensive IoT-based smart greenhouse monitoring and control system built with modern web technologies. Features real-time sensor monitoring, automated device control, intelligent alerting, and a fully responsive web dashboard.
 
 ![System Status](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![Build](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
-![Version](https://img.shields.io/badge/Version-2.0.0-orange)
+![Version](https://img.shields.io/badge/Version-2.1.0-orange)
 
-## 🚀 Quick Start
+## 🚀 Quick Start (DevOps Optimized)
 
 ### Prerequisites
 - Docker 20.10+ with Docker Compose v2
 - 2GB RAM minimum, 10GB disk space
-- Internet connection for MQTT and email services
+- Internet connection for MQTT services
 
-### One-Click Deployment
+### DevOps Deployment
 ```bash
 # Clone the repository
 git clone https://github.com/nhnhu146/aiot-smart-greenhouse.git
 cd aiot-smart-greenhouse
 
-# Production deployment with single command
-docker compose up -d
+# Windows (PowerShell) - Automated DevOps deployment
+.\deploy.ps1
 
-# For development with live rebuild
-docker compose down --rmi all && docker compose up -d --build
+# Linux/macOS - Manual steps
+docker network create multi-domain
+docker compose down --rmi all --volumes
+docker compose up -d --build --force-recreate
 ```
 
-**Access the application:**
-- 🌐 **Frontend Dashboard**: http://localhost:3000
-- 🔧 **Backend API**: http://localhost:5000/api
-- 📊 **Database**: MongoDB on localhost:27017
+**Security-First Access:**
+- 🌐 **Frontend Dashboard**: http://localhost:3000 *(Only exposed port)*
+- � **Backend API**: Internal network only
+- � **Database**: Internal network only  
+- 🔒 **Redis Cache**: Internal network only
 
 **Default Login:**
 - **Email**: `admin@greenhouse.com`
@@ -40,13 +43,13 @@ docker compose down --rmi all && docker compose up -d --build
 
 ### 🌡️ Real-time Monitoring
 - **Live Sensor Data**: Temperature, humidity, soil moisture, water level, light intensity, rain detection
-- **Interactive Dashboard**: Charts, gauges, and real-time status indicators
+- **Responsive Dashboard**: Mobile-first design with adaptive layouts
 - **Historical Analytics**: Trend analysis with data export capabilities
 - **WebSocket Communication**: Instant updates without page refresh
 
 ### 🎛️ Smart Control System
 - **Automated Devices**: Intelligent control of lights, pumps, fans, windows, and doors
-- **Manual Override**: User-controlled device operation when needed
+- **Manual Override**: User-controlled device operation when needed  
 - **Automation Rules**: Temperature-based fan control, soil moisture-based irrigation
 - **Safety Features**: Automatic alerts and emergency shutdowns
 
