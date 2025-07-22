@@ -3,10 +3,11 @@ import { Alert } from '../models';
 import { validateQuery, validateBody, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema, AlertCreateSchema } from '../schemas';
 import { APIResponse } from '../types';
-import { alertService, emailService } from '../services';
+import { alertService, AdvancedEmailService } from '../services';
 import { z } from 'zod';
 
 const router = Router();
+const emailService = new AdvancedEmailService();
 
 // GET /api/alerts - Lấy danh sách cảnh báo
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
@@ -276,9 +277,14 @@ router.get('/email/status', asyncHandler(async (req: Request, res: Response) => 
 router.post('/email/test', asyncHandler(async (req: Request, res: Response) => {
 	const { recipients } = testEmailSchema.parse(req.body);
 
-	const success = await emailService.sendTestEmail(recipients);
+	// Send test email to all recipients
+	let allSuccess = true;
+	for (const recipient of recipients) {
+		const success = await emailService.sendTestEmail(recipient);
+		if (!success) allSuccess = false;
+	}
 
-	if (success) {
+	if (allSuccess) {
 		const response: APIResponse = {
 			success: true,
 			message: `Test email sent successfully to ${recipients.length} recipients`,

@@ -131,9 +131,9 @@ const Dashboard = () => {
 			});
 		}
 
-		// Pump control based on soil moisture
+		// Pump control based on soil moisture (binary: 0=dry, 1=wet)
 		if (sensor === 'soil') {
-			const shouldTurnOn = numValue < 30; // If soil moisture < 30%, turn on pump
+			const shouldTurnOn = numValue === 0; // If soil moisture = 0 (dry), turn on pump
 			setSwitchStates((prev) => {
 				const currentState = prev.get('pump') || false;
 				if (currentState !== shouldTurnOn) {
@@ -456,8 +456,8 @@ const Dashboard = () => {
 									<br />
 									<small>
 										• Light: ON when light level &lt; 500 |
-										• Pump: ON when soil moisture &lt; 30% |
-										• Fan: ON when temperature &gt; 30°C
+										• Pump: ON when soil moisture = 0 (dry) |
+										• Devices controlled automatically
 									</small>
 								</Alert>
 							)}

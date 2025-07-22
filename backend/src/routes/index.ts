@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { SensorData, DeviceStatus, Alert } from '../models';
 import { asyncHandler } from '../middleware';
-import { mqttService } from '../services';
+import { mqttService, emailService } from '../services';
 import { APIResponse } from '../types';
 import sensorsRouter from './sensors';
 import devicesRouter from './devices';
@@ -10,6 +10,7 @@ import settingsRouter from './settings';
 import alertsRouter from './alerts';
 import authRouter from './auth';
 import userSettingsRouter from './userSettings';
+import advancedEmailRouter from './advancedEmail';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use('/settings', settingsRouter);
 router.use('/alerts', alertsRouter);
 router.use('/auth', authRouter);
 router.use('/user-settings', userSettingsRouter);
+router.use('/email', advancedEmailRouter);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -31,6 +33,39 @@ router.get('/health', (req, res) => {
 		version: '1.0.0'
 	});
 });
+
+// Test email endpoint
+router.post('/test-email', asyncHandler(async (req: Request, res: Response) => {
+	const { recipients } = req.body;
+
+	if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+		res.status(400).json({
+			success: false,
+			message: 'Recipients array is required',
+			timestamp: new Date().toISOString()
+		});
+		return;
+	}
+
+	console.log(`📧 Testing email service - sending to: ${recipients.join(', ')}`);
+
+	// Get email service status
+	const emailStatus = emailService.getStatus();
+	console.log('📊 Email Status:', emailStatus);
+
+	// Send test email
+	const success = await emailService.sendTestEmail(recipients);
+
+	res.json({
+		success,
+		message: success ? 'Test email sent successfully' : 'Failed to send test email',
+		data: {
+			recipients,
+			emailService: emailStatus
+		},
+		timestamp: new Date().toISOString()
+	});
+}));
 
 // GET /api/dashboard - Lấy dữ liệu tổng quan cho dashboard
 router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {

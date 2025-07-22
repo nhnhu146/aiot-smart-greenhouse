@@ -295,7 +295,8 @@ app.post(`${API_PREFIX}/auth/password-reset`, async (req: Request, res: Response
 		passwordResetTokens.set(token, passwordResetToken);
 
 		// Send password reset email
-		const { emailService } = await import('./services');
+		const { AdvancedEmailService } = await import('./services');
+		const emailService = new AdvancedEmailService();
 		const emailSent = await emailService.sendPasswordResetEmail(trimmedEmail, token);
 
 		if (!emailSent) {
@@ -363,8 +364,9 @@ app.post(`${API_PREFIX}/auth/password-reset/confirm`, async (req: Request, res: 
 		passwordResetTokens.delete(token);
 
 		// Send password reset confirmation email
-		const { emailService } = await import('./services');
-		await emailService.sendPasswordResetConfirmation(passwordResetToken.email);
+		const { AdvancedEmailService } = await import('./services');
+		const emailService2 = new AdvancedEmailService();
+		await emailService2.sendPasswordResetEmail(passwordResetToken.email, 'confirmed');
 
 		res.json({
 			success: true,

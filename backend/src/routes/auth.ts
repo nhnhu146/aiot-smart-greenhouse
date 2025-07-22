@@ -3,7 +3,9 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { PasswordReset } from '../models';
-import { emailService } from '../services';
+import { AdvancedEmailService } from '../services';
+
+const emailService = new AdvancedEmailService();
 
 const router = express.Router();
 
@@ -80,7 +82,7 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 				const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
 				// Send password reset email
-				const emailSent = await emailService.sendPasswordResetEmail(trimmedEmail, resetToken);
+				const emailSent = await new AdvancedEmailService().sendPasswordResetEmail(trimmedEmail, resetToken);
 
 				console.log(`🔐 Password reset requested for: ${trimmedEmail}`);
 			} catch (error) {
@@ -217,7 +219,7 @@ router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Res
 
 		// Send confirmation email
 		try {
-			await emailService.sendPasswordResetConfirmation(passwordReset.email);
+			await emailService.sendPasswordResetEmail(passwordReset.email, passwordReset.token);
 		} catch (emailError) {
 			console.error('Failed to send confirmation email:', emailError);
 			// Don't fail the request if email fails
@@ -268,7 +270,7 @@ router.post('/test-email', async (req: Request, res: Response): Promise<void> =>
 		console.log(`📧 Sending test email to: ${email}`);
 
 		// Send test email
-		const success = await emailService.sendTestEmail([email]);
+		const success = await emailService.sendTestEmail(email);
 
 		if (success) {
 			res.status(200).json({

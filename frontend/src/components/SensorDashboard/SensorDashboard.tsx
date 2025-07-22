@@ -40,8 +40,26 @@ interface SensorCardProps {
 }
 
 const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color }) => {
-	// Display "N/A" if value is invalid or empty
-	const displayValue = value === '--' || value === '0' || value === '' || value === null || value === undefined ? 'N/A' : value;
+	// Special handling for soil moisture (binary values)
+	let displayValue = value;
+	let displayUnit = unit;
+
+	if (title === 'Soil Moisture') {
+		if (value === '1') {
+			displayValue = 'Wet';
+			displayUnit = '';
+		} else if (value === '0') {
+			displayValue = 'Dry';
+			displayUnit = '';
+		} else if (value === '--' || value === '' || value === null || value === undefined) {
+			displayValue = 'N/A';
+			displayUnit = '';
+		}
+	} else {
+		// For other sensors, display "N/A" if value is invalid or empty
+		displayValue = value === '--' || value === '0' || value === '' || value === null || value === undefined ? 'N/A' : value;
+	}
+
 	const isValidValue = displayValue !== 'N/A';
 
 	return (
@@ -53,7 +71,7 @@ const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color
 				<div>
 					<Card.Title className="mb-1 fs-6">{title}</Card.Title>
 					<Card.Text className="mb-0 fs-4 fw-bold" style={{ color: isValidValue ? 'inherit' : '#6c757d' }}>
-						{displayValue} {isValidValue && <small className="text-muted">{unit}</small>}
+						{displayValue} {isValidValue && displayUnit && <small className="text-muted">{displayUnit}</small>}
 					</Card.Text>
 				</div>
 			</Card.Body>

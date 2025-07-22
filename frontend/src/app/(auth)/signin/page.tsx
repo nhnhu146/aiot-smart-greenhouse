@@ -1,5 +1,5 @@
 'use client'
-import React, { FormEvent, useState } from 'react';
+import React, { FormEvent, useState, useEffect } from 'react';
 import { Card, Button } from 'react-bootstrap';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,13 @@ const SignIn = () => {
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
+
+	useEffect(() => {
+		// Check if user is already authenticated
+		if (authService.isAuthenticated()) {
+			router.replace('/dashboard');
+		}
+	}, [router]);
 
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();

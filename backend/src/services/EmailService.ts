@@ -1,414 +1,514 @@
 import nodemailer from 'nodemailer';
-import { Settings } from '../types';
+import fs from 'fs';
+import path from 'path';
+
+interface EmailTemplate {
+	subject: string;
+	html: string;
+	text?: string;
+}
+
+interface EmailAttachment {
+	filename: string;
+	content: Buffer | string;
+	contentType?: string;
+}
+
+interface EmailOptions {
+	to: string | string[];
+	subject?: string;
+	html?: string;
+	text?: string;
+	attachments?: EmailAttachment[];
+	template?: string;
+	variables?: Record<string, string>;
+}
 
 export class EmailService {
 	private transporter: nodemailer.Transporter | null = null;
 	private isEnabled: boolean = false;
+	private templatesCache = new Map<string, EmailTemplate>();
 
 	constructor() {
 		this.setupTransporter();
+		this.loadTemplates();
 	}
 
 	private setupTransporter(): void {
 		if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 			console.warn('⚠️ Email credentials not configured. Running in demo mode.');
-			this.isEnabled = true; // Enable demo mode
+			this.isEnabled = true; // Enable demo mode for testing
 			return;
 		}
 
-		this.transporter = nodemailer.createTransport({
-			service: process.env.EMAIL_SERVICE || 'gmail',
-			auth: {
-				user: process.env.EMAIL_USER,
-				pass: process.env.EMAIL_PASS
+		try {
+			this.transporter = nodemailer.createTransport({
+				service: process.env.EMAIL_SERVICE || 'gmail',
+				pool: true, // Use connection pooling like voteLIS24
+				maxConnections: 5,
+				maxMessages: 100,
+				auth: {
+					user: process.env.EMAIL_USER,
+					pass: process.env.EMAIL_PASS
+				},
+				tls: {
+					rejectUnauthorized: false
+				}
+			});
+
+			// Verify connection
+			if (this.transporter) {
+				this.transporter.verify((error, success) => {
+					if (error) {
+						console.error('❌ Email transporter verification failed:', error);
+						this.isEnabled = false;
+					} else {
+						console.log('✅ Email service initialized successfully with connection pooling');
+						this.isEnabled = true;
+					}
+				});
+			}
+		} catch (error) {
+			console.error('❌ Failed to setup email transporter:', error);
+			this.isEnabled = false;
+		}
+	}
+
+	private loadTemplates(): void {
+		const templatesDir = path.join(__dirname, '../templates');
+
+		if (!fs.existsSync(templatesDir)) {
+			console.warn('⚠️ Templates directory not found, using fallback templates');
+			this.loadFallbackTemplates();
+			return;
+		}
+
+		try {
+			const templateFiles = fs.readdirSync(templatesDir).filter(file => file.endsWith('.html'));
+
+			for (const file of templateFiles) {
+				const templateName = path.basename(file, '.html');
+				const templatePath = path.join(templatesDir, file);
+				const htmlContent = fs.readFileSync(templatePath, 'utf8');
+
+				// Extract subject from HTML title tag or use default
+				const subjectMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
+				const subject = subjectMatch ? subjectMatch[1] : this.getDefaultSubject(templateName);
+
+				this.templatesCache.set(templateName, {
+					subject,
+					html: htmlContent,
+					text: this.htmlToText(htmlContent)
+				});
+			}
+
+			console.log(`✅ Loaded ${templateFiles.length} email templates from ${templatesDir}`);
+		} catch (error) {
+			console.error('❌ Failed to load templates:', error);
+			this.loadFallbackTemplates();
+		}
+	}
+
+	private loadFallbackTemplates(): void {
+		// Fallback templates like voteLIS24 style
+		const templates = {
+			'test-email': {
+				subject: '✅ Test Email - Smart Greenhouse System',
+				html: `
+					<!DOCTYPE html>
+					<html>
+					<head>
+						<meta charset="utf-8">
+						<title>{{subject}}</title>
+						<style>
+							body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+							.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+							.header { background: #2ecc71; color: white; padding: 20px; text-align: center; }
+							.content { padding: 20px; background: #f9f9f9; }
+							.footer { padding: 10px; text-align: center; color: #666; font-size: 12px; }
+						</style>
+					</head>
+					<body>
+						<div class="container">
+							<div class="header">
+								<h1>🌱 Smart Greenhouse System</h1>
+							</div>
+							<div class="content">
+								<h2>✅ Email Service Test</h2>
+								<p>This is a test email from your Smart Greenhouse monitoring system.</p>
+								<p>If you receive this email, the email alert system is working correctly.</p>
+								<p><strong>Time:</strong> {{timestamp}}</p>
+								<p><strong>Email Service:</strong> {{emailService}}</p>
+								<p><strong>Recipient:</strong> {{recipient}}</p>
+							</div>
+							<div class="footer">
+								<p>Smart Greenhouse Monitoring System | Automated Email Service</p>
+							</div>
+						</div>
+					</body>
+					</html>
+				`,
+				text: 'Smart Greenhouse Test Email - If you receive this, email service is working. Time: {{timestamp}}'
 			},
-			tls: {
-				rejectUnauthorized: false
+			'alert-email': {
+				subject: '🚨 {{alertTitle}} - Smart Greenhouse Alert',
+				html: `
+					<!DOCTYPE html>
+					<html>
+					<head>
+						<meta charset="utf-8">
+						<title>{{alertTitle}}</title>
+						<style>
+							body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+							.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+							.header { background: #e74c3c; color: white; padding: 20px; text-align: center; }
+							.content { padding: 20px; background: #f9f9f9; }
+							.alert-box { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0; }
+							.recommendations { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 15px 0; }
+							.footer { padding: 10px; text-align: center; color: #666; font-size: 12px; }
+						</style>
+					</head>
+					<body>
+						<div class="container">
+							<div class="header">
+								<h1>{{alertIcon}} {{alertTitle}}</h1>
+							</div>
+							<div class="content">
+								<div class="alert-box">
+									<h3>🚨 Alert Details</h3>
+									<p><strong>Status:</strong> {{alertType}}</p>
+									<p><strong>Current Value:</strong> {{currentValue}}</p>
+									<p><strong>Threshold:</strong> {{thresholdRange}}</p>
+									<p><strong>Time:</strong> {{timestamp}}</p>
+								</div>
+								<div class="recommendations">
+									<h3>💡 Recommended Actions</h3>
+									<p>{{recommendations}}</p>
+								</div>
+							</div>
+							<div class="footer">
+								<p>Smart Greenhouse Alert System | Automated Monitoring</p>
+							</div>
+						</div>
+					</body>
+					</html>
+				`,
+				text: 'Smart Greenhouse Alert: {{alertTitle}} - {{alertType}} - Value: {{currentValue}} - Actions: {{recommendations}}'
+			},
+			'password-reset-email': {
+				subject: '🔐 Password Reset - Smart Greenhouse System',
+				html: `
+					<!DOCTYPE html>
+					<html>
+					<head>
+						<meta charset="utf-8">
+						<title>Password Reset Request</title>
+						<style>
+							body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+							.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+							.header { background: #3498db; color: white; padding: 20px; text-align: center; }
+							.content { padding: 20px; background: #f9f9f9; }
+							.button { display: inline-block; background: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+							.footer { padding: 10px; text-align: center; color: #666; font-size: 12px; }
+						</style>
+					</head>
+					<body>
+						<div class="container">
+							<div class="header">
+								<h1>🔐 Password Reset Request</h1>
+							</div>
+							<div class="content">
+								<p>You have requested to reset your password for your Smart Greenhouse account.</p>
+								<p>Click the button below to reset your password:</p>
+								<div style="text-align: center;">
+									<a href="{{resetUrl}}" class="button">Reset Password</a>
+								</div>
+								<p>Or copy and paste this link in your browser:</p>
+								<p style="word-break: break-all; background: #f4f4f4; padding: 10px; border-radius: 3px;">{{resetUrl}}</p>
+								<p><strong>This link will expire in 1 hour for security reasons.</strong></p>
+								<p>If you didn't request this password reset, please ignore this email.</p>
+							</div>
+							<div class="footer">
+								<p>Smart Greenhouse Security System</p>
+							</div>
+						</div>
+					</body>
+					</html>
+				`,
+				text: 'Password Reset Request - Click this link: {{resetUrl}} (expires in 1 hour)'
+			}
+		};
+
+		for (const [name, template] of Object.entries(templates)) {
+			this.templatesCache.set(name, template);
+		}
+
+		console.log('✅ Loaded fallback email templates');
+	}
+
+	private getDefaultSubject(templateName: string): string {
+		const subjects: Record<string, string> = {
+			'test-email': '✅ Test Email - Smart Greenhouse System',
+			'alert-email': '🚨 Smart Greenhouse Alert',
+			'password-reset-email': '🔐 Password Reset - Smart Greenhouse System',
+			'soil-moisture-alert': '🌱 Soil Moisture Alert - Smart Greenhouse',
+			'temperature-alert': '🌡️ Temperature Alert - Smart Greenhouse',
+			'humidity-alert': '💧 Humidity Alert - Smart Greenhouse'
+		};
+		return subjects[templateName] || 'Smart Greenhouse Notification';
+	}
+
+	private htmlToText(html: string): string {
+		// Simple HTML to text conversion like voteLIS24
+		return html
+			.replace(/<[^>]*>/g, '') // Remove HTML tags
+			.replace(/\s+/g, ' ') // Normalize whitespace
+			.trim();
+	}
+
+	private replaceVariables(content: string, variables: Record<string, string>): string {
+		// Replace {{key}} placeholders like voteLIS24
+		let result = content;
+		for (const [key, value] of Object.entries(variables)) {
+			const regex = new RegExp(`{{${key}}}`, 'g');
+			result = result.replace(regex, value || '');
+		}
+		return result;
+	}
+
+	/**
+	 * Send email using template or direct content
+	 */
+	public async sendEmail(options: EmailOptions): Promise<boolean> {
+		try {
+			let { subject, html, text } = options;
+
+			// Use template if specified
+			if (options.template) {
+				const template = this.templatesCache.get(options.template);
+				if (template) {
+					subject = options.subject || template.subject;
+					html = template.html;
+					text = template.text;
+
+					// Replace variables in all content
+					if (options.variables) {
+						const vars = {
+							...options.variables,
+							timestamp: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+						};
+						subject = this.replaceVariables(subject, vars);
+						html = this.replaceVariables(html || '', vars);
+						text = this.replaceVariables(text || '', vars);
+					}
+				} else {
+					console.warn(`⚠️ Template '${options.template}' not found, using direct content`);
+				}
+			}
+
+			// Demo mode - log instead of sending like voteLIS24 fallback
+			if (!this.transporter) {
+				console.log(`📧 [DEMO MODE] Email would be sent to: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
+				console.log(`📧 [DEMO MODE] Subject: ${subject}`);
+				console.log(`📧 [DEMO MODE] Template: ${options.template || 'none'}`);
+				console.log(`📧 [DEMO MODE] Email functionality is working correctly!`);
+				return true;
+			}
+
+			const mailOptions = {
+				from: `"Smart Greenhouse System" <${process.env.EMAIL_USER}>`,
+				to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+				subject,
+				html,
+				text,
+				attachments: options.attachments
+			};
+
+			const result = await this.transporter.sendMail(mailOptions);
+			console.log(`📧 Email sent successfully: ${result.messageId}`);
+			return true;
+
+		} catch (error) {
+			console.error('❌ Failed to send email:', error);
+			return false;
+		}
+	}
+
+	/**
+	 * Send test email
+	 */
+	public async sendTestEmail(recipients: string[]): Promise<boolean> {
+		return this.sendEmail({
+			to: recipients,
+			template: 'test-email',
+			variables: {
+				emailService: process.env.EMAIL_SERVICE || 'Default',
+				recipient: recipients[0] || 'N/A'
 			}
 		});
-
-		// Verify connection
-		this.transporter.verify((error, success) => {
-			if (error) {
-				console.error('❌ Email transporter verification failed:', error);
-				this.isEnabled = false;
-			} else {
-				console.log('✅ Email service initialized successfully');
-				this.isEnabled = true;
-			}
-		});
-	}
-
-	/**
-	 * Send temperature threshold alert
-	 */
-	async sendTemperatureAlert(temperature: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
-		if (!this.isEnabled) return;
-
-		const subject = '🌡️ Temperature Alert - Smart Greenhouse';
-		const isHigh = temperature > threshold.max;
-		const isLow = temperature < threshold.min;
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: ${isHigh ? '#e74c3c' : '#3498db'};">
-					${isHigh ? '🔥' : '❄️'} Temperature ${isHigh ? 'High' : 'Low'} Alert
-				</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-					<p><strong>Current Temperature:</strong> ${temperature}°C</p>
-					<p><strong>Threshold Range:</strong> ${threshold.min}°C - ${threshold.max}°C</p>
-					<p><strong>Status:</strong> <span style="color: ${isHigh ? '#e74c3c' : '#3498db'}; font-weight: bold;">
-						${isHigh ? 'ABOVE MAXIMUM' : 'BELOW MINIMUM'}
-					</span></p>
-				</div>
-				<p><strong>Recommended Actions:</strong></p>
-				<ul>
-					${isHigh ?
-				'<li>Turn on ventilation system</li><li>Check cooling equipment</li><li>Provide shade if necessary</li>' :
-				'<li>Check heating system</li><li>Close windows/vents</li><li>Monitor plant health</li>'
-			}
-				</ul>
-				<p style="color: #7f8c8d; font-size: 12px;">
-					Time: ${new Date().toLocaleString()}<br>
-					Smart Greenhouse Monitoring System
-				</p>
-			</div>
-		`;
-
-		await this.sendEmail(recipients, subject, html);
-	}
-
-	/**
-	 * Send humidity threshold alert
-	 */
-	async sendHumidityAlert(humidity: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
-		if (!this.isEnabled) return;
-
-		const subject = '💧 Humidity Alert - Smart Greenhouse';
-		const isHigh = humidity > threshold.max;
-		const isLow = humidity < threshold.min;
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: ${isHigh ? '#3498db' : '#e67e22'};">
-					${isHigh ? '💧' : '🏜️'} Humidity ${isHigh ? 'High' : 'Low'} Alert
-				</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-					<p><strong>Current Humidity:</strong> ${humidity}%</p>
-					<p><strong>Threshold Range:</strong> ${threshold.min}% - ${threshold.max}%</p>
-					<p><strong>Status:</strong> <span style="color: ${isHigh ? '#3498db' : '#e67e22'}; font-weight: bold;">
-						${isHigh ? 'ABOVE MAXIMUM' : 'BELOW MINIMUM'}
-					</span></p>
-				</div>
-				<p><strong>Recommended Actions:</strong></p>
-				<ul>
-					${isHigh ?
-				'<li>Increase ventilation</li><li>Check for water leaks</li><li>Monitor for mold/fungus</li>' :
-				'<li>Increase watering frequency</li><li>Check irrigation system</li><li>Add humidity sources</li>'
-			}
-				</ul>
-				<p style="color: #7f8c8d; font-size: 12px;">
-					Time: ${new Date().toLocaleString()}<br>
-					Smart Greenhouse Monitoring System
-				</p>
-			</div>
-		`;
-
-		await this.sendEmail(recipients, subject, html);
-	}
-
-	/**
-	 * Send soil moisture alert
-	 */
-	async sendSoilMoistureAlert(soilMoisture: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
-		if (!this.isEnabled) return;
-
-		const subject = '🌱 Soil Moisture Alert - Smart Greenhouse';
-		const isLow = soilMoisture < threshold.min;
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: #e67e22;">
-					🌱 Soil Moisture ${isLow ? 'Low' : 'High'} Alert
-				</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-					<p><strong>Current Soil Moisture:</strong> ${soilMoisture}%</p>
-					<p><strong>Threshold Range:</strong> ${threshold.min}% - ${threshold.max}%</p>
-					<p><strong>Status:</strong> <span style="color: #e67e22; font-weight: bold;">
-						${isLow ? 'TOO DRY' : 'TOO WET'}
-					</span></p>
-				</div>
-				<p><strong>Recommended Actions:</strong></p>
-				<ul>
-					${isLow ?
-				'<li>Activate irrigation system</li><li>Check water supply</li><li>Monitor plant stress signs</li>' :
-				'<li>Reduce watering frequency</li><li>Improve drainage</li><li>Check for overwatering</li>'
-			}
-				</ul>
-				<p style="color: #7f8c8d; font-size: 12px;">
-					Time: ${new Date().toLocaleString()}<br>
-					Smart Greenhouse Monitoring System
-				</p>
-			</div>
-		`;
-
-		await this.sendEmail(recipients, subject, html);
-	}
-
-	/**
-	 * Send water level alert
-	 */
-	async sendWaterLevelAlert(waterLevel: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
-		if (!this.isEnabled) return;
-
-		const subject = '🚰 Water Level Alert - Smart Greenhouse';
-		const isLow = waterLevel < threshold.min;
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: #e74c3c;">
-					🚰 Water Level ${isLow ? 'Low' : 'High'} Alert
-				</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-					<p><strong>Current Water Level:</strong> ${waterLevel}%</p>
-					<p><strong>Threshold Range:</strong> ${threshold.min}% - ${threshold.max}%</p>
-					<p><strong>Status:</strong> <span style="color: #e74c3c; font-weight: bold;">
-						${isLow ? 'CRITICALLY LOW' : 'OVERFLOW RISK'}
-					</span></p>
-				</div>
-				<p><strong>Immediate Actions Required:</strong></p>
-				<ul>
-					${isLow ?
-				'<li>Refill water reservoir immediately</li><li>Check for leaks</li><li>Disable irrigation until refilled</li>' :
-				'<li>Check overflow drainage</li><li>Reduce water input</li><li>Inspect water level sensor</li>'
-			}
-				</ul>
-				<p style="color: #7f8c8d; font-size: 12px;">
-					Time: ${new Date().toLocaleString()}<br>
-					Smart Greenhouse Monitoring System
-				</p>
-			</div>
-		`;
-
-		await this.sendEmail(recipients, subject, html);
-	}
-
-	/**
-	 * Send system error alert
-	 */
-	async sendSystemErrorAlert(error: string, component: string, recipients: string[]): Promise<void> {
-		if (!this.isEnabled) return;
-
-		const subject = '⚠️ System Error Alert - Smart Greenhouse';
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: #e74c3c;">
-					⚠️ System Error Alert
-				</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-					<p><strong>Component:</strong> ${component}</p>
-					<p><strong>Error:</strong> ${error}</p>
-					<p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-				</div>
-				<p><strong>Recommended Actions:</strong></p>
-				<ul>
-					<li>Check system logs for detailed error information</li>
-					<li>Verify network connectivity</li>
-					<li>Restart affected components if necessary</li>
-					<li>Contact system administrator if problem persists</li>
-				</ul>
-				<p style="color: #7f8c8d; font-size: 12px;">
-					Smart Greenhouse Monitoring System
-				</p>
-			</div>
-		`;
-
-		await this.sendEmail(recipients, subject, html);
-	}
-
-	/**
-	 * Send motion detection alert
-	 */
-	async sendMotionDetectedAlert(recipients: string[]): Promise<void> {
-		if (!this.isEnabled) return;
-
-		const subject = '👁️ Motion Detected - Smart Greenhouse';
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: #9b59b6;">
-					👁️ Motion Detected in Greenhouse
-				</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-					<p><strong>Alert:</strong> Motion sensor has detected movement in the greenhouse</p>
-					<p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-					<p><strong>Action Taken:</strong> Door automatically opened</p>
-				</div>
-				<p><strong>Please verify:</strong></p>
-				<ul>
-					<li>Check if authorized personnel are present</li>
-					<li>Review security cameras if available</li>
-					<li>Ensure greenhouse security</li>
-				</ul>
-				<p style="color: #7f8c8d; font-size: 12px;">
-					Smart Greenhouse Security System
-				</p>
-			</div>
-		`;
-
-		await this.sendEmail(recipients, subject, html);
 	}
 
 	/**
 	 * Send password reset email
 	 */
-	async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-		if (!this.isEnabled) {
-			console.log('Email service is not enabled');
-			return false;
-		}
+	public async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+		const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
-		try {
-			const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-			const subject = '🔐 Password Reset - Smart Greenhouse System';
-
-			const html = `
-				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-					<h2 style="color: #3498db;">🔐 Password Reset Request</h2>
-					<p>You have requested to reset your password for your Smart Greenhouse account.</p>
-					<p>Click the button below to reset your password:</p>
-					<div style="text-align: center; margin: 30px 0;">
-						<a href="${resetUrl}" 
-						   style="background-color: #3498db; color: white; padding: 12px 30px; 
-						          text-decoration: none; border-radius: 5px; display: inline-block;
-						          font-weight: bold;">
-							Reset Password
-						</a>
-					</div>
-					<p>Or copy and paste this link in your browser:</p>
-					<p style="word-break: break-all; color: #666; background: #f4f4f4; padding: 10px; border-radius: 3px;">
-						${resetUrl}
-					</p>
-					<div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
-						<p style="color: #999; font-size: 12px;">
-							• This link will expire in 1 hour<br>
-							• If you didn't request this reset, please ignore this email<br>
-							• Time: ${new Date().toLocaleString()}
-						</p>
-					</div>
-					<p style="color: #7f8c8d; font-size: 12px;">
-						Smart Greenhouse Security System
-					</p>
-				</div>
-			`;
-
-			await this.sendEmail([email], subject, html);
-			return true;
-		} catch (error) {
-			console.error('Password reset email failed:', error);
-			return false;
-		}
+		return this.sendEmail({
+			to: email,
+			template: 'password-reset-email',
+			variables: {
+				resetUrl,
+				frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+			}
+		});
 	}
 
 	/**
-	 * Send password reset confirmation email
+	 * Send soil moisture alert (binary: 0=dry, 1=wet)
 	 */
-	async sendPasswordResetConfirmation(email: string): Promise<void> {
-		if (!this.isEnabled) return;
+	public async sendSoilMoistureAlert(soilMoisture: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
+		const isDry = soilMoisture === 0;
+		const moistureStatus = isDry ? 'DRY' : 'WET';
+		const statusValue = isDry ? '0 (Dry)' : '1 (Wet)';
 
-		const subject = '✅ Password Successfully Reset - Smart Greenhouse';
-
-		const html = `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: #27ae60;">✅ Password Reset Successful</h2>
-				<p>Your password has been successfully reset for your Smart Greenhouse account.</p>
-				<div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #27ae60;">
-					<p style="margin: 0; color: #155724;">
-						<strong>Security Notice:</strong> Your password was changed at ${new Date().toLocaleString()}
-					</p>
-				</div>
-				<p>If you did not make this change, please contact support immediately.</p>
-				<div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
-					<p style="color: #999; font-size: 12px;">
-						Smart Greenhouse Security System<br>
-						This is an automated security notification
-					</p>
-				</div>
-			</div>
-		`;
-
-		await this.sendEmail([email], subject, html);
+		await this.sendEmail({
+			to: recipients,
+			template: 'alert-email',
+			variables: {
+				alertTitle: `Soil Moisture Alert - ${moistureStatus}`,
+				alertIcon: '🌱',
+				alertType: isDry ? 'PLANTS NEED WATERING' : 'SOIL IS WET',
+				currentValue: statusValue,
+				thresholdRange: 'Binary: 0=Dry, 1=Wet',
+				recommendations: isDry
+					? 'Activate irrigation system immediately, Check water supply, Monitor plant stress signs'
+					: 'Soil has adequate moisture, Monitor for overwatering'
+			}
+		});
 	}
 
 	/**
-	 * Generic email sending method
+	 * Send temperature alert
 	 */
-	private async sendEmail(recipients: string[], subject: string, html: string): Promise<void> {
-		if (!this.isEnabled || recipients.length === 0) return;
+	public async sendTemperatureAlert(temperature: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
+		const isHigh = temperature > threshold.max;
+		const isLow = temperature < threshold.min;
 
-		// Demo mode - log email instead of sending
-		if (!this.transporter) {
-			console.log(`📧 [DEMO MODE] Email would be sent to: ${recipients.join(', ')}`);
-			console.log(`📧 [DEMO MODE] Subject: ${subject}`);
-			console.log(`📧 [DEMO MODE] Email functionality is working correctly!`);
-			return;
-		}
-
-		try {
-			const mailOptions = {
-				from: `"Smart Greenhouse System" <${process.env.EMAIL_USER}>`,
-				to: recipients.join(', '),
-				subject,
-				html
-			};
-
-			const result = await this.transporter.sendMail(mailOptions);
-			console.log(`📧 Email sent successfully to ${recipients.length} recipients: ${result.messageId}`);
-		} catch (error) {
-			console.error('❌ Failed to send email:', error);
-		}
+		await this.sendEmail({
+			to: recipients,
+			template: 'alert-email',
+			variables: {
+				alertTitle: `Temperature ${isHigh ? 'High' : 'Low'} Alert`,
+				alertIcon: '🌡️',
+				alertType: isHigh ? 'TOO HOT' : 'TOO COLD',
+				currentValue: `${temperature}°C`,
+				thresholdRange: `${threshold.min}°C - ${threshold.max}°C`,
+				recommendations: isHigh
+					? 'Increase ventilation, Check cooling system, Provide shade'
+					: 'Check heating system, Insulate greenhouse, Monitor plant protection'
+			}
+		});
 	}
 
 	/**
-	 * Test email functionality
+	 * Send humidity alert
 	 */
-	async sendTestEmail(recipients: string[]): Promise<boolean> {
-		if (!this.isEnabled) {
-			console.log('Email service is not enabled');
-			return false;
-		}
+	public async sendHumidityAlert(humidity: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
+		const isHigh = humidity > threshold.max;
+		const isLow = humidity < threshold.min;
 
-		try {
-			const subject = '✅ Test Email - Smart Greenhouse System';
-			const html = `
-				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-					<h2 style="color: #27ae60;">✅ Email Service Test</h2>
-					<p>This is a test email from your Smart Greenhouse monitoring system.</p>
-					<p>If you receive this email, the email alert system is working correctly.</p>
-					<p style="color: #7f8c8d; font-size: 12px;">
-						Time: ${new Date().toLocaleString()}<br>
-						Smart Greenhouse Monitoring System
-					</p>
-				</div>
-			`;
+		await this.sendEmail({
+			to: recipients,
+			template: 'alert-email',
+			variables: {
+				alertTitle: `Humidity ${isHigh ? 'High' : 'Low'} Alert`,
+				alertIcon: '💧',
+				alertType: isHigh ? 'TOO HUMID' : 'TOO DRY',
+				currentValue: `${humidity}%`,
+				thresholdRange: `${threshold.min}% - ${threshold.max}%`,
+				recommendations: isHigh
+					? 'Increase ventilation, Check for water leaks, Monitor for mold/fungus'
+					: 'Increase irrigation, Check humidity sensors, Add water sources'
+			}
+		});
+	}
 
-			await this.sendEmail(recipients, subject, html);
-			return true;
-		} catch (error) {
-			console.error('Test email failed:', error);
-			return false;
-		}
+	/**
+	 * Send water level alert
+	 */
+	public async sendWaterLevelAlert(waterLevel: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
+		const isLow = waterLevel < threshold.min;
+
+		await this.sendEmail({
+			to: recipients,
+			template: 'alert-email',
+			variables: {
+				alertTitle: `Water Level ${isLow ? 'Low' : 'High'} Alert`,
+				alertIcon: '🚰',
+				alertType: isLow ? 'REFILL NEEDED' : 'OVERFLOW RISK',
+				currentValue: `${waterLevel}%`,
+				thresholdRange: `${threshold.min}% - ${threshold.max}%`,
+				recommendations: isLow
+					? 'Refill water tank, Check water supply, Inspect pump system'
+					: 'Check drainage, Inspect overflow protection, Monitor water usage'
+			}
+		});
+	}
+
+	/**
+	 * Send system error alert
+	 */
+	public async sendSystemErrorAlert(error: string, component: string, recipients: string[]): Promise<void> {
+		await this.sendEmail({
+			to: recipients,
+			template: 'alert-email',
+			variables: {
+				alertTitle: 'System Error Alert',
+				alertIcon: '⚠️',
+				alertType: 'SYSTEM MALFUNCTION',
+				currentValue: component,
+				thresholdRange: 'System Health Check',
+				recommendations: `Check ${component} component, Review system logs, Contact technical support if needed. Error: ${error}`
+			}
+		});
+	}
+
+	/**
+	 * Send motion detected alert
+	 */
+	public async sendMotionDetectedAlert(recipients: string[]): Promise<void> {
+		await this.sendEmail({
+			to: recipients,
+			template: 'alert-email',
+			variables: {
+				alertTitle: 'Motion Detected',
+				alertIcon: '🚶',
+				alertType: 'SECURITY ALERT',
+				currentValue: 'Motion detected in greenhouse',
+				thresholdRange: 'Security monitoring',
+				recommendations: 'Check greenhouse security, Review camera footage if available, Verify authorized access'
+			}
+		});
 	}
 
 	/**
 	 * Get service status
 	 */
-	getStatus(): { enabled: boolean; configured: boolean } {
+	public getStatus(): { enabled: boolean; configured: boolean; templatesLoaded: number } {
 		return {
 			enabled: this.isEnabled,
-			configured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS)
+			configured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+			templatesLoaded: this.templatesCache.size
 		};
+	}
+
+	/**
+	 * Reload templates
+	 */
+	public reloadTemplates(): void {
+		this.templatesCache.clear();
+		this.loadTemplates();
 	}
 }
 

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{{subject}}</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			line-height: 1.6;
+			color: #333;
+			max-width: 600px;
+			margin: 0 auto;
+			padding: 20px;
+			background-color: #f4f4f4;
+		}
+
+		.container {
+			background-color: #ffffff;
+			padding: 30px;
+			border-radius: 8px;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+		}
+
+		.header {
+			text-align: center;
+			margin-bottom: 30px;
+		}
+
+		.logo {
+			font-size: 24px;
+			font-weight: bold;
+			color: #57AE09;
+		}
+
+		.alert-badge {
+			display: inline-block;
+			padding: 8px 16px;
+			border-radius: 20px;
+			color: white;
+			font-weight: bold;
+			margin: 10px 0;
+		}
+
+		.critical {
+			background-color: #dc3545;
+		}
+
+		.high {
+			background-color: #fd7e14;
+		}
+
+		.medium {
+			background-color: #ffc107;
+			color: #000;
+		}
+
+		.low {
+			background-color: #17a2b8;
+		}
+
+		.sensor-data {
+			background-color: #f8f9fa;
+			padding: 20px;
+			border-radius: 5px;
+			margin: 20px 0;
+			border-left: 4px solid #57AE09;
+		}
+
+		.sensor-value {
+			font-size: 18px;
+			font-weight: bold;
+			color: #57AE09;
+		}
+
+		.recommendations {
+			background-color: #e8f5e8;
+			padding: 15px;
+			border-radius: 5px;
+			margin: 20px 0;
+		}
+
+		.footer {
+			text-align: center;
+			margin-top: 30px;
+			padding-top: 20px;
+			border-top: 1px solid #eee;
+			color: #666;
+			font-size: 12px;
+		}
+
+		.btn {
+			display: inline-block;
+			padding: 12px 24px;
+			background-color: #57AE09;
+			color: white;
+			text-decoration: none;
+			border-radius: 5px;
+			margin: 10px 0;
+		}
+
+		.btn:hover {
+			background-color: #459306;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			margin: 15px 0;
+		}
+
+		th,
+		td {
+			padding: 8px 12px;
+			text-align: left;
+			border-bottom: 1px solid #ddd;
+		}
+
+		th {
+			background-color: #f8f9fa;
+			font-weight: bold;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<div class="logo">🌱 Smart Greenhouse System</div>
+		</div>
+
+		<h2 style="color: #333;">{{alertTitle}}</h2>
+
+		<div class="alert-badge {{alertLevel}}">
+			{{alertLevel}} ALERT
+		</div>
+
+		<div class="sensor-data">
+			<h3>Sensor Reading</h3>
+			<p><strong>{{sensorType}}:</strong> <span class="sensor-value">{{currentValue}}{{unit}}</span></p>
+			<p><strong>Threshold:</strong> {{thresholdText}}</p>
+			<p><strong>Status:</strong> {{statusText}}</p>
+			<p><strong>Time:</strong> {{timestamp}}</p>
+		</div>
+
+		<div class="recommendations">
+			<h3>🔧 Recommended Actions</h3>
+			{{recommendations}}
+		</div>
+
+		<div style="text-align: center; margin: 30px 0;">
+			<a href="{{dashboardUrl}}" class="btn">
+				📊 View Dashboard
+			</a>
+		</div>
+
+		<div class="footer">
+			<p>Smart Greenhouse Monitoring System</p>
+			<p>This is an automated alert from your greenhouse monitoring system.</p>
+			<p>If you have any questions, please contact your system administrator.</p>
+		</div>
+	</div>
+</body>
+
+</html>

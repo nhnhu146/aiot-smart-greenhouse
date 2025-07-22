@@ -1,6 +1,8 @@
 import { Settings, SensorData } from '../models';
 import { notificationService, AlertData } from './NotificationService';
-import { emailService } from './EmailService';
+import { AdvancedEmailService } from './AdvancedEmailService';
+
+const emailService = new AdvancedEmailService();
 
 export interface ThresholdConfig {
 	temperatureThreshold: { min: number; max: number };
@@ -144,7 +146,16 @@ class AlertService {
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.temperature) {
 				console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						value < threshold.min ? '❄️ Smart Greenhouse - Low Temperature Alert' : '🔥 Smart Greenhouse - High Temperature Alert',
+						'Temperature',
+						`${value}°C`,
+						value < threshold.min ? `Min: ${threshold.min}°C` : `Max: ${threshold.max}°C`
+					);
+				}
 			}
 		} else if (value > threshold.max) {
 			console.log(`[${traceId}] 🚨 [Temperature] ABOVE threshold: ${value}°C > ${threshold.max}°C`);
@@ -159,7 +170,16 @@ class AlertService {
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.temperature) {
 				console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendTemperatureAlert(value, threshold, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						value < threshold.min ? '❄️ Smart Greenhouse - Low Temperature Alert' : '🔥 Smart Greenhouse - High Temperature Alert',
+						'Temperature',
+						`${value}°C`,
+						value < threshold.min ? `Min: ${threshold.min}°C` : `Max: ${threshold.max}°C`
+					);
+				}
 			}
 		} else {
 			console.log(`✅ Temperature within range: ${value}°C`);
@@ -194,7 +214,16 @@ class AlertService {
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.humidity) {
 				console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						value < threshold.min ? '💧 Smart Greenhouse - Low Humidity Alert' : '💨 Smart Greenhouse - High Humidity Alert',
+						'Humidity',
+						`${value}%`,
+						value < threshold.min ? `Min: ${threshold.min}%` : `Max: ${threshold.max}%`
+					);
+				}
 			}
 		} else if (value > threshold.max) {
 			console.log(`[${traceId}] 🚨 [Humidity] ABOVE threshold: ${value}% > ${threshold.max}%`);
@@ -209,7 +238,16 @@ class AlertService {
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.humidity) {
 				console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendHumidityAlert(value, threshold, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						value < threshold.min ? '💧 Smart Greenhouse - Low Humidity Alert' : '💨 Smart Greenhouse - High Humidity Alert',
+						'Humidity',
+						`${value}%`,
+						value < threshold.min ? `Min: ${threshold.min}%` : `Max: ${threshold.max}%`
+					);
+				}
 			}
 		} else {
 			console.log(`✅ Humidity within range: ${value}%`);
@@ -221,48 +259,46 @@ class AlertService {
 	private async checkSoilMoisture(value: number, traceId: string): Promise<void> {
 		if (!this.currentThresholds) return;
 
-		const threshold = this.currentThresholds.soilMoistureThreshold;
 		const lastValue = this.lastCheckedValues.get('soilMoisture');
 
-		console.log(`[${traceId}] 🌱 Checking soil moisture: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
+		// Soil moisture is now binary: 1 = wet, 0 = dry
+		console.log(`[${traceId}] 🌱 Checking soil moisture: ${value === 1 ? 'WET (1)' : 'DRY (0)'}`);
 
-		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
-			console.log(`[${traceId}] 🌱 Soil moisture change too small: ${value}% vs last ${lastValue}%`);
+		// Only trigger alert if value changed
+		if (lastValue !== undefined && lastValue === value) {
+			console.log(`[${traceId}] 🌱 Soil moisture unchanged: ${value === 1 ? 'WET' : 'DRY'}`);
 			return;
 		}
 
-		if (value < threshold.min) {
-			console.log(`[${traceId}] 🚨 [Soil Moisture] BELOW threshold: ${value}% < ${threshold.min}%`);
+		// Alert when soil is dry (value = 0)
+		if (value === 0) {
+			console.log(`[${traceId}] 🚨 [Soil Moisture] DRY - Plants need watering!`);
 			await notificationService.triggerAlert({
 				type: 'soilMoisture',
-				level: value < threshold.min - 10 ? 'critical' : 'high',
-				message: `Soil moisture too low: ${value}% (minimum: ${threshold.min}%) - Plants need watering`,
+				level: 'high',
+				message: `Soil moisture is DRY (0) - Plants need watering immediately`,
 				currentValue: value,
-				threshold: threshold
+				threshold: { min: 1, max: 1 } // Binary: we want wet (1)
 			});
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.soilMoisture) {
 				console.log(`📧 Sending soil moisture alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						'🌱 Smart Greenhouse - Dry Soil Alert',
+						'Soil Moisture',
+						value === 0 ? 'Dry' : 'Wet',
+						'Expected: Wet (1)'
+					);
+				}
 			}
-		} else if (value > threshold.max) {
-			console.log(`[${traceId}] 🚨 [Soil Moisture] ABOVE threshold: ${value}% > ${threshold.max}%`);
-			await notificationService.triggerAlert({
-				type: 'soilMoisture',
-				level: 'medium',
-				message: `Soil moisture too high: ${value}% (maximum: ${threshold.max}%) - Risk of root rot`,
-				currentValue: value,
-				threshold: threshold
-			});
-
-			// Send email alert if enabled
-			if (this.emailRecipients.length > 0 && this.emailAlerts.soilMoisture) {
-				console.log(`📧 Sending soil moisture alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendSoilMoistureAlert(value, threshold, this.emailRecipients);
-			}
+		} else if (value === 1) {
+			console.log(`✅ Soil moisture is WET (1) - Plants are well watered`);
 		} else {
-			console.log(`✅ Soil moisture within range: ${value}%`);
+			console.log(`[${traceId}] ⚠️ Unexpected soil moisture value: ${value}`);
 		}
 
 		this.lastCheckedValues.set('soilMoisture', value);
@@ -294,7 +330,16 @@ class AlertService {
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.waterLevel) {
 				console.log(`📧 Sending water level alert email to ${this.emailRecipients.length} recipients`);
-				await emailService.sendWaterLevelAlert(value, threshold, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						'💧 Smart Greenhouse - Low Water Level Alert',
+						'Water Level',
+						`${value}%`,
+						`Min: ${threshold.min}%`
+					);
+				}
 			}
 		} else {
 			console.log(`✅ Water level within range: ${value}%`);
@@ -339,7 +384,16 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0) {
-				await emailService.sendMotionDetectedAlert(this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						'👁️ Smart Greenhouse - Motion Detected',
+						'Motion Sensor',
+						'Motion Detected',
+						'Security Alert'
+					);
+				}
 			}
 		} catch (error) {
 			console.error('Error handling motion detection alert:', error);
@@ -359,7 +413,16 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0) {
-				await emailService.sendSystemErrorAlert(error, component, this.emailRecipients);
+				// Send email to all recipients
+				for (const recipient of this.emailRecipients) {
+					await emailService.sendAlertEmail(
+						recipient,
+						'⚠️ Smart Greenhouse - System Error',
+						'System Error',
+						error,
+						`Component: ${component}`
+					);
+				}
 			}
 		} catch (error) {
 			console.error('Error handling system error alert:', error);
@@ -373,14 +436,19 @@ class AlertService {
 			return false;
 		}
 
-		return await emailService.sendTestEmail(this.emailRecipients);
+		// Send test email to all recipients
+		for (const recipient of this.emailRecipients) {
+			await emailService.sendTestEmail(recipient);
+		}
+		return true;
 	}
 
 	// Get email service status
 	getEmailStatus(): { enabled: boolean; configured: boolean; recipients: number } {
 		const status = emailService.getStatus();
 		return {
-			...status,
+			enabled: status.configured,
+			configured: status.configured,
 			recipients: this.emailRecipients.length
 		};
 	}
