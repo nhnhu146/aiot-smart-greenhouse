@@ -18,6 +18,7 @@ interface PersistentSensorState {
 	water: { value: number; timestamp: string } | null;
 	light: { value: number; timestamp: string } | null;
 	rain: { value: number; timestamp: string } | null;
+	height: { value: number; timestamp: string } | null;
 }
 
 interface DeviceStatus {
@@ -55,7 +56,8 @@ export default function useWebSocket(): UseWebSocketReturn {
 		soil: null,
 		water: null,
 		light: null,
-		rain: null
+		rain: null,
+		height: null
 	});
 	const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
 	const [alerts, setAlerts] = useState<Alert[]>([]);

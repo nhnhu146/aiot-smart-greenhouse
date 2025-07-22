@@ -60,7 +60,8 @@ const Dashboard = () => {
 		rain: null as number | null,
 		waterlevel: null as number | null,
 		soil: null as number | null,
-		light: null as number | null
+		light: null as number | null,
+		height: null as number | null // Plant height in cm
 	});
 
 	const activities = useMemo(() => [
@@ -69,12 +70,6 @@ const Dashboard = () => {
 			icon: '💡',
 			device: 'light',
 			description: 'LED grow lights for optimal plant growth'
-		},
-		{
-			title: 'Ventilation Fan',
-			icon: '🌬️',
-			device: 'fan',
-			description: 'Air circulation and temperature control'
 		},
 		{
 			title: 'Water Pump',
@@ -149,18 +144,8 @@ const Dashboard = () => {
 			});
 		}
 
-		// Fan control based on temperature
-		if (sensor === 'temperature') {
-			const shouldTurnOn = numValue > 30; // If temperature > 30°C, turn on fan
-			setSwitchStates((prev) => {
-				const currentState = prev.get('fan') || false;
-				if (currentState !== shouldTurnOn) {
-					sendDeviceControl('fan', shouldTurnOn ? 'HIGH' : 'LOW');
-					return new Map(prev).set('fan', shouldTurnOn);
-				}
-				return prev;
-			});
-		}
+		// NOTE: Fan control removed as per requirement #4
+		// Temperature-based automation can be added for other devices if needed
 	}, [autoMode, userInteraction, sendDeviceControl]);
 
 	// Helper function to safely parse sensor values
@@ -184,7 +169,8 @@ const Dashboard = () => {
 				rain: parseSensorValue(sensorData.rain),
 				waterlevel: parseSensorValue(sensorData.waterlevel),
 				soil: parseSensorValue(sensorData.soil),
-				light: parseSensorValue(sensorData.light)
+				light: parseSensorValue(sensorData.light),
+				height: parseSensorValue(sensorData.height) // Plant height
 			};
 
 			setSensorValues(newSensorValues);

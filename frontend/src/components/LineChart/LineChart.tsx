@@ -68,8 +68,8 @@ const AppLineChart: React.FC = () => {
 						const fullDateTimeA = new Date(`${dateA} ${timeA}`).getTime();
 						const fullDateTimeB = new Date(`${dateB} ${timeB}`).getTime();
 
-						return fullDateTimeB - fullDateTimeA;
-					});
+						return (fullDateTimeB - fullDateTimeA);
+					})
 
 					console.log('📈 Chart updated with persistent sensor data:', newDataPoint);
 					return sortedData;
@@ -91,17 +91,17 @@ const AppLineChart: React.FC = () => {
 					time: formatTimeVN(point.time)
 				}));
 
-				// Sort by original timestamp to ensure chronological order (oldest to newest)
-				const sortedData = formattedData.sort((a, b) => {
-					// Parse full datetime string for proper comparison
-					const dateTimeA = new Date(a.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
-					const dateTimeB = new Date(b.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
-					return dateTimeA - dateTimeB;
-				});
+				// // Sort by original timestamp to ensure chronological order (oldest to newest)
+				// const sortedData = formattedData.sort((a, b) => {
+				// 	// Parse full datetime string for proper comparison
+				// 	const dateTimeA = new Date(a.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
+				// 	const dateTimeB = new Date(b.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
+				// 	return dateTimeA - dateTimeB;
+				// }).reverse(); // Reverse to have oldest first
 
 				// Only set if we don't have persistent data yet
 				if (chartData.length === 0) {
-					setChartData(sortedData);
+					setChartData(formattedData);
 					console.log(result.isMock ? '📊 Initial mock chart data loaded' : '📊 Initial API chart data loaded');
 				}
 
@@ -129,9 +129,12 @@ const AppLineChart: React.FC = () => {
 			</div>
 		);
 	}
-
+	const testPoint = chartData[0];
+	const testTime = testPoint.time.split(', ')[1] || testPoint.time; // Extract time part for display
+	console.log(`Test point: ${testPoint}`)
+	console.log(`Test time: ${testTime}`)
 	const data = {
-		labels: chartData.map(point => {
+		labels: chartData.reverse().map(point => {
 			// Extract only time part for display on x-axis
 			const timePart = point.time.split(', ')[1] || point.time;
 			return timePart;

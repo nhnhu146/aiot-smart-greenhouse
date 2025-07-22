@@ -216,13 +216,23 @@ class WebSocketService {
 	// Handle device control from frontend
 	private handleDeviceControl(socket: Socket, data: { device: string; action: string; value?: any }) {
 		try {
+			console.log(`🎮 Device control request: ${data.device} -> ${data.action}`);
+
 			// Import MQTT service dynamically to avoid circular dependency
 			const { mqttService } = require('./MQTTService');
 
 			// Publish device control command to MQTT broker
 			if (mqttService && mqttService.isClientConnected()) {
-				mqttService.publishDeviceControl(data.device, data.action);
-				console.log(`📡 MQTT command sent: ${data.device} -> ${data.action}`);
+				// Convert frontend action to MQTT format
+				let mqttAction = data.action;
+				if (data.action === 'on' || data.action === 'true') {
+					mqttAction = 'HIGH';
+				} else if (data.action === 'off' || data.action === 'false') {
+					mqttAction = 'LOW';
+				}
+
+				mqttService.publishDeviceControl(data.device, mqttAction);
+				console.log(`📡 MQTT command sent: ${data.device} -> ${mqttAction}`);
 			} else {
 				console.warn('⚠️ MQTT service not available for device control');
 			}

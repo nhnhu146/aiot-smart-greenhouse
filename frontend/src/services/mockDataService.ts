@@ -11,6 +11,7 @@ interface ChartDataPoint {
 	temperature: number;
 	humidity: number;
 	soilMoisture: number;
+	plantHeight?: number; // Plant height in cm
 }
 
 class MockDataService {
@@ -71,7 +72,8 @@ class MockDataService {
 				}),
 				temperature: 20 + Math.random() * 15, // 20-35°C
 				humidity: 40 + Math.random() * 40,    // 40-80%
-				soilMoisture: 30 + Math.random() * 40  // 30-70%
+				soilMoisture: 30 + Math.random() * 40, // 30-70%
+				plantHeight: 10 + Math.random() * 20   // 10-30cm
 			});
 		}
 
@@ -175,7 +177,8 @@ class MockDataService {
 					time: sensor.createdAt, // Fix: use createdAt instead of timestamp
 					temperature: sensor.temperature,
 					humidity: sensor.humidity,
-					soilMoisture: sensor.soilMoisture
+					soilMoisture: sensor.soilMoisture,
+					plantHeight: sensor.plantHeight
 				}));
 
 				return { data: mappedData, isMock: false };

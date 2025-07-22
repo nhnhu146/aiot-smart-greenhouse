@@ -69,7 +69,8 @@ const SensorDashboard: React.FC = () => {
 		soil: { value: '--', timestamp: null },
 		water: { value: '--', timestamp: null },
 		light: { value: '--', timestamp: null },
-		rain: { value: '--', timestamp: null }
+		rain: { value: '--', timestamp: null },
+		height: { value: '--', timestamp: null } // Plant height
 	});
 	const [lastUpdateTime, setLastUpdateTime] = React.useState<string>('');
 
@@ -112,7 +113,8 @@ const SensorDashboard: React.FC = () => {
 				soil: { value: 'N/A', timestamp: null },
 				water: { value: 'N/A', timestamp: null },
 				light: { value: 'N/A', timestamp: null },
-				rain: { value: 'N/A', timestamp: null }
+				rain: { value: 'N/A', timestamp: null },
+				height: { value: 'N/A', timestamp: null }
 			});
 		}
 	}, [persistentSensorData, isConnected]);
@@ -159,6 +161,13 @@ const SensorDashboard: React.FC = () => {
 			unit: '',
 			icon: '🌧️',
 			color: 'secondary'
+		},
+		{
+			key: 'height',
+			title: 'Plant Height',
+			unit: 'cm',
+			icon: '📏',
+			color: 'info'
 		}
 	];
 

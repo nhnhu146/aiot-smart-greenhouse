@@ -581,19 +581,22 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 					newData.humidity = value;
 					break;
 				case 'soil':
-					newData.soilMoisture = value;
+					// For soil moisture: 0 = dry, 1 = wet (raw binary values)
+					newData.soilMoisture = value; // Keep raw 0/1 value
 					break;
 				case 'water':
 					newData.waterLevel = value;
 					break;
 				case 'light':
-					newData.lightLevel = value;
+					// For light sensor: 0 = dark, 1 = bright (raw binary values)
+					newData.lightLevel = value; // Keep raw 0/1 value
 					break;
 				case 'height':
 					newData.plantHeight = value;
 					break;
 				case 'rain':
-					newData.rainStatus = value > 0;
+					// For rain sensor: 0 = no rain, 1 = raining (raw binary values)
+					newData.rainStatus = value === 1; // Convert 1 to true, 0 to false
 					break;
 				default:
 					console.warn(`🔍 Unknown sensor type: ${sensorType}`);
@@ -612,19 +615,22 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 					sensorDoc.humidity = value;
 					break;
 				case 'soil':
-					sensorDoc.soilMoisture = value;
+					// For soil moisture: 0 = dry, 1 = wet (raw binary values)
+					sensorDoc.soilMoisture = value; // Keep raw 0/1 value
 					break;
 				case 'water':
 					sensorDoc.waterLevel = value;
 					break;
 				case 'light':
-					sensorDoc.lightLevel = value;
+					// For light sensor: 0 = dark, 1 = bright (raw binary values)
+					sensorDoc.lightLevel = value; // Keep raw 0/1 value
 					break;
 				case 'height':
 					sensorDoc.plantHeight = value;
 					break;
 				case 'rain':
-					sensorDoc.rainStatus = value > 0;
+					// For rain sensor: 0 = no rain, 1 = raining (raw binary values)
+					sensorDoc.rainStatus = value === 1; // Convert 1 to true, 0 to false
 					break;
 			}
 
