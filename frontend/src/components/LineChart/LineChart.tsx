@@ -167,8 +167,8 @@ const AppLineChart: React.FC = () => {
 				tension: 0.1,
 			},
 			{
-				label: 'Soil Moisture (%)',
-				data: [...chartData].reverse().map(point => point ? Math.round((point.soilMoisture || 0) * 10) / 10 : 0),
+				label: 'Soil Moisture (Binary)',
+				data: [...chartData].reverse().map(point => point ? (point.soilMoisture || 0) : 0),
 				borderColor: 'rgb(75, 192, 192)',
 				backgroundColor: 'rgba(75, 192, 192, 0.2)',
 				tension: 0.1,

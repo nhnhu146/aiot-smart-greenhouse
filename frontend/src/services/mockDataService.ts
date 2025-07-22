@@ -47,7 +47,7 @@ class MockDataService {
 	// Mock sensor data with realistic greenhouse values
 	private mockSensorData: SensorData = {
 		humidity: 65,
-		moisture: 45,
+		moisture: Math.random() > 0.7 ? 0 : 1, // Binary: 30% dry (0), 70% wet (1)
 		temperature: 25,
 		timestamp: new Date().toISOString()
 	};
@@ -72,7 +72,7 @@ class MockDataService {
 				}),
 				temperature: 20 + Math.random() * 15, // 20-35°C
 				humidity: 40 + Math.random() * 40,    // 40-80%
-				soilMoisture: 30 + Math.random() * 40, // 30-70%
+				soilMoisture: Math.random() > 0.3 ? 1 : 0, // Binary: 70% wet (1), 30% dry (0)
 				plantHeight: 10 + Math.random() * 20   // 10-30cm
 			});
 		}

@@ -335,15 +335,16 @@ export class EmailService {
 	}
 
 	/**
-	 * Send test email
+	 * Send test email using template from backend/src/templates
 	 */
 	public async sendTestEmail(recipients: string[]): Promise<boolean> {
 		return this.sendEmail({
 			to: recipients,
 			template: 'test-email',
 			variables: {
-				emailService: process.env.EMAIL_SERVICE || 'Default',
-				recipient: recipients[0] || 'N/A'
+				emailService: process.env.EMAIL_SERVICE || 'Gmail',
+				recipient: recipients[0] || 'N/A',
+				timestamp: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
 			}
 		});
 	}

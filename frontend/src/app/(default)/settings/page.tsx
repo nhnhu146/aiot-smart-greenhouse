@@ -33,7 +33,7 @@ const SettingsPage = () => {
 	const [thresholds, setThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
 		humidityThreshold: { min: 40, max: 80 },
-		soilMoistureThreshold: { min: 30, max: 70 },
+		soilMoistureThreshold: { min: 1, max: 1 },
 		waterLevelThreshold: { min: 20, max: 90 }
 	});
 
@@ -58,7 +58,7 @@ const SettingsPage = () => {
 	const [originalThresholds, setOriginalThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
 		humidityThreshold: { min: 40, max: 80 },
-		soilMoistureThreshold: { min: 30, max: 70 },
+		soilMoistureThreshold: { min: 1, max: 1 },
 		waterLevelThreshold: { min: 20, max: 90 }
 	});
 	const [originalEmailRecipients, setOriginalEmailRecipients] = useState<string[]>([]);
@@ -261,7 +261,7 @@ const SettingsPage = () => {
 		setThresholds({
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 30, max: 70 },
+			soilMoistureThreshold: { min: 1, max: 1 },
 			waterLevelThreshold: { min: 20, max: 90 }
 		});
 
@@ -393,13 +393,16 @@ const SettingsPage = () => {
 
 								{/* Soil Moisture Settings */}
 								<Col md={6} className="mb-4">
-									<h6>🌱 Soil Moisture (%)</h6>
+									<h6>🌱 Soil Moisture (Binary)</h6>
 									<Row>
 										<Col>
 											<Form.Group className="mb-2">
-												<Form.Label>Minimum</Form.Label>
+												<Form.Label>Minimum (0=Dry, 1=Wet)</Form.Label>
 												<Form.Control
 													type="number"
+													min="0"
+													max="1"
+													step="1"
 													value={thresholds.soilMoistureThreshold.min}
 													onChange={(e) => setThresholds({
 														...thresholds,
@@ -413,9 +416,12 @@ const SettingsPage = () => {
 										</Col>
 										<Col>
 											<Form.Group className="mb-2">
-												<Form.Label>Maximum</Form.Label>
+												<Form.Label>Maximum (0=Dry, 1=Wet)</Form.Label>
 												<Form.Control
 													type="number"
+													min="0"
+													max="1"
+													step="1"
 													value={thresholds.soilMoistureThreshold.max}
 													onChange={(e) => setThresholds({
 														...thresholds,

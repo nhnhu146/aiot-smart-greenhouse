@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const SensorDataSchema = z.object({
 	temperature: z.number().min(-50).max(100),
 	humidity: z.number().min(0).max(100),
-	soilMoisture: z.number().min(0).max(100),
+	soilMoisture: z.number().min(0).max(1), // Binary: 0=dry, 1=wet
 	waterLevel: z.number().min(0).max(100),
 	plantHeight: z.number().min(0),
 	rainStatus: z.boolean(),
@@ -26,8 +26,8 @@ export const SettingsSchema = z.object({
 		max: z.number().min(0).max(100)
 	}),
 	soilMoistureThreshold: z.object({
-		min: z.number().min(0).max(100),
-		max: z.number().min(0).max(100)
+		min: z.number().min(0).max(1), // Binary: 0=dry, 1=wet
+		max: z.number().min(0).max(1)
 	}),
 	waterLevelThreshold: z.object({
 		min: z.number().min(0).max(100),

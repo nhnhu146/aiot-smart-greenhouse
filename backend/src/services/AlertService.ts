@@ -85,7 +85,7 @@ class AlertService {
 		this.currentThresholds = {
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 30, max: 70 },
+			soilMoistureThreshold: { min: 1, max: 1 }, // Binary: we want wet (1)
 			waterLevelThreshold: { min: 20, max: 90 }
 		};
 		console.log('🔧 Using default thresholds:', this.currentThresholds);
