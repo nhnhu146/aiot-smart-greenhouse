@@ -129,34 +129,46 @@ const AppLineChart: React.FC = () => {
 			</div>
 		);
 	}
-	const testPoint = chartData[0];
-	const testTime = testPoint.time.split(', ')[1] || testPoint.time; // Extract time part for display
-	console.log(`Test point: ${testPoint}`)
-	console.log(`Test time: ${testTime}`)
+
+	// Check if chartData is empty to prevent accessing undefined properties
+	if (chartData.length === 0) {
+		return (
+			<div style={{
+				display: 'flex',
+				justifyContent: 'center',
+				alignItems: 'center',
+				height: '300px'
+			}}>
+				<div>No data available</div>
+			</div>
+		);
+	}
+
 	const data = {
-		labels: chartData.reverse().map(point => {
+		labels: [...chartData].reverse().map(point => {
 			// Extract only time part for display on x-axis
+			if (!point || !point.time) return 'Unknown';
 			const timePart = point.time.split(', ')[1] || point.time;
 			return timePart;
 		}),
 		datasets: [
 			{
 				label: 'Temperature (°C)',
-				data: chartData.map(point => Math.round(point.temperature * 10) / 10),
+				data: [...chartData].reverse().map(point => point ? Math.round((point.temperature || 0) * 10) / 10 : 0),
 				borderColor: 'rgb(255, 99, 132)',
 				backgroundColor: 'rgba(255, 99, 132, 0.2)',
 				tension: 0.1,
 			},
 			{
 				label: 'Humidity (%)',
-				data: chartData.map(point => Math.round(point.humidity * 10) / 10),
+				data: [...chartData].reverse().map(point => point ? Math.round((point.humidity || 0) * 10) / 10 : 0),
 				borderColor: 'rgb(54, 162, 235)',
 				backgroundColor: 'rgba(54, 162, 235, 0.2)',
 				tension: 0.1,
 			},
 			{
 				label: 'Soil Moisture (%)',
-				data: chartData.map(point => Math.round(point.soilMoisture * 10) / 10),
+				data: [...chartData].reverse().map(point => point ? Math.round((point.soilMoisture || 0) * 10) / 10 : 0),
 				borderColor: 'rgb(75, 192, 192)',
 				backgroundColor: 'rgba(75, 192, 192, 0.2)',
 				tension: 0.1,
