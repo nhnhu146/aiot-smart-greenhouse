@@ -5,13 +5,13 @@
 	"main": "dist/index.js",
 	"scripts": {
 		"dev": "nodemon src/index.ts",
-		"build": "tsc && powershell -Command \"if (Test-Path 'dist/templates') { Remove-Item -Path 'dist/templates' -Recurse -Force }; Copy-Item -Path 'src/templates' -Destination 'dist/templates' -Recurse -Force\"",
+		"build": "tsc && node copy-templates.js",
 		"start": "node dist/index.js",
 		"test": "jest",
 		"lint": "eslint src/**/*.ts",
 		"clean": "rimraf dist",
 		"create-admin": "node create-admin.js",
-		"build:linux": "tsc && cp -r src/templates dist/"
+		"build:windows": "tsc && powershell -Command \"if (Test-Path 'dist/templates') { Remove-Item -Path 'dist/templates' -Recurse -Force }; Copy-Item -Path 'src/templates' -Destination 'dist/templates' -Recurse -Force\""
 	},
 	"keywords": [
 		"aiot",
