@@ -491,7 +491,7 @@ const Dashboard = () => {
 			</Row>
 
 			<Row className={`my-3 ${styles.chartRow}`}>
-				<Col>
+				<Col md={6}>
 					<Card className={styles.doughnutCard}>
 						<AppSemiDoughnutChart
 							label="Humidity"
@@ -501,17 +501,7 @@ const Dashboard = () => {
 						/>
 					</Card>
 				</Col>
-				<Col>
-					<Card className={styles.doughnutCard}>
-						<AppSemiDoughnutChart
-							label="Moisture"
-							value={data?.moisture || 0}
-							maxValue={100}
-							unit='%'
-						/>
-					</Card>
-				</Col>
-				<Col>
+				<Col md={6}>
 					<Card className={styles.doughnutCard}>
 						<AppSemiDoughnutChart
 							label="Temperature"

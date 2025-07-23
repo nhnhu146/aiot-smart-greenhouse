@@ -53,6 +53,10 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 					<strong>Data Source Mode</strong>
 					<div className="text-muted small">
 						Choose between mock data for testing or real sensor data
+						<br />
+						<span className="text-info">
+							🌐 This setting is saved locally in your browser only
+						</span>
 					</div>
 				</div>
 				<div className="d-flex align-items-center gap-3">

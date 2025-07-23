@@ -279,7 +279,7 @@ const SettingsPage = () => {
 		<Container className="py-4">
 			<div className="d-flex justify-content-between align-items-center mb-4">
 				<div className="d-flex align-items-center gap-3">
-					<h2 className="mb-0">⚙️ System Configuration</h2>
+					<h2 className="mb-0 text-black">⚙️ System Configuration</h2>
 					{hasUnsavedChanges && (
 						<Badge bg="warning" text="dark">
 							⚠️ Unsaved Changes

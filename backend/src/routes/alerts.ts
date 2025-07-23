@@ -3,11 +3,10 @@ import { Alert } from '../models';
 import { validateQuery, validateBody, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema, AlertCreateSchema } from '../schemas';
 import { APIResponse } from '../types';
-import { alertService, AdvancedEmailService } from '../services';
+import { alertService, emailService } from '../services';
 import { z } from 'zod';
 
 const router = Router();
-const emailService = new AdvancedEmailService();
 
 // GET /api/alerts - Lấy danh sách cảnh báo
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {

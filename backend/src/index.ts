@@ -22,6 +22,7 @@ import routes from './routes';
 
 // Import models
 import { SensorData, Settings, Alert, PasswordReset, UserSettings } from './models';
+import { DeviceHistory } from './models';
 
 // User model interface (replaces Firebase Auth)
 interface User {
@@ -106,6 +107,30 @@ const authenticateToken = (req: any, res: Response, next: NextFunction): void =>
 		return;
 	}
 };
+
+// Record automatic device control history
+async function recordAutomationHistory(deviceType: string, action: string, triggerReason: string) {
+	try {
+		await DeviceHistory.create({
+			deviceId: `greenhouse_${deviceType}`,
+			deviceType: deviceType,
+			action: action,
+			status: 'success',
+			controlType: 'auto',
+			triggeredBy: triggerReason,
+			userId: null, // No user for automation
+			timestamp: new Date(),
+			success: true
+		});
+		console.log(`📊 Recorded automation history: ${deviceType} ${action} (${triggerReason})`);
+	} catch (error) {
+		console.error(`❌ Failed to record automation history:`, error);
+	}
+}
+
+// Track last automation times to avoid duplicates
+let lastLightAutomation = 0;
+let lastPumpAutomation = 0;
 
 // Create Express app
 const app: Application = express();
@@ -295,8 +320,7 @@ app.post(`${API_PREFIX}/auth/password-reset`, async (req: Request, res: Response
 		passwordResetTokens.set(token, passwordResetToken);
 
 		// Send password reset email
-		const { AdvancedEmailService } = await import('./services');
-		const emailService = new AdvancedEmailService();
+		const { emailService } = await import('./services');
 		const emailSent = await emailService.sendPasswordResetEmail(trimmedEmail, token);
 
 		if (!emailSent) {
@@ -364,9 +388,8 @@ app.post(`${API_PREFIX}/auth/password-reset/confirm`, async (req: Request, res: 
 		passwordResetTokens.delete(token);
 
 		// Send password reset confirmation email
-		const { AdvancedEmailService } = await import('./services');
-		const emailService2 = new AdvancedEmailService();
-		await emailService2.sendPasswordResetEmail(passwordResetToken.email, 'confirmed');
+		const { emailService } = await import('./services');
+		await emailService.sendPasswordResetEmail(passwordResetToken.email, 'confirmed');
 
 		res.json({
 			success: true,
@@ -542,6 +565,27 @@ function setupMQTTHandlers() {
 				// Check alerts
 				if (alertService) {
 					await checkSensorAlerts(sensorType, sensorValue);
+				}
+
+				// Record automatic device controls based on sensor readings
+				if (sensorType === 'light' && typeof sensorValue === 'number') {
+					const shouldTurnOn = sensorValue < 500;
+					const currentTime = Date.now();
+					// Simple state tracking to avoid duplicate recordings
+					if (!lastLightAutomation || currentTime - lastLightAutomation > 60000) {
+						await recordAutomationHistory('light', shouldTurnOn ? 'HIGH' : 'LOW', `Light sensor: ${sensorValue} < 500`);
+						lastLightAutomation = currentTime;
+					}
+				}
+
+				if (sensorType === 'soil' && typeof sensorValue === 'number') {
+					const shouldTurnOn = sensorValue === 0; // Dry soil
+					const currentTime = Date.now();
+					// Simple state tracking to avoid duplicate recordings
+					if (!lastPumpAutomation || currentTime - lastPumpAutomation > 60000) {
+						await recordAutomationHistory('pump', shouldTurnOn ? 'HIGH' : 'LOW', `Soil moisture: ${sensorValue === 0 ? 'dry' : 'wet'}`);
+						lastPumpAutomation = currentTime;
+					}
 				}
 
 				// Send debug feedback for successful processing

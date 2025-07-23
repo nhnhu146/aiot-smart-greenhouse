@@ -1,8 +1,6 @@
 import { Settings, SensorData } from '../models';
 import { notificationService, AlertData } from './NotificationService';
-import { AdvancedEmailService } from './AdvancedEmailService';
-
-const emailService = new AdvancedEmailService();
+import { emailService } from './EmailService';
 
 export interface ThresholdConfig {
 	temperatureThreshold: { min: number; max: number };

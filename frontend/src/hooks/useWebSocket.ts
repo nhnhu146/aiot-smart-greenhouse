@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { getWebSocketUrl, getWebSocketConfig, logConnectionInfo } from "@/lib/websocketConfig";
 
 interface SensorData {
 	sensor: string;
@@ -102,16 +103,19 @@ export default function useWebSocket(): UseWebSocketReturn {
 	}, []);
 
 	useEffect(() => {
-		// Get server URL from environment or default to localhost
-		const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+		// Get server URL and configuration
+		const serverUrl = getWebSocketUrl();
+		const config = getWebSocketConfig();
+
+		// Log connection information for debugging
+		logConnectionInfo(serverUrl);
 
 		console.log('🔌 Connecting to WebSocket server:', serverUrl);
 
-		const newSocket = io(serverUrl, {
-			transports: ['websocket', 'polling'],
-			timeout: 5000,
-			retries: 3,
-		});
+		const newSocket = io(serverUrl, config);
+
+		// Try to connect
+		newSocket.connect();
 
 		// Connection events
 		newSocket.on('connect', () => {
@@ -141,8 +145,25 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		newSocket.on('connect_error', (error) => {
-			console.error('❌ WebSocket connection error:', error);
+			console.warn('⚠️ WebSocket connection error (server may not be running):', error.message);
 			setIsConnected(false);
+
+			// Don't spam error logs, just warn once per connection attempt
+			if (!newSocket.recovered) {
+				console.info('💡 Tip: Make sure the backend server is running on port 5000');
+			}
+		});
+
+		newSocket.on('reconnect_error', (error) => {
+			console.warn('⚠️ WebSocket reconnection failed:', error.message);
+		});
+
+		newSocket.on('reconnect_failed', () => {
+			console.warn('⚠️ WebSocket reconnection attempts exhausted. Will retry in 10 seconds...');
+			// Longer delay before trying again
+			setTimeout(() => {
+				newSocket.connect();
+			}, 10000);
 		});
 
 		// Data events - Use callbacks to prevent UI blocking

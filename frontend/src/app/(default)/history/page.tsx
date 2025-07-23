@@ -5,13 +5,15 @@
 export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { Container, Card } from 'react-bootstrap';
-import mockDataService, { type ChartDataPoint } from '@/services/mockDataService';
+import mockDataService, { type ChartDataPoint, type DeviceControl } from '@/services/mockDataService';
 import styles from './history.module.scss';
 
 const History = () => {
 	const [data, setData] = useState<ChartDataPoint[]>([]);
+	const [deviceControls, setDeviceControls] = useState<DeviceControl[]>([]);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [activeTab, setActiveTab] = useState<'sensors' | 'controls'>('sensors');
 
 	// Format timestamp to display date-time consistently
 	const formatDateTime = (timestamp: string): string => {
@@ -35,6 +37,50 @@ const History = () => {
 		});
 	};
 
+	// Fetch device control history
+	const fetchDeviceControls = async () => {
+		try {
+			// Use the backend API URL instead of frontend API route
+			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+			const response = await fetch(`${API_BASE_URL}/api/history/device-controls`);
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success) {
+					setDeviceControls(result.data.controls || []);
+				}
+			} else {
+				console.warn('Device controls API response not ok:', response.status, response.statusText);
+			}
+		} catch (error) {
+			console.error('Failed to fetch device controls:', error);
+			// Mock device controls for development
+			setDeviceControls([
+				{
+					_id: '1',
+					deviceId: 'pump-01',
+					deviceType: 'pump',
+					action: 'on',
+					status: true,
+					controlType: 'auto',
+					triggeredBy: 'Soil moisture = 0 (dry)',
+					timestamp: new Date(Date.now() - 3600000).toISOString(),
+					success: true
+				},
+				{
+					_id: '2',
+					deviceId: 'light-01',
+					deviceType: 'light',
+					action: 'off',
+					status: false,
+					controlType: 'manual',
+					userId: 'user123',
+					timestamp: new Date(Date.now() - 7200000).toISOString(),
+					success: true
+				}
+			]);
+		}
+	};
+
 	// Fetch data when component is mounted
 	useEffect(() => {
 		const fetchData = async () => {
@@ -55,6 +101,9 @@ const History = () => {
 					setIsUsingMockData(result.isMock);
 					console.log(result.isMock ? '🎭 Fallback to mock data (API unavailable)' : '✅ Using real history data from API');
 				}
+
+				// Fetch device controls
+				await fetchDeviceControls();
 
 				setIsLoading(false);
 			} catch (error) {
@@ -85,6 +134,9 @@ const History = () => {
 					setIsUsingMockData(result.isMock);
 					console.log(result.isMock ? '🎭 History fallback to mock data (API unavailable)' : '✅ History switched to real data');
 				}
+
+				// Re-fetch device controls
+				await fetchDeviceControls();
 			};
 
 			fetchData();
@@ -108,31 +160,105 @@ const History = () => {
 					: '📊 Using production data'
 				}
 			</div>
+
+			{/* Tab Navigation */}
+			<div className="mb-4">
+				<ul className="nav nav-tabs">
+					<li className="nav-item">
+						<button
+							className={`nav-link ${activeTab === 'sensors' ? 'active' : ''}`}
+							onClick={() => setActiveTab('sensors')}
+							type="button"
+						>
+							📊 Sensor Data
+						</button>
+					</li>
+					<li className="nav-item">
+						<button
+							className={`nav-link ${activeTab === 'controls' ? 'active' : ''}`}
+							onClick={() => setActiveTab('controls')}
+							type="button"
+						>
+							🎛️ Device Controls
+						</button>
+					</li>
+				</ul>
+			</div>
+
 			{isLoading ? (
 				<p className={styles.statusMessage}>Loading data...</p>
-			) : data.length === 0 ? (
-				<p className={styles.statusMessage}>No data available</p>
+			) : activeTab === 'sensors' ? (
+				// Sensor Data Tab
+				data.length === 0 ? (
+					<p className={styles.statusMessage}>No sensor data available</p>
+				) : (
+					data.map((entry: ChartDataPoint, index: number) => (
+						<Card
+							key={index}
+							className={styles.historyCard}
+						>
+							<Card.Body>
+								<p className={styles.timeStamp}><b>Time:</b> {formatDateTime(entry.time)}</p>
+								<p className={styles.sensorData}>
+									<span className={styles.sensorItem}><b>Temperature:</b> {entry.temperature?.toFixed(1) || 'N/A'}°C</span>
+									<span className={styles.sensorItem}><b>Humidity:</b> {entry.humidity?.toFixed(1) || 'N/A'}%</span>
+									<span className={styles.sensorItem}><b>Soil Moisture:</b> {
+										entry.soilMoisture === 1 ? 'Wet' :
+											entry.soilMoisture === 0 ? 'Dry' :
+												'N/A'
+									}</span>
+									<span className={styles.sensorItem}><b>Rain Status:</b> {
+										entry.rainStatus === true ? '🌧️ Raining' :
+											entry.rainStatus === false ? '☀️ No Rain' :
+												'N/A'
+									}</span>
+									<span className={styles.sensorItem}><b>Plant Height:</b> {entry.plantHeight?.toFixed(1) || 'N/A'}cm</span>
+								</p>
+							</Card.Body>
+						</Card>
+					))
+				)
 			) : (
-				data.map((entry: ChartDataPoint, index: number) => (
-					<Card
-						key={index}
-						className={styles.historyCard}
-					>
-						<Card.Body>
-							<p className={styles.timeStamp}><b>Time:</b> {formatDateTime(entry.time)}</p>
-							<p className={styles.sensorData}>
-								<span className={styles.sensorItem}><b>Temperature:</b> {entry.temperature?.toFixed(1) || 'N/A'}°C</span>
-								<span className={styles.sensorItem}><b>Humidity:</b> {entry.humidity?.toFixed(1) || 'N/A'}%</span>
-								<span className={styles.sensorItem}><b>Soil Moisture:</b> {
-									entry.soilMoisture === 1 ? 'Wet' :
-										entry.soilMoisture === 0 ? 'Dry' :
-											'N/A'
-								}</span>
-								<span className={styles.sensorItem}><b>Plant Height:</b> {entry.plantHeight?.toFixed(1) || 'N/A'}cm</span>
-							</p>
-						</Card.Body>
-					</Card>
-				))
+				// Device Controls Tab
+				deviceControls.length === 0 ? (
+					<p className={styles.statusMessage}>No device control history available</p>
+				) : (
+					deviceControls.map((control: DeviceControl, index: number) => (
+						<Card
+							key={index}
+							className={styles.historyCard}
+						>
+							<Card.Body>
+								<p className={styles.timeStamp}><b>Time:</b> {formatDateTime(control.timestamp)}</p>
+								<p className={styles.sensorData}>
+									<span className={styles.sensorItem}>
+										<b>Device:</b> {control.deviceType.toUpperCase()} ({control.deviceId})
+									</span>
+									<span className={styles.sensorItem}>
+										<b>Action:</b> {control.action.toUpperCase()}
+									</span>
+									<span className={styles.sensorItem}>
+										<b>Control Type:</b>
+										<span className={control.controlType === 'auto' ? 'text-info' : 'text-warning'}>
+											{control.controlType === 'auto' ? ' 🤖 AUTO' : ' 👤 MANUAL'}
+										</span>
+									</span>
+									{control.triggeredBy && (
+										<span className={styles.sensorItem}>
+											<b>Trigger:</b> {control.triggeredBy}
+										</span>
+									)}
+									<span className={styles.sensorItem}>
+										<b>Status:</b>
+										<span className={control.success ? 'text-success' : 'text-danger'}>
+											{control.success ? ' ✅ Success' : ' ❌ Failed'}
+										</span>
+									</span>
+								</p>
+							</Card.Body>
+						</Card>
+					))
+				)
 			)}
 		</Container>
 	);

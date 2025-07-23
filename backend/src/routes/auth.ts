@@ -3,9 +3,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { PasswordReset } from '../models';
-import { AdvancedEmailService } from '../services';
-
-const emailService = new AdvancedEmailService();
+import { emailService } from '../services';
 
 const router = express.Router();
 
@@ -82,7 +80,7 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 				const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
 				// Send password reset email
-				const emailSent = await new AdvancedEmailService().sendPasswordResetEmail(trimmedEmail, resetToken);
+				const emailSent = await emailService.sendPasswordResetEmail(trimmedEmail, resetToken);
 
 				console.log(`🔐 Password reset requested for: ${trimmedEmail}`);
 			} catch (error) {

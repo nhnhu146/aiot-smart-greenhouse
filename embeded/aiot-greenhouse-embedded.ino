@@ -365,17 +365,27 @@ void sendHumidityValue(float humidity) {
 /**
  * @brief Publishes the soil moisture value to the MQTT broker.
  *
- * Converts the soil moisture value to a string and publishes it to the configured
- * `soil_moisture_topic`.
+ * Converts the analog soil moisture reading to binary value (0 or 1) and publishes 
+ * it to the configured `soil_moisture_topic`.
+ * 
+ * Conversion logic:
+ * - Raw analog reading from sensor (0-4095 on ESP32)
+ * - Convert to binary: 1 = có nước (wet), 0 = khô (dry)
+ * - Threshold: readings below 2000 indicate wet soil (1), above 2000 indicate dry soil (0)
  *
- * @param[in] moisture The soil moisture level.
+ * @param[in] moisture The raw analog soil moisture reading (0-4095).
  *
  * @return void
  */
 void sendSoilMoistureValue(int moisture) {
-  String payload = String(moisture);
+  // Convert analog reading to binary
+  // Lower analog values = more moisture = wet (1)
+  // Higher analog values = less moisture = dry (0)
+  int binaryValue = (moisture < 2000) ? 1 : 0;
+  
+  String payload = String(binaryValue);
   client.publish(soil_moisture_topic, payload.c_str());
-  Serial.println("Sent soil moisture: " + payload);
+  Serial.println("Sent soil moisture: " + payload + " (raw: " + String(moisture) + ")");
 }
 
 /**

@@ -1,5 +1,6 @@
 export { default as SensorData } from './SensorData';
 export { default as DeviceStatus } from './DeviceStatus';
+export { default as DeviceHistory } from './DeviceHistory';
 export { default as Settings } from './Settings';
 export { default as Alert } from './Alert';
 export { default as PasswordReset } from './PasswordReset';
@@ -7,6 +8,7 @@ export { UserSettings } from './UserSettings';
 
 export type { ISensorData } from './SensorData';
 export type { IDeviceStatus } from './DeviceStatus';
+export type { IDeviceHistory } from './DeviceHistory';
 export type { ISettings } from './Settings';
 export type { IAlert } from './Alert';
 export type { IUserSettings } from './UserSettings';

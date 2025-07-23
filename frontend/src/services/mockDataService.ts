@@ -12,6 +12,20 @@ interface ChartDataPoint {
 	humidity: number;
 	soilMoisture: number;
 	plantHeight?: number; // Plant height in cm
+	rainStatus?: boolean; // Rain status
+}
+
+interface DeviceControl {
+	_id: string;
+	deviceId: string;
+	deviceType: 'light' | 'pump' | 'door' | 'window';
+	action: 'on' | 'off' | 'open' | 'close';
+	status: boolean;
+	controlType: 'auto' | 'manual';
+	triggeredBy?: string;
+	userId?: string;
+	timestamp: string;
+	success: boolean;
 }
 
 class MockDataService {
@@ -73,6 +87,7 @@ class MockDataService {
 				temperature: 20 + Math.random() * 15, // 20-35°C
 				humidity: 40 + Math.random() * 40,    // 40-80%
 				soilMoisture: Math.random() > 0.3 ? 1 : 0, // Binary: 70% wet (1), 30% dry (0)
+				rainStatus: Math.random() > 0.7,     // 30% chance of rain
 				plantHeight: 10 + Math.random() * 20   // 10-30cm
 			});
 		}
@@ -230,4 +245,4 @@ if (typeof window !== 'undefined') {
 }
 
 export default mockDataService;
-export type { SensorData, ChartDataPoint };
+export type { SensorData, ChartDataPoint, DeviceControl };

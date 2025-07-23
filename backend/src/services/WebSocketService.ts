@@ -214,14 +214,16 @@ class WebSocketService {
 	}
 
 	// Handle device control from frontend
-	private handleDeviceControl(socket: Socket, data: { device: string; action: string; value?: any }) {
+	private async handleDeviceControl(socket: Socket, data: { device: string; action: string; value?: any }) {
 		try {
 			console.log(`🎮 Device control request: ${data.device} -> ${data.action}`);
 
-			// Import MQTT service dynamically to avoid circular dependency
+			// Import services dynamically to avoid circular dependency
 			const { mqttService } = require('./MQTTService');
+			const { DeviceHistory } = require('../models');
 
 			// Publish device control command to MQTT broker
+			let mqttSent = false;
 			if (mqttService && mqttService.isClientConnected()) {
 				// Convert frontend action to MQTT format
 				let mqttAction = data.action;
@@ -233,8 +235,32 @@ class WebSocketService {
 
 				mqttService.publishDeviceControl(data.device, mqttAction);
 				console.log(`📡 MQTT command sent: ${data.device} -> ${mqttAction}`);
+				mqttSent = true;
 			} else {
 				console.warn('⚠️ MQTT service not available for device control');
+			}
+
+			// Record device control history
+			try {
+				const deviceHistory = new DeviceHistory({
+					deviceId: `greenhouse_${data.device}`,
+					deviceType: data.device,
+					action: data.action === 'on' || data.action === 'true' ? 'on' :
+						data.action === 'off' || data.action === 'false' ? 'off' :
+							data.action === 'open' ? 'open' :
+								data.action === 'close' ? 'close' : data.action,
+					status: data.action === 'on' || data.action === 'true' || data.action === 'open',
+					controlType: 'manual', // WebSocket controls are always manual
+					userId: socket.id, // Use socket ID as user identifier
+					timestamp: new Date(),
+					success: mqttSent,
+					...(mqttSent ? {} : { errorMessage: 'MQTT service not available' })
+				});
+
+				await deviceHistory.save();
+				console.log(`📝 Device control history recorded: ${data.device} -> ${data.action}`);
+			} catch (historyError) {
+				console.error('❌ Failed to record device control history:', historyError);
 			}
 
 			// Broadcast device status update to all clients for real-time feedback
@@ -249,7 +275,7 @@ class WebSocketService {
 				success: true,
 				device: data.device,
 				action: data.action,
-				mqttSent: mqttService?.isClientConnected() || false,
+				mqttSent,
 				timestamp: new Date().toISOString()
 			});
 

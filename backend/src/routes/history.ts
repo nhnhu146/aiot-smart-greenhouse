@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { SensorData, DeviceStatus, Alert } from '../models';
+import { SensorData, DeviceStatus, DeviceHistory, Alert } from '../models';
 import { validateQuery, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
@@ -23,7 +23,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	const skip = (page - 1) * limit;
 
 	// Get sensor data history
-	const [sensorHistory, deviceHistory, alertHistory] = await Promise.all([
+	const [sensorHistory, deviceHistory, deviceControlHistory, alertHistory] = await Promise.all([
 		SensorData.find(query)
 			.sort({ createdAt: -1 })
 			.skip(skip)
@@ -31,6 +31,11 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 			.lean(),
 		DeviceStatus.find()
 			.sort({ updatedAt: -1 })
+			.lean(),
+		DeviceHistory.find(query.createdAt ? { timestamp: query.createdAt } : {})
+			.sort({ timestamp: -1 })
+			.skip(skip)
+			.limit(limit)
 			.lean(),
 		Alert.find(query.createdAt ? { createdAt: query.createdAt } : {})
 			.sort({ createdAt: -1 })
@@ -40,6 +45,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	]);
 
 	const totalSensors = await SensorData.countDocuments(query);
+	const totalDeviceControls = await DeviceHistory.countDocuments(query.createdAt ? { timestamp: query.createdAt } : {});
 	const totalAlerts = await Alert.countDocuments(query.createdAt ? { createdAt: query.createdAt } : {});
 
 	const response: APIResponse = {
@@ -58,6 +64,17 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 				}
 			},
 			devices: deviceHistory,
+			deviceControls: {
+				data: deviceControlHistory,
+				pagination: {
+					page,
+					limit,
+					total: totalDeviceControls,
+					totalPages: Math.ceil(totalDeviceControls / limit),
+					hasNext: page < Math.ceil(totalDeviceControls / limit),
+					hasPrev: page > 1
+				}
+			},
 			alerts: {
 				data: alertHistory,
 				pagination: {
@@ -378,6 +395,60 @@ router.get('/compare', validateQuery(QueryParamsSchema), asyncHandler(async (req
 				period2: { from: period2_from, to: period2_to, readings: period2.count || 0 }
 			},
 			comparison
+		},
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+// GET /api/history/device-controls - Lấy lịch sử điều khiển thiết bị (auto/manual)
+router.get('/device-controls', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
+	const { page = 1, limit = 50, from, to, deviceType, controlType } = req.query as any;
+
+	const query: any = {};
+
+	// Filter by date range if provided
+	if (from || to) {
+		query.timestamp = {};
+		if (from) query.timestamp.$gte = from;
+		if (to) query.timestamp.$lte = to;
+	}
+
+	// Filter by device type if provided
+	if (deviceType && ['light', 'pump', 'door', 'window'].includes(deviceType)) {
+		query.deviceType = deviceType;
+	}
+
+	// Filter by control type if provided
+	if (controlType && ['auto', 'manual'].includes(controlType)) {
+		query.controlType = controlType;
+	}
+
+	const skip = (page - 1) * limit;
+
+	const [data, total] = await Promise.all([
+		DeviceHistory.find(query)
+			.sort({ timestamp: -1 })
+			.skip(skip)
+			.limit(limit)
+			.lean(),
+		DeviceHistory.countDocuments(query)
+	]);
+
+	const response: APIResponse = {
+		success: true,
+		message: 'Device control history retrieved successfully',
+		data: {
+			controls: data,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages: Math.ceil(total / limit),
+				hasNext: page < Math.ceil(total / limit),
+				hasPrev: page > 1
+			}
 		},
 		timestamp: new Date().toISOString()
 	};

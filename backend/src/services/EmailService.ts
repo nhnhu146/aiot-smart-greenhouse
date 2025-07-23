@@ -45,17 +45,27 @@ export class EmailService {
 
 	private async loadTemplate(templateName: string): Promise<string> {
 		try {
-			const templatePath = path.join(__dirname, '..', 'templates', templateName);
-			console.log(`📧 [DEBUG] Loading template from: ${templatePath}`);
+			// Try multiple paths for template loading (development vs production)
+			const possiblePaths = [
+				path.join(__dirname, '..', 'templates', templateName),
+				path.join(__dirname, 'templates', templateName),
+				path.join(process.cwd(), 'src', 'templates', templateName),
+				path.join(process.cwd(), 'dist', 'templates', templateName)
+			];
 
-			if (!fs.existsSync(templatePath)) {
-				console.log(`❌ [ERROR] Template file does not exist: ${templatePath}`);
-				return '';
+			console.log(`📧 [DEBUG] Looking for template: ${templateName}`);
+
+			for (const templatePath of possiblePaths) {
+				console.log(`📧 [DEBUG] Trying path: ${templatePath}`);
+				if (fs.existsSync(templatePath)) {
+					const content = fs.readFileSync(templatePath, 'utf-8');
+					console.log(`📧 [DEBUG] Template loaded from: ${templatePath}, size: ${content.length} characters`);
+					return content;
+				}
 			}
 
-			const content = fs.readFileSync(templatePath, 'utf-8');
-			console.log(`📧 [DEBUG] Template loaded successfully, size: ${content.length} characters`);
-			return content;
+			console.log(`❌ [ERROR] Template file not found in any of the expected paths`);
+			return '';
 		} catch (error) {
 			console.error(`❌ Failed to load template ${templateName}:`, error);
 			return '';
@@ -208,9 +218,9 @@ export class EmailService {
 			}
 
 			const replacements = new Map([
-				['timestamp', new Date().toLocaleString()],
+				['timestamp', new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })],
 				['currentYear', new Date().getFullYear().toString()],
-				['testMessage', 'Your Smart Greenhouse email system is working perfectly!']
+				['testMessage', 'Hệ thống email Smart Greenhouse hoạt động bình thường! Email test đã được gửi thành công.']
 			]);
 
 			console.log(`📧 [DEBUG] Processing template with replacements:`, Object.fromEntries(replacements));
