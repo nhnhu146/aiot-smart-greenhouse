@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Smart Greenhouse - Multiple Alerts Summary</title>
+	<style>
+		/* Force colors for both light and dark mode compatibility */
+		* {
+			color-scheme: light;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			line-height: 1.6;
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f4 !important;
+			color: #333333 !important;
+		}
+
+		.container {
+			max-width: 600px;
+			margin: 20px auto;
+			background: #ffffff !important;
+			border-radius: 10px;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			overflow: hidden;
+		}
+
+		.header {
+			background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
+			color: #ffffff !important;
+			padding: 30px;
+			text-align: center;
+			border-bottom: 3px solid #e74c3c;
+		}
+
+		.header h1 {
+			margin: 0;
+			font-size: 26px;
+			font-weight: 600;
+			color: #ffffff !important;
+		}
+
+		.header .count {
+			font-size: 18px;
+			margin-top: 10px;
+			color: #ffffff !important;
+			opacity: 0.9;
+		}
+
+		.content {
+			padding: 30px;
+			background-color: #ffffff !important;
+		}
+
+		.summary-box {
+			background: linear-gradient(135deg, #fff5f5, #ffe6e6) !important;
+			border: 2px solid #ff6b6b;
+			border-radius: 8px;
+			padding: 20px;
+			margin: 20px 0;
+			text-align: center;
+		}
+
+		.summary-box h2 {
+			color: #e74c3c !important;
+			margin: 0 0 10px 0;
+			font-size: 20px;
+		}
+
+		.summary-box p {
+			color: #333333 !important;
+			margin: 5px 0;
+		}
+
+		.alert-item {
+			background-color: #fafafa !important;
+			border-left: 4px solid #ff6b6b;
+			margin: 15px 0;
+			padding: 15px;
+			border-radius: 6px;
+		}
+
+		.alert-item.critical {
+			border-left-color: #dc3545;
+			background-color: #fff5f5 !important;
+		}
+
+		.alert-item.high {
+			border-left-color: #fd7e14;
+			background-color: #fff8f0 !important;
+		}
+
+		.alert-item.medium {
+			border-left-color: #ffc107;
+			background-color: #fffbf0 !important;
+		}
+
+		.alert-item.low {
+			border-left-color: #17a2b8;
+			background-color: #f0f9ff !important;
+		}
+
+		.alert-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.alert-type {
+			font-weight: bold;
+			font-size: 16px;
+			color: #2c3e50 !important;
+		}
+
+		.alert-level {
+			padding: 4px 8px;
+			border-radius: 12px;
+			font-size: 12px;
+			font-weight: bold;
+			color: #ffffff !important;
+		}
+
+		.alert-level.critical {
+			background-color: #dc3545;
+		}
+
+		.alert-level.high {
+			background-color: #fd7e14;
+		}
+
+		.alert-level.medium {
+			background-color: #ffc107;
+			color: #000000 !important;
+		}
+
+		.alert-level.low {
+			background-color: #17a2b8;
+		}
+
+		.alert-details {
+			color: #555555 !important;
+			font-size: 14px;
+		}
+
+		.alert-details strong {
+			color: #2c3e50 !important;
+		}
+
+		.alert-time {
+			color: #6c757d !important;
+			font-size: 13px;
+			margin-top: 5px;
+		}
+
+		.stats-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+			gap: 15px;
+			margin: 20px 0;
+		}
+
+		.stat-item {
+			background-color: #f8f9fa !important;
+			padding: 15px;
+			border-radius: 8px;
+			text-align: center;
+			border: 1px solid #dee2e6;
+		}
+
+		.stat-number {
+			font-size: 24px;
+			font-weight: bold;
+			color: #e74c3c !important;
+		}
+
+		.stat-label {
+			font-size: 12px;
+			color: #6c757d !important;
+			margin-top: 5px;
+		}
+
+		.recommendations {
+			background-color: #e8f6f3 !important;
+			padding: 20px;
+			border-radius: 8px;
+			margin: 25px 0;
+			border-left: 4px solid #27ae60;
+		}
+
+		.recommendations h4 {
+			color: #27ae60 !important;
+			margin: 0 0 15px 0;
+		}
+
+		.recommendations ul {
+			margin: 0;
+			padding-left: 20px;
+		}
+
+		.recommendations li {
+			color: #333333 !important;
+			margin-bottom: 8px;
+		}
+
+		.footer {
+			background-color: #f8f9fa !important;
+			color: #2c3e50 !important;
+			padding: 20px;
+			text-align: center;
+			font-size: 14px;
+			border-top: 2px solid #dee2e6;
+		}
+
+		.footer p {
+			color: #2c3e50 !important;
+			margin: 0;
+		}
+
+		.timestamp {
+			color: #6c757d !important;
+			font-size: 12px;
+			margin-top: 15px;
+		}
+
+		.btn {
+			display: inline-block;
+			padding: 12px 24px;
+			background-color: #57AE09;
+			color: white !important;
+			text-decoration: none;
+			border-radius: 5px;
+			margin: 15px 0;
+			font-weight: bold;
+		}
+
+		.btn:hover {
+			background-color: #459306;
+			text-decoration: none;
+		}
+
+		@media (max-width: 600px) {
+			.stats-grid {
+				grid-template-columns: repeat(2, 1fr);
+			}
+
+			.alert-header {
+				flex-direction: column;
+				align-items: flex-start;
+			}
+
+			.alert-level {
+				margin-top: 5px;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>🚨 Smart Greenhouse Alert Summary</h1>
+			<div class="count">{{alertCount}} Alert(s) in the last {{frequencyMinutes}} minutes</div>
+		</div>
+
+		<div class="content">
+			<div class="summary-box">
+				<h2>System Status Alert</h2>
+				<p>Your Smart Greenhouse system has detected multiple issues that require attention.</p>
+				<p><strong>Time Period:</strong> {{timeRange}}</p>
+			</div>
+
+			<div class="stats-grid">
+				<div class="stat-item">
+					<div class="stat-number">{{criticalCount}}</div>
+					<div class="stat-label">Critical</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-number">{{highCount}}</div>
+					<div class="stat-label">High</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-number">{{mediumCount}}</div>
+					<div class="stat-label">Medium</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-number">{{lowCount}}</div>
+					<div class="stat-label">Low</div>
+				</div>
+			</div>
+
+			<h3>Alert Details:</h3>
+
+			{{#each alerts}}
+			<div class="alert-item {{level}}">
+				<div class="alert-header">
+					<div class="alert-type">{{sensorType}}</div>
+					<div class="alert-level {{level}}">{{level}}</div>
+				</div>
+				<div class="alert-details">
+					<strong>Current Value:</strong> {{currentValue}}<br>
+					<strong>Threshold:</strong> {{threshold}}<br>
+					<strong>Message:</strong> {{message}}
+				</div>
+				<div class="alert-time">{{timestamp}}</div>
+			</div>
+			{{/each}}
+
+			<div class="recommendations">
+				<h4>💡 Recommended Actions:</h4>
+				<ul>
+					<li>Check all physical sensors and their connections immediately</li>
+					<li>Verify environmental conditions in your greenhouse</li>
+					<li>Review and adjust system thresholds if necessary</li>
+					<li>Monitor the dashboard for real-time updates</li>
+					<li>Consider implementing automated responses for critical alerts</li>
+					<li>Document any manual interventions for future reference</li>
+				</ul>
+			</div>
+
+			<div style="text-align: center;">
+				<a href="{{dashboardUrl}}" class="btn">
+					📊 View Live Dashboard
+				</a>
+			</div>
+		</div>
+
+		<div class="footer">
+			<p>Smart Greenhouse Monitoring System</p>
+			<p>Multiple Alert Summary - Automated Report</p>
+			<div class="timestamp">Generated on {{generatedAt}} | Next summary in {{nextSummaryTime}} minutes</div>
+		</div>
+	</div>
+</body>
+
+</html>

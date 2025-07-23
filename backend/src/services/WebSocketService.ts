@@ -50,7 +50,7 @@ class WebSocketService {
 			});
 
 			// Handle device control commands from frontend
-			socket.on('device-control', (data: { device: string; action: string; value?: any }) => {
+			socket.on('device:control', (data: { device: string; action: string; value?: any }) => {
 				console.log(`🎮 Device control received from ${socket.id}:`, data);
 				this.handleDeviceControl(socket, data);
 			});
@@ -65,17 +65,6 @@ class WebSocketService {
 			socket.on('disconnect', (reason) => {
 				console.log(`📡 WebSocket client disconnected: ${socket.id} - ${reason}`);
 				this.connectedClients.delete(socket.id);
-			});
-
-			// Handle device control requests from client
-			socket.on('device-control', (data) => {
-				console.log(`🎮 Device control request from ${socket.id}:`, data);
-				// Broadcast to all clients for real-time feedback
-				socket.broadcast.emit('device-control-update', {
-					...data,
-					requestedBy: socket.id,
-					timestamp: new Date().toISOString()
-				});
 			});
 
 			// Handle ping requests for connection health
@@ -242,14 +231,19 @@ class WebSocketService {
 
 			// Record device control history
 			try {
+				// Map HIGH/LOW to proper action based on device type
+				let mappedAction = data.action;
+				if (data.action === 'HIGH') {
+					mappedAction = ['light', 'pump'].includes(data.device) ? 'on' : 'open';
+				} else if (data.action === 'LOW') {
+					mappedAction = ['light', 'pump'].includes(data.device) ? 'off' : 'close';
+				}
+
 				const deviceHistory = new DeviceHistory({
 					deviceId: `greenhouse_${data.device}`,
 					deviceType: data.device,
-					action: data.action === 'on' || data.action === 'true' ? 'on' :
-						data.action === 'off' || data.action === 'false' ? 'off' :
-							data.action === 'open' ? 'open' :
-								data.action === 'close' ? 'close' : data.action,
-					status: data.action === 'on' || data.action === 'true' || data.action === 'open',
+					action: mappedAction,
+					status: ['on', 'open', 'HIGH'].includes(data.action),
 					controlType: 'manual', // WebSocket controls are always manual
 					userId: socket.id, // Use socket ID as user identifier
 					timestamp: new Date(),

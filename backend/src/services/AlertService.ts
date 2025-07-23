@@ -27,6 +27,12 @@ class AlertService {
 		waterLevel: true
 	};
 
+	// Batch email properties
+	private pendingAlerts: any[] = [];
+	private batchEmailTimer: NodeJS.Timeout | null = null;
+	private emailFrequency: number = 5; // minutes
+	private batchAlerts: boolean = true;
+
 	constructor() {
 		this.loadThresholds();
 		this.loadEmailRecipients();
@@ -449,6 +455,61 @@ class AlertService {
 			configured: status.configured,
 			recipients: this.emailRecipients.length
 		};
+	}
+
+	// Process batched alerts and send summary email
+	private async processBatchedAlerts(): Promise<void> {
+		if (this.pendingAlerts.length === 0) {
+			console.log('📧 No pending alerts to process');
+			return;
+		}
+
+		try {
+			console.log(`📧 Processing ${this.pendingAlerts.length} batched alerts`);
+
+			// Group alerts by type and level
+			const alertSummary = this.groupAlertsByType(this.pendingAlerts);
+
+			// Send batch email to all recipients
+			for (const recipient of this.emailRecipients) {
+				await emailService.sendBatchAlertEmail(recipient, alertSummary);
+			}
+
+			console.log(`📧 Batch alert email sent to ${this.emailRecipients.length} recipients`);
+
+			// Clear pending alerts after sending
+			this.pendingAlerts = [];
+
+		} catch (error) {
+			console.error('❌ Error processing batched alerts:', error);
+		}
+	}
+
+	// Group alerts by type for summary
+	private groupAlertsByType(alerts: any[]) {
+		const summary = {
+			totalAlerts: alerts.length,
+			highPriority: 0,
+			mediumPriority: 0,
+			lowPriority: 0,
+			alerts: alerts,
+			timestamp: new Date().toISOString()
+		};
+
+		alerts.forEach(alert => {
+			switch (alert.level) {
+				case 'high':
+					summary.highPriority++;
+					break;
+				case 'medium':
+					summary.mediumPriority++;
+					break;
+				default:
+					summary.lowPriority++;
+			}
+		});
+
+		return summary;
 	}
 }
 

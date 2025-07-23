@@ -347,10 +347,74 @@ export class EmailService {
 		return {
 			enabled: true, // Always enabled for backward compatibility
 			configured: this.isConfigured,
-			templatesLoaded: 3, // enhanced-test-email, enhanced-alert-email, password-reset-email
+			templatesLoaded: 4, // enhanced-test-email, enhanced-alert-email, batch-alert-email, password-reset-email
 			poolingEnabled: this.isConfigured,
 			service: 'gmail'
 		};
+	}
+
+	// Send batch alert email with multiple alerts
+	async sendBatchAlertEmail(recipient: string, alertSummary: any): Promise<void> {
+		if (!this.isConfigured) {
+			console.log('⚠️  Email not configured. Demo mode - would send batch alert email to:', recipient);
+			return;
+		}
+
+		try {
+			console.log(`📧 Sending batch alert email to ${recipient}...`);
+
+			// Load batch alert template
+			const template = await this.loadTemplate('batch-alert-email.html');
+
+			// Replace template variables
+			let htmlContent = template
+				.replace(/{{totalAlerts}}/g, alertSummary.totalAlerts.toString())
+				.replace(/{{highPriority}}/g, alertSummary.highPriority.toString())
+				.replace(/{{mediumPriority}}/g, alertSummary.mediumPriority.toString())
+				.replace(/{{lowPriority}}/g, alertSummary.lowPriority.toString())
+				.replace(/{{timestamp}}/g, new Date(alertSummary.timestamp).toLocaleString());
+
+			// Build alerts list HTML
+			const alertsHtml = alertSummary.alerts.map((alert: any) => `
+				<div class="alert-item ${alert.level}">
+					<div class="alert-icon">${this.getAlertIcon(alert.type)}</div>
+					<div class="alert-content">
+						<strong>${alert.type.toUpperCase()}</strong>
+						<p>${alert.message}</p>
+						<small>Level: ${alert.level}</small>
+					</div>
+				</div>
+			`).join('');
+
+			htmlContent = htmlContent.replace(/{{alertsList}}/g, alertsHtml);
+
+			// Inline CSS
+			const inlinedHtml = await inline(htmlContent);
+
+			const mailOptions = {
+				from: process.env.EMAIL_USER,
+				to: recipient,
+				subject: `🚨 Smart Greenhouse - ${alertSummary.totalAlerts} Alert(s) Summary`,
+				html: inlinedHtml
+			};
+
+			const info = await this.transporter!.sendMail(mailOptions);
+			console.log(`✅ Batch alert email sent successfully to ${recipient}:`, info.messageId);
+		} catch (error) {
+			console.error(`❌ Failed to send batch alert email to ${recipient}:`, error);
+			throw error;
+		}
+	}
+
+	// Get icon for alert type
+	private getAlertIcon(type: string): string {
+		switch (type) {
+			case 'temperature': return '🌡️';
+			case 'humidity': return '💧';
+			case 'soilMoisture': return '🌱';
+			case 'waterLevel': return '💧';
+			default: return '⚠️';
+		}
 	}
 
 	public reloadTemplates(): void {

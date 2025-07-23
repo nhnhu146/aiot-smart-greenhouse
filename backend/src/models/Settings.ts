@@ -78,6 +78,16 @@ const SettingsSchema: Schema = new Schema({
 		emailRecipients: {
 			type: [String],
 			default: []
+		},
+		emailFrequency: {
+			type: Number,
+			default: 5,  // 5 minutes default
+			min: 1,      // minimum 1 minute
+			max: 60      // maximum 60 minutes
+		},
+		batchAlerts: {
+			type: Boolean,
+			default: true  // Enable batching by default
 		}
 	},
 	emailAlerts: {
