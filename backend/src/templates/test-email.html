@@ -6,18 +6,23 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Test Email - Smart Greenhouse</title>
 	<style>
+		/* Force colors for both light and dark mode compatibility */
+		* {
+			color-scheme: light;
+		}
+
 		body {
 			font-family: Arial, sans-serif;
 			line-height: 1.6;
-			color: #333;
+			color: #333333 !important;
 			max-width: 600px;
 			margin: 0 auto;
 			padding: 20px;
-			background-color: #f4f4f4;
+			background-color: #f4f4f4 !important;
 		}
 
 		.container {
-			background-color: #ffffff;
+			background-color: #ffffff !important;
 			padding: 30px;
 			border-radius: 8px;
 			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -31,25 +36,43 @@
 		.logo {
 			font-size: 24px;
 			font-weight: bold;
-			color: #57AE09;
+			color: #57AE09 !important;
+		}
+
+		h2 {
+			color: #27ae60 !important;
+		}
+
+		p {
+			color: #333333 !important;
 		}
 
 		.success-badge {
 			display: inline-block;
 			padding: 10px 20px;
-			background-color: #27ae60;
-			color: white;
+			background-color: #4caf50 !important;
+			color: #ffffff !important;
 			border-radius: 20px;
 			font-weight: bold;
 			margin: 20px 0;
+			border: 2px solid #388e3c;
 		}
 
 		.test-info {
-			background-color: #e8f5e8;
+			background-color: #e8f5e8 !important;
 			padding: 20px;
 			border-radius: 5px;
 			margin: 20px 0;
 			border-left: 4px solid #27ae60;
+		}
+
+		.test-info p {
+			color: #333333 !important;
+			margin: 5px 0;
+		}
+
+		.test-info strong {
+			color: #2c3e50 !important;
 		}
 
 		.footer {
@@ -57,8 +80,23 @@
 			margin-top: 30px;
 			padding-top: 20px;
 			border-top: 1px solid #eee;
-			color: #666;
+			color: #666666 !important;
 			font-size: 12px;
+		}
+
+		.footer p {
+			color: #666666 !important;
+		}
+
+		/* Ensure links are visible */
+		a {
+			color: #3498db !important;
+			text-decoration: none;
+		}
+
+		a:hover {
+			color: #2980b9 !important;
+			text-decoration: underline;
 		}
 	</style>
 </head>

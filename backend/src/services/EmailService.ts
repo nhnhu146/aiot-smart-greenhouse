@@ -1,515 +1,351 @@
 import nodemailer from 'nodemailer';
+import { inline } from '@css-inline/css-inline';
 import fs from 'fs';
 import path from 'path';
 
-interface EmailTemplate {
-	subject: string;
-	html: string;
-	text?: string;
-}
-
-interface EmailAttachment {
-	filename: string;
-	content: Buffer | string;
-	contentType?: string;
-}
-
-interface EmailOptions {
-	to: string | string[];
-	subject?: string;
-	html?: string;
-	text?: string;
-	attachments?: EmailAttachment[];
-	template?: string;
-	variables?: Record<string, string>;
-}
-
 export class EmailService {
 	private transporter: nodemailer.Transporter | null = null;
-	private isEnabled: boolean = false;
-	private templatesCache = new Map<string, EmailTemplate>();
+	private isConfigured = false;
 
 	constructor() {
 		this.setupTransporter();
-		this.loadTemplates();
 	}
 
 	private setupTransporter(): void {
-		if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-			console.warn('⚠️ Email credentials not configured. Running in demo mode.');
-			this.isEnabled = true; // Enable demo mode for testing
+		const emailUser = process.env.EMAIL_USER;
+		const emailPass = process.env.EMAIL_PASS;
+
+		if (!emailUser || !emailPass) {
+			console.log('⚠️  Email credentials not configured. Running in demo mode.');
+			this.isConfigured = false;
 			return;
 		}
 
 		try {
+			// Connection pooling và advanced config như voteLIS24
 			this.transporter = nodemailer.createTransport({
-				service: process.env.EMAIL_SERVICE || 'gmail',
-				pool: true, // Use connection pooling like voteLIS24
+				service: 'gmail',
+				pool: true, // Connection pooling
 				maxConnections: 5,
 				maxMessages: 100,
+				rateLimit: 14, // Max 14 messages/sec
 				auth: {
-					user: process.env.EMAIL_USER,
-					pass: process.env.EMAIL_PASS
-				},
-				tls: {
-					rejectUnauthorized: false
+					user: emailUser,
+					pass: emailPass
 				}
 			});
 
-			// Verify connection
-			if (this.transporter) {
-				this.transporter.verify((error, success) => {
-					if (error) {
-						console.error('❌ Email transporter verification failed:', error);
-						this.isEnabled = false;
-					} else {
-						console.log('✅ Email service initialized successfully with connection pooling');
-						this.isEnabled = true;
-					}
-				});
-			}
+			this.isConfigured = true;
+			console.log('📧 Email service configured with connection pooling');
 		} catch (error) {
 			console.error('❌ Failed to setup email transporter:', error);
-			this.isEnabled = false;
+			this.isConfigured = false;
 		}
 	}
 
-	private loadTemplates(): void {
-		const templatesDir = path.join(__dirname, '../templates');
-
-		if (!fs.existsSync(templatesDir)) {
-			console.warn('⚠️ Templates directory not found, using fallback templates');
-			this.loadFallbackTemplates();
-			return;
-		}
-
+	private async loadTemplate(templateName: string): Promise<string> {
 		try {
-			const templateFiles = fs.readdirSync(templatesDir).filter(file => file.endsWith('.html'));
+			const templatePath = path.join(__dirname, '..', 'templates', templateName);
+			console.log(`📧 [DEBUG] Loading template from: ${templatePath}`);
 
-			for (const file of templateFiles) {
-				const templateName = path.basename(file, '.html');
-				const templatePath = path.join(templatesDir, file);
-				const htmlContent = fs.readFileSync(templatePath, 'utf8');
-
-				// Extract subject from HTML title tag or use default
-				const subjectMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
-				const subject = subjectMatch ? subjectMatch[1] : this.getDefaultSubject(templateName);
-
-				this.templatesCache.set(templateName, {
-					subject,
-					html: htmlContent,
-					text: this.htmlToText(htmlContent)
-				});
+			if (!fs.existsSync(templatePath)) {
+				console.log(`❌ [ERROR] Template file does not exist: ${templatePath}`);
+				return '';
 			}
 
-			console.log(`✅ Loaded ${templateFiles.length} email templates from ${templatesDir}`);
+			const content = fs.readFileSync(templatePath, 'utf-8');
+			console.log(`📧 [DEBUG] Template loaded successfully, size: ${content.length} characters`);
+			return content;
 		} catch (error) {
-			console.error('❌ Failed to load templates:', error);
-			this.loadFallbackTemplates();
+			console.error(`❌ Failed to load template ${templateName}:`, error);
+			return '';
 		}
 	}
 
-	private loadFallbackTemplates(): void {
-		// Fallback templates like voteLIS24 style
-		const templates = {
-			'test-email': {
-				subject: '✅ Test Email - Smart Greenhouse System',
-				html: `
-					<!DOCTYPE html>
-					<html>
-					<head>
-						<meta charset="utf-8">
-						<title>{{subject}}</title>
-						<style>
-							body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-							.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-							.header { background: #2ecc71; color: white; padding: 20px; text-align: center; }
-							.content { padding: 20px; background: #f9f9f9; }
-							.footer { padding: 10px; text-align: center; color: #666; font-size: 12px; }
-						</style>
-					</head>
-					<body>
-						<div class="container">
-							<div class="header">
-								<h1>🌱 Smart Greenhouse System</h1>
-							</div>
-							<div class="content">
-								<h2>✅ Email Service Test</h2>
-								<p>This is a test email from your Smart Greenhouse monitoring system.</p>
-								<p>If you receive this email, the email alert system is working correctly.</p>
-								<p><strong>Time:</strong> {{timestamp}}</p>
-								<p><strong>Email Service:</strong> {{emailService}}</p>
-								<p><strong>Recipient:</strong> {{recipient}}</p>
-							</div>
-							<div class="footer">
-								<p>Smart Greenhouse Monitoring System | Automated Email Service</p>
-							</div>
-						</div>
-					</body>
-					</html>
-				`,
-				text: 'Smart Greenhouse Test Email - If you receive this, email service is working. Time: {{timestamp}}'
-			},
-			'alert-email': {
-				subject: '🚨 {{alertTitle}} - Smart Greenhouse Alert',
-				html: `
-					<!DOCTYPE html>
-					<html>
-					<head>
-						<meta charset="utf-8">
-						<title>{{alertTitle}}</title>
-						<style>
-							body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-							.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-							.header { background: #e74c3c; color: white; padding: 20px; text-align: center; }
-							.content { padding: 20px; background: #f9f9f9; }
-							.alert-box { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0; }
-							.recommendations { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 15px 0; }
-							.footer { padding: 10px; text-align: center; color: #666; font-size: 12px; }
-						</style>
-					</head>
-					<body>
-						<div class="container">
-							<div class="header">
-								<h1>{{alertIcon}} {{alertTitle}}</h1>
-							</div>
-							<div class="content">
-								<div class="alert-box">
-									<h3>🚨 Alert Details</h3>
-									<p><strong>Status:</strong> {{alertType}}</p>
-									<p><strong>Current Value:</strong> {{currentValue}}</p>
-									<p><strong>Threshold:</strong> {{thresholdRange}}</p>
-									<p><strong>Time:</strong> {{timestamp}}</p>
-								</div>
-								<div class="recommendations">
-									<h3>💡 Recommended Actions</h3>
-									<p>{{recommendations}}</p>
-								</div>
-							</div>
-							<div class="footer">
-								<p>Smart Greenhouse Alert System | Automated Monitoring</p>
-							</div>
-						</div>
-					</body>
-					</html>
-				`,
-				text: 'Smart Greenhouse Alert: {{alertTitle}} - {{alertType}} - Value: {{currentValue}} - Actions: {{recommendations}}'
-			},
-			'password-reset-email': {
-				subject: '🔐 Password Reset - Smart Greenhouse System',
-				html: `
-					<!DOCTYPE html>
-					<html>
-					<head>
-						<meta charset="utf-8">
-						<title>Password Reset Request</title>
-						<style>
-							body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-							.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-							.header { background: #3498db; color: white; padding: 20px; text-align: center; }
-							.content { padding: 20px; background: #f9f9f9; }
-							.button { display: inline-block; background: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-							.footer { padding: 10px; text-align: center; color: #666; font-size: 12px; }
-						</style>
-					</head>
-					<body>
-						<div class="container">
-							<div class="header">
-								<h1>🔐 Password Reset Request</h1>
-							</div>
-							<div class="content">
-								<p>You have requested to reset your password for your Smart Greenhouse account.</p>
-								<p>Click the button below to reset your password:</p>
-								<div style="text-align: center;">
-									<a href="{{resetUrl}}" class="button">Reset Password</a>
-								</div>
-								<p>Or copy and paste this link in your browser:</p>
-								<p style="word-break: break-all; background: #f4f4f4; padding: 10px; border-radius: 3px;">{{resetUrl}}</p>
-								<p><strong>This link will expire in 1 hour for security reasons.</strong></p>
-								<p>If you didn't request this password reset, please ignore this email.</p>
-							</div>
-							<div class="footer">
-								<p>Smart Greenhouse Security System</p>
-							</div>
-						</div>
-					</body>
-					</html>
-				`,
-				text: 'Password Reset Request - Click this link: {{resetUrl}} (expires in 1 hour)'
-			}
-		};
-
-		for (const [name, template] of Object.entries(templates)) {
-			this.templatesCache.set(name, template);
-		}
-
-		console.log('✅ Loaded fallback email templates');
-	}
-
-	private getDefaultSubject(templateName: string): string {
-		const subjects: Record<string, string> = {
-			'test-email': '✅ Test Email - Smart Greenhouse System',
-			'alert-email': '🚨 Smart Greenhouse Alert',
-			'password-reset-email': '🔐 Password Reset - Smart Greenhouse System',
-			'soil-moisture-alert': '🌱 Soil Moisture Alert - Smart Greenhouse',
-			'temperature-alert': '🌡️ Temperature Alert - Smart Greenhouse',
-			'humidity-alert': '💧 Humidity Alert - Smart Greenhouse'
-		};
-		return subjects[templateName] || 'Smart Greenhouse Notification';
-	}
-
-	private htmlToText(html: string): string {
-		// Simple HTML to text conversion like voteLIS24
-		return html
-			.replace(/<[^>]*>/g, '') // Remove HTML tags
-			.replace(/\s+/g, ' ') // Normalize whitespace
-			.trim();
-	}
-
-	private replaceVariables(content: string, variables: Record<string, string>): string {
-		// Replace {{key}} placeholders like voteLIS24
-		let result = content;
-		for (const [key, value] of Object.entries(variables)) {
+	// Template replacement với Map như voteLIS24
+	private replaceTemplateVariables(template: string, replacements: Map<string, string>): string {
+		let result = template;
+		for (const [key, value] of replacements) {
 			const regex = new RegExp(`{{${key}}}`, 'g');
-			result = result.replace(regex, value || '');
+			result = result.replace(regex, value);
 		}
 		return result;
 	}
 
-	/**
-	 * Send email using template or direct content
-	 */
-	public async sendEmail(options: EmailOptions): Promise<boolean> {
+	// CSS inline processing như voteLIS24
+	private async processTemplate(template: string, replacements: Map<string, string>): Promise<{ html: string; text: string }> {
 		try {
-			let { subject, html, text } = options;
+			// Replace variables first
+			const processedTemplate = this.replaceTemplateVariables(template, replacements);
 
-			// Use template if specified
-			if (options.template) {
-				const template = this.templatesCache.get(options.template);
-				if (template) {
-					subject = options.subject || template.subject;
-					html = template.html;
-					text = template.text;
+			// Inline CSS for better email compatibility
+			const htmlWithInlineCSS = inline(processedTemplate);
 
-					// Replace variables in all content
-					if (options.variables) {
-						const vars = {
-							...options.variables,
-							timestamp: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
-						};
-						subject = this.replaceVariables(subject, vars);
-						html = this.replaceVariables(html || '', vars);
-						text = this.replaceVariables(text || '', vars);
-					}
-				} else {
-					console.warn(`⚠️ Template '${options.template}' not found, using direct content`);
-				}
-			}
+			// Generate text version by stripping HTML
+			const textVersion = htmlWithInlineCSS
+				.replace(/<[^>]*>/g, '') // Remove HTML tags
+				.replace(/&nbsp;/g, ' ')
+				.replace(/&amp;/g, '&')
+				.replace(/&lt;/g, '<')
+				.replace(/&gt;/g, '>')
+				.replace(/&quot;/g, '"')
+				.replace(/\s+/g, ' ')
+				.trim();
 
-			// Demo mode - log instead of sending like voteLIS24 fallback
-			if (!this.transporter) {
-				console.log(`📧 [DEMO MODE] Email would be sent to: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
-				console.log(`📧 [DEMO MODE] Subject: ${subject}`);
-				console.log(`📧 [DEMO MODE] Template: ${options.template || 'none'}`);
-				console.log(`📧 [DEMO MODE] Email functionality is working correctly!`);
-				return true;
-			}
+			return {
+				html: htmlWithInlineCSS,
+				text: textVersion
+			};
+		} catch (error) {
+			console.error('❌ Failed to process template:', error);
+			return {
+				html: template,
+				text: template.replace(/<[^>]*>/g, '')
+			};
+		}
+	}
+
+	public async sendAlertEmail(to: string, subject: string, sensorType: string, value: string, threshold: string): Promise<boolean> {
+		if (!this.isConfigured) {
+			console.log(`📧 [DEMO MODE] Email would be sent to: ${to}`);
+			console.log(`📧 [DEMO MODE] Subject: ${subject}`);
+			console.log(`📧 [DEMO MODE] Sensor: ${sensorType}, Value: ${value}, Threshold: ${threshold}`);
+			return true;
+		}
+
+		try {
+			const template = await this.loadTemplate('enhanced-alert-email.html');
+			const replacements = new Map([
+				['sensorType', sensorType],
+				['value', value],
+				['threshold', threshold],
+				['timestamp', new Date().toLocaleString()],
+				['currentYear', new Date().getFullYear().toString()]
+			]);
+
+			const { html, text } = await this.processTemplate(template, replacements);
 
 			const mailOptions = {
-				from: `"Smart Greenhouse System" <${process.env.EMAIL_USER}>`,
-				to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+				from: {
+					name: 'Smart Greenhouse Alert',
+					address: process.env.EMAIL_USER!
+				},
+				to,
 				subject,
 				html,
-				text,
-				attachments: options.attachments
+				text // Provide both HTML and text versions
 			};
 
-			const result = await this.transporter.sendMail(mailOptions);
-			console.log(`📧 Email sent successfully: ${result.messageId}`);
+			await this.transporter!.sendMail(mailOptions);
+			console.log(`📧 Alert email sent successfully to ${to}`);
 			return true;
-
 		} catch (error) {
-			console.error('❌ Failed to send email:', error);
+			console.error('❌ Failed to send alert email:', error);
 			return false;
 		}
 	}
 
-	/**
-	 * Send test email using template from backend/src/templates
-	 */
-	public async sendTestEmail(recipients: string[]): Promise<boolean> {
-		return this.sendEmail({
-			to: recipients,
-			template: 'test-email',
-			variables: {
-				emailService: process.env.EMAIL_SERVICE || 'Gmail',
-				recipient: recipients[0] || 'N/A',
-				timestamp: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
-			}
-		});
+	public async sendPasswordResetEmail(to: string, resetToken: string): Promise<boolean> {
+		if (!this.isConfigured) {
+			console.log(`📧 [DEMO MODE] Password reset email would be sent to: ${to}`);
+			console.log(`📧 [DEMO MODE] Reset token: ${resetToken}`);
+			return true;
+		}
+
+		try {
+			const template = await this.loadTemplate('password-reset-email.html');
+			const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+			const replacements = new Map([
+				['resetLink', resetLink],
+				['timestamp', new Date().toLocaleString()],
+				['currentYear', new Date().getFullYear().toString()]
+			]);
+
+			const { html, text } = await this.processTemplate(template, replacements);
+
+			const mailOptions = {
+				from: {
+					name: 'Smart Greenhouse',
+					address: process.env.EMAIL_USER!
+				},
+				to,
+				subject: 'Password Reset Request - Smart Greenhouse',
+				html,
+				text
+			};
+
+			await this.transporter!.sendMail(mailOptions);
+			console.log(`📧 Password reset email sent successfully to ${to}`);
+			return true;
+		} catch (error) {
+			console.error('❌ Failed to send password reset email:', error);
+			return false;
+		}
 	}
 
-	/**
-	 * Send password reset email
-	 */
-	public async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-		const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+	public async sendTestEmail(to: string | string[]): Promise<boolean> {
+		// Handle both single email and array for backward compatibility
+		const recipient = Array.isArray(to) ? to[0] : to;
 
-		return this.sendEmail({
-			to: email,
-			template: 'password-reset-email',
-			variables: {
-				resetUrl,
-				frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+		console.log(`📧 [DEBUG] sendTestEmail called with: ${recipient}`);
+		console.log(`📧 [DEBUG] isConfigured: ${this.isConfigured}`);
+
+		if (!this.isConfigured) {
+			console.log(`📧 [DEMO MODE] Test email would be sent to: ${recipient}`);
+			console.log(`📧 [DEMO MODE] Email credentials not configured - running in demo mode`);
+			return true;
+		}
+
+		try {
+			console.log(`📧 [DEBUG] Loading template: enhanced-test-email.html`);
+			const template = await this.loadTemplate('enhanced-test-email.html');
+			console.log(`📧 [DEBUG] Template loaded, length: ${template.length}`);
+
+			if (template.length === 0) {
+				console.log(`❌ [ERROR] Template is empty or failed to load`);
+				return false;
 			}
-		});
-	}
 
-	/**
-	 * Send soil moisture alert (binary: 0=dry, 1=wet)
-	 */
+			const replacements = new Map([
+				['timestamp', new Date().toLocaleString()],
+				['currentYear', new Date().getFullYear().toString()],
+				['testMessage', 'Your Smart Greenhouse email system is working perfectly!']
+			]);
+
+			console.log(`📧 [DEBUG] Processing template with replacements:`, Object.fromEntries(replacements));
+			const { html, text } = await this.processTemplate(template, replacements);
+			console.log(`📧 [DEBUG] Processed template - HTML length: ${html.length}, Text length: ${text.length}`);
+
+			const mailOptions = {
+				from: {
+					name: 'Smart Greenhouse System',
+					address: process.env.EMAIL_USER!
+				},
+				to: recipient,
+				subject: 'Smart Greenhouse - Email System Test',
+				html,
+				text,
+				priority: 'normal' as const
+			};
+
+			console.log(`📧 [DEBUG] Sending email to: ${recipient}`);
+			await this.transporter!.sendMail(mailOptions);
+			console.log(`📧 Test email sent successfully to ${recipient}`);
+			return true;
+		} catch (error) {
+			console.error('❌ Failed to send test email:', error);
+			return false;
+		}
+	}	// Additional methods for backward compatibility with existing alert system
 	public async sendSoilMoistureAlert(soilMoisture: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
 		const isDry = soilMoisture === 0;
 		const moistureStatus = isDry ? 'DRY' : 'WET';
 		const statusValue = isDry ? '0 (Dry)' : '1 (Wet)';
 
-		await this.sendEmail({
-			to: recipients,
-			template: 'alert-email',
-			variables: {
-				alertTitle: `Soil Moisture Alert - ${moistureStatus}`,
-				alertIcon: '🌱',
-				alertType: isDry ? 'PLANTS NEED WATERING' : 'SOIL IS WET',
-				currentValue: statusValue,
-				thresholdRange: 'Binary: 0=Dry, 1=Wet',
-				recommendations: isDry
-					? 'Activate irrigation system immediately, Check water supply, Monitor plant stress signs'
-					: 'Soil has adequate moisture, Monitor for overwatering'
-			}
-		});
+		for (const recipient of recipients) {
+			await this.sendAlertEmail(
+				recipient,
+				`🌱 Soil Moisture Alert - ${moistureStatus}`,
+				'Soil Moisture',
+				statusValue,
+				'Binary: 0=Dry, 1=Wet'
+			);
+		}
 	}
 
-	/**
-	 * Send temperature alert
-	 */
 	public async sendTemperatureAlert(temperature: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
 		const isHigh = temperature > threshold.max;
 		const isLow = temperature < threshold.min;
+		const status = isHigh ? 'HIGH' : isLow ? 'LOW' : 'NORMAL';
 
-		await this.sendEmail({
-			to: recipients,
-			template: 'alert-email',
-			variables: {
-				alertTitle: `Temperature ${isHigh ? 'High' : 'Low'} Alert`,
-				alertIcon: '🌡️',
-				alertType: isHigh ? 'TOO HOT' : 'TOO COLD',
-				currentValue: `${temperature}°C`,
-				thresholdRange: `${threshold.min}°C - ${threshold.max}°C`,
-				recommendations: isHigh
-					? 'Increase ventilation, Check cooling system, Provide shade'
-					: 'Check heating system, Insulate greenhouse, Monitor plant protection'
-			}
-		});
+		for (const recipient of recipients) {
+			await this.sendAlertEmail(
+				recipient,
+				`🌡️ Temperature Alert - ${status}`,
+				'Temperature',
+				`${temperature}°C`,
+				`${threshold.min}°C - ${threshold.max}°C`
+			);
+		}
 	}
 
-	/**
-	 * Send humidity alert
-	 */
 	public async sendHumidityAlert(humidity: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
 		const isHigh = humidity > threshold.max;
 		const isLow = humidity < threshold.min;
+		const status = isHigh ? 'HIGH' : isLow ? 'LOW' : 'NORMAL';
 
-		await this.sendEmail({
-			to: recipients,
-			template: 'alert-email',
-			variables: {
-				alertTitle: `Humidity ${isHigh ? 'High' : 'Low'} Alert`,
-				alertIcon: '💧',
-				alertType: isHigh ? 'TOO HUMID' : 'TOO DRY',
-				currentValue: `${humidity}%`,
-				thresholdRange: `${threshold.min}% - ${threshold.max}%`,
-				recommendations: isHigh
-					? 'Increase ventilation, Check for water leaks, Monitor for mold/fungus'
-					: 'Increase irrigation, Check humidity sensors, Add water sources'
-			}
-		});
+		for (const recipient of recipients) {
+			await this.sendAlertEmail(
+				recipient,
+				`💧 Humidity Alert - ${status}`,
+				'Humidity',
+				`${humidity}%`,
+				`${threshold.min}% - ${threshold.max}%`
+			);
+		}
 	}
 
-	/**
-	 * Send water level alert
-	 */
 	public async sendWaterLevelAlert(waterLevel: number, threshold: { min: number; max: number }, recipients: string[]): Promise<void> {
 		const isLow = waterLevel < threshold.min;
+		const status = isLow ? 'LOW' : 'HIGH';
 
-		await this.sendEmail({
-			to: recipients,
-			template: 'alert-email',
-			variables: {
-				alertTitle: `Water Level ${isLow ? 'Low' : 'High'} Alert`,
-				alertIcon: '🚰',
-				alertType: isLow ? 'REFILL NEEDED' : 'OVERFLOW RISK',
-				currentValue: `${waterLevel}%`,
-				thresholdRange: `${threshold.min}% - ${threshold.max}%`,
-				recommendations: isLow
-					? 'Refill water tank, Check water supply, Inspect pump system'
-					: 'Check drainage, Inspect overflow protection, Monitor water usage'
-			}
-		});
+		for (const recipient of recipients) {
+			await this.sendAlertEmail(
+				recipient,
+				`🚰 Water Level ${status} Alert`,
+				'Water Level',
+				`${waterLevel}%`,
+				`${threshold.min}% - ${threshold.max}%`
+			);
+		}
 	}
 
-	/**
-	 * Send system error alert
-	 */
 	public async sendSystemErrorAlert(error: string, component: string, recipients: string[]): Promise<void> {
-		await this.sendEmail({
-			to: recipients,
-			template: 'alert-email',
-			variables: {
-				alertTitle: 'System Error Alert',
-				alertIcon: '⚠️',
-				alertType: 'SYSTEM MALFUNCTION',
-				currentValue: component,
-				thresholdRange: 'System Health Check',
-				recommendations: `Check ${component} component, Review system logs, Contact technical support if needed. Error: ${error}`
-			}
-		});
+		for (const recipient of recipients) {
+			await this.sendAlertEmail(
+				recipient,
+				`⚠️ System Error Alert`,
+				'System Error',
+				`${component}: ${error}`,
+				'System Monitoring'
+			);
+		}
 	}
 
-	/**
-	 * Send motion detected alert
-	 */
 	public async sendMotionDetectedAlert(recipients: string[]): Promise<void> {
-		await this.sendEmail({
-			to: recipients,
-			template: 'alert-email',
-			variables: {
-				alertTitle: 'Motion Detected',
-				alertIcon: '🚶',
-				alertType: 'SECURITY ALERT',
-				currentValue: 'Motion detected in greenhouse',
-				thresholdRange: 'Security monitoring',
-				recommendations: 'Check greenhouse security, Review camera footage if available, Verify authorized access'
-			}
-		});
+		for (const recipient of recipients) {
+			await this.sendAlertEmail(
+				recipient,
+				`🚶 Motion Detected Alert`,
+				'Motion Detection',
+				'Motion detected in greenhouse',
+				'Security monitoring'
+			);
+		}
 	}
 
-	/**
-	 * Get service status
-	 */
-	public getStatus(): { enabled: boolean; configured: boolean; templatesLoaded: number } {
+	// Utility method để đóng connection pool
+	public async closeConnection(): Promise<void> {
+		if (this.transporter && this.isConfigured) {
+			this.transporter.close();
+			console.log('📧 Email transporter connection pool closed');
+		}
+	}
+
+	public getStatus() {
 		return {
-			enabled: this.isEnabled,
-			configured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS),
-			templatesLoaded: this.templatesCache.size
+			enabled: true, // Always enabled for backward compatibility
+			configured: this.isConfigured,
+			templatesLoaded: 3, // enhanced-test-email, enhanced-alert-email, password-reset-email
+			poolingEnabled: this.isConfigured,
+			service: 'gmail'
 		};
 	}
 
-	/**
-	 * Reload templates
-	 */
 	public reloadTemplates(): void {
-		this.templatesCache.clear();
-		this.loadTemplates();
+		// Templates are loaded on-demand now, so this is just for compatibility
+		console.log('✅ Templates are loaded on-demand');
 	}
 }
 

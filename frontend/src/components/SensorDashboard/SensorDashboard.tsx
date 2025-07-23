@@ -104,8 +104,16 @@ const SensorDashboard: React.FC = () => {
 					// Only update with valid numeric values
 					const numericValue = parseFloat(sensorInfo.value);
 					if (!isNaN(numericValue)) {
+						// Special handling for soil moisture (binary values)
+						let formattedValue;
+						if (sensorType === 'soil') {
+							formattedValue = numericValue.toString(); // Keep binary values as is (0 or 1)
+						} else {
+							formattedValue = numericValue.toFixed(1); // Format other sensors with 1 decimal
+						}
+
 						updatedSensors[sensorType as keyof typeof sensors] = {
-							value: numericValue.toFixed(1),
+							value: formattedValue,
 							timestamp: sensorInfo.timestamp
 						};
 

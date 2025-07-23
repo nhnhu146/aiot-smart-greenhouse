@@ -123,7 +123,11 @@ const History = () => {
 							<p className={styles.sensorData}>
 								<span className={styles.sensorItem}><b>Temperature:</b> {entry.temperature?.toFixed(1) || 'N/A'}°C</span>
 								<span className={styles.sensorItem}><b>Humidity:</b> {entry.humidity?.toFixed(1) || 'N/A'}%</span>
-								<span className={styles.sensorItem}><b>Soil Moisture:</b> {entry.soilMoisture?.toFixed(1) || 'N/A'}%</span>
+								<span className={styles.sensorItem}><b>Soil Moisture:</b> {
+									entry.soilMoisture === 1 ? 'Wet' :
+										entry.soilMoisture === 0 ? 'Dry' :
+											'N/A'
+								}</span>
 								<span className={styles.sensorItem}><b>Plant Height:</b> {entry.plantHeight?.toFixed(1) || 'N/A'}cm</span>
 							</p>
 						</Card.Body>
