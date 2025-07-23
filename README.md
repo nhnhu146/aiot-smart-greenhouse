@@ -1,4 +1,6 @@
-# 🌱 AIOT Smart Greenhouse System
+# 🌱 AIoT Smart Greenhouse
+
+> **📚 Documentation**: See [`/docs`](./docs) for detailed guides, fixes, and system updates
 
 A comprehensive IoT-based smart greenhouse monitoring and control system built with modern web technologies. Features real-time sensor monitoring, automated device control, intelligent alerting, and a fully responsive web dashboard.
 

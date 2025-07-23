@@ -157,16 +157,31 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.temperature) {
-				console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						value < threshold.min ? '❄️ Smart Greenhouse - Low Temperature Alert' : '🔥 Smart Greenhouse - High Temperature Alert',
-						'Temperature',
-						`${value}°C`,
-						value < threshold.min ? `Min: ${threshold.min}°C` : `Max: ${threshold.max}°C`
-					);
+				const alert = {
+					type: 'temperature',
+					level: value < threshold.min - 5 ? 'critical' : 'high',
+					message: `Temperature too low: ${value}°C (minimum: ${threshold.min}°C)`,
+					currentValue: value,
+					threshold: threshold,
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Temperature alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'❄️ Smart Greenhouse - Low Temperature Alert',
+							'Temperature',
+							`${value}°C`,
+							`Min: ${threshold.min}°C`
+						);
+					}
 				}
 			}
 		} else if (value > threshold.max) {
@@ -181,16 +196,31 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.temperature) {
-				console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						value < threshold.min ? '❄️ Smart Greenhouse - Low Temperature Alert' : '🔥 Smart Greenhouse - High Temperature Alert',
-						'Temperature',
-						`${value}°C`,
-						value < threshold.min ? `Min: ${threshold.min}°C` : `Max: ${threshold.max}°C`
-					);
+				const alert = {
+					type: 'temperature',
+					level: value > threshold.max + 5 ? 'critical' : 'high',
+					message: `Temperature too high: ${value}°C (maximum: ${threshold.max}°C)`,
+					currentValue: value,
+					threshold: threshold,
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Temperature alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					console.log(`📧 Sending temperature alert email to ${this.emailRecipients.length} recipients`);
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'🔥 Smart Greenhouse - High Temperature Alert',
+							'Temperature',
+							`${value}°C`,
+							`Max: ${threshold.max}°C`
+						);
+					}
 				}
 			}
 		} else {
@@ -225,16 +255,31 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.humidity) {
-				console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						value < threshold.min ? '💧 Smart Greenhouse - Low Humidity Alert' : '💨 Smart Greenhouse - High Humidity Alert',
-						'Humidity',
-						`${value}%`,
-						value < threshold.min ? `Min: ${threshold.min}%` : `Max: ${threshold.max}%`
-					);
+				const alert = {
+					type: 'humidity',
+					level: value < threshold.min - 10 ? 'high' : 'medium',
+					message: `Humidity too low: ${value}% (minimum: ${threshold.min}%)`,
+					currentValue: value,
+					threshold: threshold,
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Humidity alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'💧 Smart Greenhouse - Low Humidity Alert',
+							'Humidity',
+							`${value}%`,
+							`Min: ${threshold.min}%`
+						);
+					}
 				}
 			}
 		} else if (value > threshold.max) {
@@ -249,16 +294,31 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.humidity) {
-				console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						value < threshold.min ? '💧 Smart Greenhouse - Low Humidity Alert' : '💨 Smart Greenhouse - High Humidity Alert',
-						'Humidity',
-						`${value}%`,
-						value < threshold.min ? `Min: ${threshold.min}%` : `Max: ${threshold.max}%`
-					);
+				const alert = {
+					type: 'humidity',
+					level: value > threshold.max + 10 ? 'high' : 'medium',
+					message: `Humidity too high: ${value}% (maximum: ${threshold.max}%)`,
+					currentValue: value,
+					threshold: threshold,
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Humidity alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					console.log(`📧 Sending humidity alert email to ${this.emailRecipients.length} recipients`);
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'💨 Smart Greenhouse - High Humidity Alert',
+							'Humidity',
+							`${value}%`,
+							`Max: ${threshold.max}%`
+						);
+					}
 				}
 			}
 		} else {
@@ -295,16 +355,31 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.soilMoisture) {
-				console.log(`📧 Sending soil moisture alert email to ${this.emailRecipients.length} recipients`);
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						'🌱 Smart Greenhouse - Dry Soil Alert',
-						'Soil Moisture',
-						value === 0 ? 'Dry' : 'Wet',
-						'Expected: Wet (1)'
-					);
+				const alert = {
+					type: 'soilMoisture',
+					level: 'high',
+					message: `Soil moisture is DRY (0) - Plants need watering immediately`,
+					currentValue: value,
+					threshold: { min: 1, max: 1 },
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Soil moisture alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					console.log(`📧 Sending soil moisture alert email to ${this.emailRecipients.length} recipients`);
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'🌱 Smart Greenhouse - Dry Soil Alert',
+							'Soil Moisture',
+							'Dry',
+							'Expected: Wet (1)'
+						);
+					}
 				}
 			}
 		} else if (value === 1) {
@@ -341,16 +416,31 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0 && this.emailAlerts.waterLevel) {
-				console.log(`📧 Sending water level alert email to ${this.emailRecipients.length} recipients`);
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						'💧 Smart Greenhouse - Low Water Level Alert',
-						'Water Level',
-						`${value}%`,
-						`Min: ${threshold.min}%`
-					);
+				const alert = {
+					type: 'waterLevel',
+					level: value < 10 ? 'critical' : 'high',
+					message: `Water level too low: ${value}% (minimum: ${threshold.min}%) - Refill water tank`,
+					currentValue: value,
+					threshold: threshold,
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Water level alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					console.log(`📧 Sending water level alert email to ${this.emailRecipients.length} recipients`);
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'💧 Smart Greenhouse - Low Water Level Alert',
+							'Water Level',
+							`${value}%`,
+							`Min: ${threshold.min}%`
+						);
+					}
 				}
 			}
 		} else {
@@ -381,6 +471,9 @@ class AlertService {
 	async reloadThresholds(): Promise<void> {
 		await this.loadThresholds();
 		await this.loadEmailRecipients();
+
+		// Restart batch alert timer with new settings
+		this.startBatchAlertTimer();
 	}
 
 	// Handle motion detection alert
@@ -396,15 +489,30 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0) {
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						'👁️ Smart Greenhouse - Motion Detected',
-						'Motion Sensor',
-						'Motion Detected',
-						'Security Alert'
-					);
+				const alert = {
+					type: 'motion',
+					level: 'medium',
+					message: 'Motion detected in greenhouse - Door automatically opened',
+					currentValue: 1,
+					threshold: { min: 0, max: 1 },
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 Motion alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'👁️ Smart Greenhouse - Motion Detected',
+							'Motion Sensor',
+							'Motion Detected',
+							'Security Alert'
+						);
+					}
 				}
 			}
 		} catch (error) {
@@ -425,15 +533,30 @@ class AlertService {
 
 			// Send email alert if enabled
 			if (this.emailRecipients.length > 0) {
-				// Send email to all recipients
-				for (const recipient of this.emailRecipients) {
-					await emailService.sendAlertEmail(
-						recipient,
-						'⚠️ Smart Greenhouse - System Error',
-						'System Error',
-						error,
-						`Component: ${component}`
-					);
+				const alert = {
+					type: 'system',
+					level: 'critical',
+					message: `System error in ${component}: ${error}`,
+					currentValue: 0,
+					threshold: { min: 0, max: 0 },
+					timestamp: new Date().toISOString()
+				};
+
+				// Add to pending alerts if batching enabled
+				if (this.batchAlerts) {
+					this.pendingAlerts.push(alert);
+					console.log(`🔄 System error alert added to batch (${this.pendingAlerts.length} pending)`);
+				} else {
+					// Send immediately if not batching
+					for (const recipient of this.emailRecipients) {
+						await emailService.sendAlertEmail(
+							recipient,
+							'⚠️ Smart Greenhouse - System Error',
+							'System Error',
+							error,
+							`Component: ${component}`
+						);
+					}
 				}
 			}
 		} catch (error) {

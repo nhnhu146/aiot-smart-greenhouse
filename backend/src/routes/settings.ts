@@ -281,7 +281,7 @@ router.post('/alert-frequency', asyncHandler(async (req: Request, res: Response)
 		);
 
 		// Reload alert service to apply new frequency settings
-		await alertService.loadEmailRecipients();
+		await alertService.reloadThresholds();
 
 		const response: APIResponse = {
 			success: true,
