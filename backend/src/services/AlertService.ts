@@ -19,6 +19,8 @@ export interface EmailAlertsConfig {
 class AlertService {
 	private currentThresholds: ThresholdConfig | null = null;
 	private lastCheckedValues: Map<string, number> = new Map();
+	private lastAlertTimes: Map<string, number> = new Map(); // Track last alert time for each sensor
+	private alertCooldownMs: number = 5 * 60 * 1000; // 5 minutes cooldown between same alerts
 	private emailRecipients: string[] = [];
 	private emailAlerts: EmailAlertsConfig = {
 		temperature: true,
@@ -97,10 +99,10 @@ class AlertService {
 		this.currentThresholds = {
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 1, max: 1 }, // Binary: we want wet (1)
+			soilMoistureThreshold: { min: 0, max: 0 }, // Binary: No threshold - always alert when dry (0)
 			waterLevelThreshold: { min: 20, max: 90 }
 		};
-		console.log('🔧 Using default thresholds:', this.currentThresholds);
+		console.log('🔧 Using default thresholds (Soil Moisture: No threshold):', this.currentThresholds);
 	}
 
 	// Main function to check all sensor thresholds
@@ -131,6 +133,30 @@ class AlertService {
 		await this.checkWaterLevel(sensorData.waterLevel, traceId);
 	}
 
+	// Helper method to check cooldown for any sensor
+	private isInCooldown(sensorType: string): boolean {
+		const lastAlertTime = this.lastAlertTimes.get(sensorType) || 0;
+		const now = Date.now();
+		return (now - lastAlertTime) < this.alertCooldownMs;
+	}
+
+	// Helper method to get remaining cooldown time in minutes
+	private getCooldownRemaining(sensorType: string): number {
+		const lastAlertTime = this.lastAlertTimes.get(sensorType) || 0;
+		const now = Date.now();
+		return Math.ceil((this.alertCooldownMs - (now - lastAlertTime)) / 1000 / 60);
+	}
+
+	// Helper method to set alert time
+	private setAlertTime(sensorType: string): void {
+		this.lastAlertTimes.set(sensorType, Date.now());
+	}
+
+	// Helper method to clear alert time when sensor returns to normal
+	private clearAlertTime(sensorType: string): void {
+		this.lastAlertTimes.delete(sensorType);
+	}
+
 	private async checkTemperature(value: number, traceId: string): Promise<void> {
 		if (!this.currentThresholds) return;
 
@@ -145,8 +171,18 @@ class AlertService {
 			return;
 		}
 
+		// Check if we need to alert and if not in cooldown
+		const shouldAlert = value < threshold.min || value > threshold.max;
+		if (shouldAlert && this.isInCooldown('temperature')) {
+			console.log(`[${traceId}] ⏰ Temperature alert in cooldown: ${this.getCooldownRemaining('temperature')} minutes remaining`);
+			this.lastCheckedValues.set('temperature', value);
+			return;
+		}
+
 		if (value < threshold.min) {
 			console.log(`[${traceId}] 🚨 [Temperature] BELOW threshold: ${value}°C < ${threshold.min}°C`);
+			this.setAlertTime('temperature');
+
 			await notificationService.triggerAlert({
 				type: 'temperature',
 				level: value < threshold.min - 5 ? 'critical' : 'high',
@@ -186,6 +222,8 @@ class AlertService {
 			}
 		} else if (value > threshold.max) {
 			console.log(`[${traceId}] 🚨 [Temperature] ABOVE threshold: ${value}°C > ${threshold.max}°C`);
+			this.setAlertTime('temperature');
+
 			await notificationService.triggerAlert({
 				type: 'temperature',
 				level: value > threshold.max + 5 ? 'critical' : 'high',
@@ -225,6 +263,8 @@ class AlertService {
 			}
 		} else {
 			console.log(`✅ Temperature within range: ${value}°C`);
+			// Clear alert time when temperature returns to normal range
+			this.clearAlertTime('temperature');
 		}
 
 		this.lastCheckedValues.set('temperature', value);
@@ -329,38 +369,51 @@ class AlertService {
 	}
 
 	private async checkSoilMoisture(value: number, traceId: string): Promise<void> {
-		if (!this.currentThresholds) return;
-
 		const lastValue = this.lastCheckedValues.get('soilMoisture');
+		const lastAlertTime = this.lastAlertTimes.get('soilMoisture') || 0;
+		const now = Date.now();
 
-		// Soil moisture is now binary: 1 = wet, 0 = dry
+		// Soil moisture is binary: 1 = wet, 0 = dry
+		// NO THRESHOLD CHECKS - Always alert when dry (0)
 		console.log(`[${traceId}] 🌱 Checking soil moisture: ${value === 1 ? 'WET (1)' : 'DRY (0)'}`);
 
-		// Only trigger alert if value changed
+		// Check if value actually changed
 		if (lastValue !== undefined && lastValue === value) {
 			console.log(`[${traceId}] 🌱 Soil moisture unchanged: ${value === 1 ? 'WET' : 'DRY'}`);
 			return;
 		}
 
-		// Alert when soil is dry (value = 0)
+		// Check cooldown period - prevent spam alerts
+		if (value === 0 && (now - lastAlertTime) < this.alertCooldownMs) {
+			const remainingCooldown = Math.ceil((this.alertCooldownMs - (now - lastAlertTime)) / 1000 / 60);
+			console.log(`[${traceId}] ⏰ Soil moisture alert in cooldown: ${remainingCooldown} minutes remaining`);
+			this.lastCheckedValues.set('soilMoisture', value); // Update value but skip alert
+			return;
+		}
+
+		// Alert when soil is dry (value = 0) - NO THRESHOLD NEEDED
 		if (value === 0) {
-			console.log(`[${traceId}] 🚨 [Soil Moisture] DRY - Plants need watering!`);
+			console.log(`[${traceId}] 🚨 [Soil Moisture] DRY - Plants need watering! (Default alert)`);
+
+			// Update alert time to prevent duplicates
+			this.lastAlertTimes.set('soilMoisture', now);
+
 			await notificationService.triggerAlert({
 				type: 'soilMoisture',
 				level: 'high',
 				message: `Soil moisture is DRY (0) - Plants need watering immediately`,
 				currentValue: value,
-				threshold: { min: 1, max: 1 } // Binary: we want wet (1)
+				threshold: null // No threshold for binary soil moisture
 			});
 
-			// Send email alert if enabled
+			// Send email alert if enabled - ALWAYS for dry soil
 			if (this.emailRecipients.length > 0 && this.emailAlerts.soilMoisture) {
 				const alert = {
 					type: 'soilMoisture',
 					level: 'high',
 					message: `Soil moisture is DRY (0) - Plants need watering immediately`,
 					currentValue: value,
-					threshold: { min: 1, max: 1 },
+					threshold: null, // No threshold configuration
 					timestamp: new Date().toISOString()
 				};
 
@@ -376,14 +429,16 @@ class AlertService {
 							recipient,
 							'🌱 Smart Greenhouse - Dry Soil Alert',
 							'Soil Moisture',
-							'Dry',
-							'Expected: Wet (1)'
+							'Dry (Default Alert)',
+							'Auto-alert when dry'
 						);
 					}
 				}
 			}
 		} else if (value === 1) {
 			console.log(`✅ Soil moisture is WET (1) - Plants are well watered`);
+			// Clear alert time when soil becomes wet again
+			this.lastAlertTimes.delete('soilMoisture');
 		} else {
 			console.log(`[${traceId}] ⚠️ Unexpected soil moisture value: ${value}`);
 		}

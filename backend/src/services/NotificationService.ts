@@ -7,7 +7,7 @@ export interface AlertData {
 	level: 'low' | 'medium' | 'high' | 'critical';
 	message: string;
 	currentValue?: number;
-	threshold?: { min?: number; max?: number };
+	threshold?: { min?: number; max?: number } | null; // Allow null for binary sensors without thresholds
 	deviceType?: string;
 }
 

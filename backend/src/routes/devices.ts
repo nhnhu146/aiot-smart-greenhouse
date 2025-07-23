@@ -69,16 +69,15 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 		throw new AppError(`Invalid action for ${deviceType}. Use "on" or "off"`, 400);
 	}
 
-	// Create command payload
-	const command = {
-		action,
-		timestamp: new Date().toISOString(),
-		...(duration && { duration })
-	};
-
 	try {
-		// Send MQTT command
-		await mqttService.publishDeviceControl(deviceType, JSON.stringify(command));
+		// Convert action to MQTT format that ESP32 understands
+		let mqttCommand = 'LOW'; // Default to OFF/LOW
+		if (action === 'on' || action === 'open') {
+			mqttCommand = 'HIGH';
+		}
+
+		// Send simple MQTT command (not JSON - ESP32 expects simple strings)
+		await mqttService.publishDeviceControl(deviceType, mqttCommand);
 
 		// Update device status in database
 		const status = (action === 'on' || action === 'open');
@@ -153,14 +152,14 @@ router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (
 	// Schedule the command
 	setTimeout(async () => {
 		try {
-			const command = {
-				action,
-				timestamp: new Date().toISOString(),
-				scheduled: true,
-				...(duration && { duration })
-			};
+			// Convert action to MQTT format that ESP32 understands
+			let mqttCommand = 'LOW'; // Default to OFF/LOW
+			if (action === 'on' || action === 'open') {
+				mqttCommand = 'HIGH';
+			}
 
-			await mqttService.publishDeviceControl(deviceType, JSON.stringify(command));
+			// Send simple MQTT command (not JSON - ESP32 expects simple strings)
+			await mqttService.publishDeviceControl(deviceType, mqttCommand);
 
 			// Update device status in database
 			const status = (action === 'on' || action === 'open');

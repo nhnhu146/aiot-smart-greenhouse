@@ -366,27 +366,28 @@ export class EmailService {
 			// Load batch alert template
 			const template = await this.loadTemplate('batch-alert-email.html');
 
-			// Replace template variables
+			// Build proper alert counts by level
+			const criticalCount = alertSummary.alerts.filter((a: any) => a.level === 'critical').length;
+			const highCount = alertSummary.alerts.filter((a: any) => a.level === 'high').length;
+			const mediumCount = alertSummary.alerts.filter((a: any) => a.level === 'medium').length;
+			const lowCount = alertSummary.alerts.filter((a: any) => a.level === 'low').length;
+
+			// Replace template variables correctly matching the template
 			let htmlContent = template
-				.replace(/{{totalAlerts}}/g, alertSummary.totalAlerts.toString())
-				.replace(/{{highPriority}}/g, alertSummary.highPriority.toString())
-				.replace(/{{mediumPriority}}/g, alertSummary.mediumPriority.toString())
-				.replace(/{{lowPriority}}/g, alertSummary.lowPriority.toString())
-				.replace(/{{timestamp}}/g, new Date(alertSummary.timestamp).toLocaleString());
+				.replace(/{{alertCount}}/g, alertSummary.totalAlerts.toString())
+				.replace(/{{frequencyMinutes}}/g, '15') // Default frequency
+				.replace(/{{timeRange}}/g, new Date(alertSummary.timestamp).toLocaleString())
+				.replace(/{{criticalCount}}/g, criticalCount.toString())
+				.replace(/{{highCount}}/g, highCount.toString())
+				.replace(/{{mediumCount}}/g, mediumCount.toString())
+				.replace(/{{lowCount}}/g, lowCount.toString())
+				.replace(/{{generatedAt}}/g, new Date().toLocaleString())
+				.replace(/{{nextSummaryTime}}/g, '15')
+				.replace(/{{dashboardUrl}}/g, process.env.FRONTEND_URL || 'http://localhost:3000');
 
-			// Build alerts list HTML
-			const alertsHtml = alertSummary.alerts.map((alert: any) => `
-				<div class="alert-item ${alert.level}">
-					<div class="alert-icon">${this.getAlertIcon(alert.type)}</div>
-					<div class="alert-content">
-						<strong>${alert.type.toUpperCase()}</strong>
-						<p>${alert.message}</p>
-						<small>Level: ${alert.level}</small>
-					</div>
-				</div>
-			`).join('');
-
-			htmlContent = htmlContent.replace(/{{alertsList}}/g, alertsHtml);
+			// Process alerts for Handlebars-style {{#each alerts}} block
+			const alertsSection = this.buildAlertsSection(alertSummary.alerts);
+			htmlContent = htmlContent.replace(/{{#each alerts}}[\s\S]*?{{\/each}}/g, alertsSection);
 
 			// Inline CSS
 			const inlinedHtml = await inline(htmlContent);
@@ -403,6 +404,75 @@ export class EmailService {
 		} catch (error) {
 			console.error(`❌ Failed to send batch alert email to ${recipient}:`, error);
 			throw error;
+		}
+	}
+
+	// Build alerts section for template
+	private buildAlertsSection(alerts: any[]): string {
+		return alerts.map(alert => {
+			const sensorType = this.formatSensorType(alert.type);
+			const currentValue = this.formatCurrentValue(alert);
+			const threshold = this.formatThreshold(alert.threshold);
+
+			return `
+			<div class="alert-item ${alert.level}">
+				<div class="alert-header">
+					<div class="alert-type">${sensorType}</div>
+					<div class="alert-level ${alert.level}">${alert.level}</div>
+				</div>
+				<div class="alert-details">
+					<strong>Current Value:</strong> ${currentValue}<br>
+					<strong>Threshold:</strong> ${threshold}<br>
+					<strong>Message:</strong> ${alert.message}
+				</div>
+				<div class="alert-time">${new Date(alert.timestamp).toLocaleString()}</div>
+			</div>`;
+		}).join('');
+	}
+
+	// Format sensor type for display
+	private formatSensorType(type: string): string {
+		switch (type) {
+			case 'temperature': return '🌡️ Temperature';
+			case 'humidity': return '💧 Humidity';
+			case 'soilMoisture': return '🌱 Soil Moisture';
+			case 'waterLevel': return '🚰 Water Level';
+			default: return `⚠️ ${type}`;
+		}
+	}
+
+	// Format current value for display
+	private formatCurrentValue(alert: any): string {
+		if (alert.type === 'soilMoisture') {
+			return alert.currentValue === 0 ? 'Dry (0)' : alert.currentValue === 1 ? 'Wet (1)' : `${alert.currentValue}`;
+		}
+		return `${alert.currentValue}${this.getUnit(alert.type)}`;
+	}
+
+	// Format threshold for display
+	private formatThreshold(threshold: any): string {
+		if (!threshold || threshold === null) {
+			return 'Auto-alert (no threshold)';
+		}
+		if (threshold.min !== undefined && threshold.max !== undefined) {
+			return `${threshold.min} - ${threshold.max}`;
+		}
+		if (threshold.min !== undefined) {
+			return `Min: ${threshold.min}`;
+		}
+		if (threshold.max !== undefined) {
+			return `Max: ${threshold.max}`;
+		}
+		return 'N/A';
+	}
+
+	// Get unit for sensor type
+	private getUnit(type: string): string {
+		switch (type) {
+			case 'temperature': return '°C';
+			case 'humidity': return '%';
+			case 'waterLevel': return '%';
+			default: return '';
 		}
 	}
 

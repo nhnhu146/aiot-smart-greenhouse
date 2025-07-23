@@ -38,8 +38,8 @@ db.settings.insertOne({
 		max: 80
 	},
 	soilMoistureThreshold: {
-		min: 30,
-		max: 70
+		min: 0,
+		max: 0  // No threshold - always alert when dry (0)
 	},
 	waterLevelThreshold: {
 		min: 20,

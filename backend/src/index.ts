@@ -16,7 +16,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 // Import services and middleware
-import { databaseService, mqttService, alertService, webSocketService } from './services';
+import { databaseService, mqttService, alertService, webSocketService, DataMergerService } from './services';
 import { errorHandler, notFoundHandler } from './middleware';
 import routes from './routes';
 
@@ -611,74 +611,48 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 		const shouldCreateNew = !sensorDoc ||
 			(sensorDoc.createdAt && now.getTime() - sensorDoc.createdAt.getTime() > 30000);
 
+		const newData: any = {
+			deviceId: 'esp32-greenhouse-01',
+			dataQuality: 'partial'
+		};
+
+		// Map sensor type to database field
+		switch (sensorType) {
+			case 'temperature':
+				newData.temperature = value;
+				break;
+			case 'humidity':
+				newData.humidity = value;
+				break;
+			case 'soil':
+				// For soil moisture: 0 = dry, 1 = wet (raw binary values)
+				newData.soilMoisture = value; // Keep raw 0/1 value
+				break;
+			case 'water':
+				newData.waterLevel = value;
+				break;
+			case 'light':
+				// For light sensor: 0 = dark, 1 = bright (raw binary values)
+				newData.lightLevel = value; // Keep raw 0/1 value
+				break;
+			case 'height':
+				newData.plantHeight = value;
+				break;
+			case 'rain':
+				// For rain sensor: 0 = no rain, 1 = raining (raw binary values)
+				newData.rainStatus = value === 1; // Convert 1 to true, 0 to false
+				break;
+			default:
+				console.warn(`🔍 Unknown sensor type: ${sensorType}`);
+				return;
+		}
+
 		if (shouldCreateNew) {
 			// Create new document with the sensor value
-			const newData: any = {
-				deviceId: 'esp32-greenhouse-01',
-				dataQuality: 'partial'
-			};
-
-			// Map sensor type to database field
-			switch (sensorType) {
-				case 'temperature':
-					newData.temperature = value;
-					break;
-				case 'humidity':
-					newData.humidity = value;
-					break;
-				case 'soil':
-					// For soil moisture: 0 = dry, 1 = wet (raw binary values)
-					newData.soilMoisture = value; // Keep raw 0/1 value
-					break;
-				case 'water':
-					newData.waterLevel = value;
-					break;
-				case 'light':
-					// For light sensor: 0 = dark, 1 = bright (raw binary values)
-					newData.lightLevel = value; // Keep raw 0/1 value
-					break;
-				case 'height':
-					newData.plantHeight = value;
-					break;
-				case 'rain':
-					// For rain sensor: 0 = no rain, 1 = raining (raw binary values)
-					newData.rainStatus = value === 1; // Convert 1 to true, 0 to false
-					break;
-				default:
-					console.warn(`🔍 Unknown sensor type: ${sensorType}`);
-					return;
-			}
-
 			sensorDoc = new SensorData(newData);
-			await sensorDoc.save();
 		} else if (sensorDoc) {
-			// Update existing document - explicit null check
-			switch (sensorType) {
-				case 'temperature':
-					sensorDoc.temperature = value;
-					break;
-				case 'humidity':
-					sensorDoc.humidity = value;
-					break;
-				case 'soil':
-					// For soil moisture: 0 = dry, 1 = wet (raw binary values)
-					sensorDoc.soilMoisture = value; // Keep raw 0/1 value
-					break;
-				case 'water':
-					sensorDoc.waterLevel = value;
-					break;
-				case 'light':
-					// For light sensor: 0 = dark, 1 = bright (raw binary values)
-					sensorDoc.lightLevel = value; // Keep raw 0/1 value
-					break;
-				case 'height':
-					sensorDoc.plantHeight = value;
-					break;
-				case 'rain':
-					// For rain sensor: 0 = no rain, 1 = raining (raw binary values)
-					sensorDoc.rainStatus = value === 1; // Convert 1 to true, 0 to false
-					break;
-			}
+			// Update existing document with new sensor data
+			Object.assign(sensorDoc, newData);
 
 			// Update quality based on how many sensors have data
 			const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'lightLevel'];
@@ -686,11 +660,18 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 				(sensorDoc as any)[field] != null
 			).length;
 			sensorDoc.dataQuality = filledSensors >= 4 ? 'complete' : 'partial';
+		}
 
+		// Auto-merge check for duplicate timestamps
+		const dataMergerService = DataMergerService.getInstance();
+		const wasMerged = await dataMergerService.autoMergeOnDataReceive(newData);
+
+		// Only save if not merged (merged data is already saved)
+		if (!wasMerged && sensorDoc) {
 			await sensorDoc.save();
 		}
 
-		console.log(`💾 Saved ${sensorType} sensor data: ${value}`);
+		console.log(`💾 Saved ${sensorType} sensor data: ${value} ${wasMerged ? '(merged)' : ''}`);
 
 	} catch (error) {
 		console.error(`❌ Error saving sensor data to database:`, error);
@@ -785,6 +766,11 @@ async function startServer() {
 		// Initialize WebSocket service
 		webSocketService.initialize(httpServer);
 		console.log('✅ WebSocket service initialized');
+
+		// Initialize Data Merger Service and start periodic merge
+		const dataMergerService = DataMergerService.getInstance();
+		await dataMergerService.schedulePeriodicMerge(30); // Every 30 minutes
+		console.log('✅ Data merger service initialized');
 
 		// Start Express server
 		const server = httpServer.listen(PORT, () => {

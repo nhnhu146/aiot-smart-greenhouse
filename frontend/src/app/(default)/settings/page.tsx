@@ -415,49 +415,21 @@ const SettingsPage = () => {
 									</Row>
 								</Col>
 
-								{/* Soil Moisture Settings */}
+								{/* Soil Moisture Settings - Removed thresholds, auto-alert when dry */}
 								<Col md={6} className="mb-4">
 									<h6>🌱 Soil Moisture (Binary)</h6>
-									<Row>
-										<Col>
-											<Form.Group className="mb-2">
-												<Form.Label>Minimum (0=Dry, 1=Wet)</Form.Label>
-												<Form.Control
-													type="number"
-													min="0"
-													max="1"
-													step="1"
-													value={thresholds.soilMoistureThreshold.min}
-													onChange={(e) => setThresholds({
-														...thresholds,
-														soilMoistureThreshold: {
-															...thresholds.soilMoistureThreshold,
-															min: Number(e.target.value)
-														}
-													})}
-												/>
-											</Form.Group>
-										</Col>
-										<Col>
-											<Form.Group className="mb-2">
-												<Form.Label>Maximum (0=Dry, 1=Wet)</Form.Label>
-												<Form.Control
-													type="number"
-													min="0"
-													max="1"
-													step="1"
-													value={thresholds.soilMoistureThreshold.max}
-													onChange={(e) => setThresholds({
-														...thresholds,
-														soilMoistureThreshold: {
-															...thresholds.soilMoistureThreshold,
-															max: Number(e.target.value)
-														}
-													})}
-												/>
-											</Form.Group>
-										</Col>
-									</Row>
+									<div className="alert alert-info">
+										<small>
+											<strong>Auto-Alert:</strong> Tự động gửi cảnh báo khi khô (0).<br />
+											<strong>Không cần cấu hình:</strong> Ngưỡng đã được loại bỏ.
+										</small>
+									</div>
+									<div className="text-muted">
+										<small>
+											• 0 = Khô (Dry) → Gửi cảnh báo tự động<br />
+											• 1 = Ẩm (Wet) → Không cảnh báo
+										</small>
+									</div>
 								</Col>
 
 								{/* Water Level Settings */}

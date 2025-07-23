@@ -10,6 +10,7 @@ import settingsRouter from './settings';
 import alertsRouter from './alerts';
 import authRouter from './auth';
 import userSettingsRouter from './userSettings';
+import dataRouter from './data';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use('/settings', settingsRouter);
 router.use('/alerts', alertsRouter);
 router.use('/auth', authRouter);
 router.use('/user-settings', userSettingsRouter);
+router.use('/data', dataRouter);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
