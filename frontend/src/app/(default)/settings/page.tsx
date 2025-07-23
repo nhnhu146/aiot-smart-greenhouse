@@ -45,6 +45,10 @@ const SettingsPage = () => {
 		waterLevel: true
 	});
 
+	// Alert frequency settings
+	const [alertFrequency, setAlertFrequency] = useState<number>(5); // minutes
+	const [batchAlerts, setBatchAlerts] = useState<boolean>(true);
+
 	const [newEmail, setNewEmail] = useState('');
 	const [emailError, setEmailError] = useState('');
 	const [message, setMessage] = useState<SystemMessage | null>(null);
@@ -68,6 +72,8 @@ const SettingsPage = () => {
 		soilMoisture: true,
 		waterLevel: true
 	});
+	const [originalAlertFrequency, setOriginalAlertFrequency] = useState<number>(5);
+	const [originalBatchAlerts, setOriginalBatchAlerts] = useState<boolean>(true);
 
 	const loadSettings = useCallback(async () => {
 		try {
@@ -97,6 +103,16 @@ const SettingsPage = () => {
 				if (response.data.emailAlerts) {
 					setEmailAlerts(response.data.emailAlerts);
 					setOriginalEmailAlerts(response.data.emailAlerts);
+				}
+
+				// Load alert frequency settings
+				if (response.data.notifications?.alertFrequency) {
+					setAlertFrequency(response.data.notifications.alertFrequency);
+					setOriginalAlertFrequency(response.data.notifications.alertFrequency);
+				}
+				if (response.data.notifications?.batchAlerts !== undefined) {
+					setBatchAlerts(response.data.notifications.batchAlerts);
+					setOriginalBatchAlerts(response.data.notifications.batchAlerts);
 				}
 
 				// Reset unsaved changes flag after loading
@@ -244,12 +260,20 @@ const SettingsPage = () => {
 			// Save email alert configuration
 			await apiClient.saveEmailAlerts(emailAlerts);
 
+			// Save alert frequency settings
+			await apiClient.saveAlertFrequencySettings({
+				alertFrequency,
+				batchAlerts
+			});
+
 			// Update original values
 			setOriginalEmailRecipients([...emailRecipients]);
 			setOriginalEmailAlerts({ ...emailAlerts });
+			setOriginalAlertFrequency(alertFrequency);
+			setOriginalBatchAlerts(batchAlerts);
 			setHasUnsavedChanges(false);
 
-			showMessage('success', 'Email settings saved successfully!');
+			showMessage('success', 'Alert settings saved successfully!');
 		} catch (error) {
 			showMessage('error', 'Failed to save email settings');
 		} finally {
@@ -600,6 +624,47 @@ const SettingsPage = () => {
 												waterLevel: e.target.checked
 											})}
 										/>
+									</Col>
+								</Row>
+							</div>
+
+							{/* Alert Frequency Settings */}
+							<div className="mb-4">
+								<h6>⏰ Alert Frequency</h6>
+								<p className="text-muted">Configure how often system alerts are sent (email, push notifications, etc.)</p>
+
+								<Row>
+									<Col md={6}>
+										<Form.Group className="mb-3">
+											<Form.Label>Alert Frequency (minutes)</Form.Label>
+											<Form.Control
+												type="number"
+												min="1"
+												max="60"
+												value={alertFrequency}
+												onChange={(e) => setAlertFrequency(Number(e.target.value))}
+											/>
+											<Form.Text className="text-muted">
+												How often to send system alerts (1-60 minutes)
+											</Form.Text>
+										</Form.Group>
+									</Col>
+									<Col md={6}>
+										<Form.Group className="mb-3">
+											<Form.Check
+												type="switch"
+												id="batch-alerts-switch"
+												label="📬 Batch Alerts"
+												checked={batchAlerts}
+												onChange={(e) => setBatchAlerts(e.target.checked)}
+											/>
+											<Form.Text className="text-muted">
+												{batchAlerts
+													? `Group multiple alerts into single notification every ${alertFrequency} minutes`
+													: 'Send individual notifications immediately for each alert'
+												}
+											</Form.Text>
+										</Form.Group>
 									</Col>
 								</Row>
 							</div>

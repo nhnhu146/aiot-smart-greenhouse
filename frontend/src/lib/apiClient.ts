@@ -90,6 +90,13 @@ class ApiClient {
 		});
 	}
 
+	async saveAlertFrequencySettings(settings: { alertFrequency: number; batchAlerts: boolean }): Promise<{ success: boolean; message: string }> {
+		return this.request('/api/settings/alert-frequency', {
+			method: 'POST',
+			body: JSON.stringify(settings),
+		});
+	}
+
 	async testEmail(recipients: string[]): Promise<{ success: boolean; message: string }> {
 		return this.request('/api/settings/test-email', {
 			method: 'POST',

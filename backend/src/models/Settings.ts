@@ -79,7 +79,7 @@ const SettingsSchema: Schema = new Schema({
 			type: [String],
 			default: []
 		},
-		emailFrequency: {
+		alertFrequency: {
 			type: Number,
 			default: 5,  // 5 minutes default
 			min: 1,      // minimum 1 minute

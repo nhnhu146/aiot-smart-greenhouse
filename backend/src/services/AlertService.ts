@@ -27,15 +27,16 @@ class AlertService {
 		waterLevel: true
 	};
 
-	// Batch email properties
+	// Batch alert properties
 	private pendingAlerts: any[] = [];
-	private batchEmailTimer: NodeJS.Timeout | null = null;
-	private emailFrequency: number = 5; // minutes
+	private batchAlertTimer: NodeJS.Timeout | null = null;
+	private alertFrequency: number = 5; // minutes
 	private batchAlerts: boolean = true;
 
 	constructor() {
 		this.loadThresholds();
 		this.loadEmailRecipients();
+		this.startBatchAlertTimer();
 	}
 
 	// Load email recipients and email alert settings from database
@@ -56,6 +57,13 @@ class AlertService {
 				console.log('📧 Email alert settings loaded:', this.emailAlerts);
 			} else {
 				console.log('⚠️ No email alert settings found, using defaults');
+			}
+
+			// Load alert frequency and batch settings
+			if (settings && settings.notifications) {
+				this.alertFrequency = (settings.notifications as any).alertFrequency || 5;
+				this.batchAlerts = (settings.notifications as any).batchAlerts !== false;
+				console.log(`⏰ Alert frequency: ${this.alertFrequency} minutes, Batch: ${this.batchAlerts}`);
 			}
 		} catch (error) {
 			console.error('❌ Error loading email recipients and alert settings:', error);
@@ -510,6 +518,27 @@ class AlertService {
 		});
 
 		return summary;
+	}
+
+	// Start batch alert timer
+	private startBatchAlertTimer(): void {
+		if (!this.batchAlerts) {
+			console.log('📧 Batch alerts disabled, skipping timer');
+			return;
+		}
+
+		// Clear existing timer
+		if (this.batchAlertTimer) {
+			clearInterval(this.batchAlertTimer);
+		}
+
+		// Set new timer
+		const intervalMs = this.alertFrequency * 60 * 1000;
+		this.batchAlertTimer = setInterval(() => {
+			this.processBatchedAlerts();
+		}, intervalMs);
+
+		console.log(`⏰ Batch alert timer started: ${this.alertFrequency} minute intervals`);
 	}
 }
 

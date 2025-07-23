@@ -250,6 +250,59 @@ router.get('/email-status', asyncHandler(async (req: Request, res: Response) => 
 }));
 
 /**
+ * @route POST /api/settings/alert-frequency - Save alert frequency settings
+ * @desc Save alert frequency and batch alert settings
+ * @access Public
+ */
+router.post('/alert-frequency', asyncHandler(async (req: Request, res: Response) => {
+	const { alertFrequency, batchAlerts } = req.body;
+
+	// Validate inputs
+	if (!alertFrequency || alertFrequency < 1 || alertFrequency > 60) {
+		const response: APIResponse = {
+			success: false,
+			message: 'Alert frequency must be between 1 and 60 minutes',
+			timestamp: new Date().toISOString()
+		};
+		res.status(400).json(response);
+		return;
+	}
+
+	try {
+		const settings = await Settings.findOneAndUpdate(
+			{},
+			{
+				$set: {
+					'notifications.alertFrequency': alertFrequency,
+					'notifications.batchAlerts': batchAlerts
+				}
+			},
+			{ upsert: true, new: true }
+		);
+
+		// Reload alert service to apply new frequency settings
+		await alertService.loadEmailRecipients();
+
+		const response: APIResponse = {
+			success: true,
+			data: { alertFrequency, batchAlerts },
+			message: 'Alert frequency settings saved successfully',
+			timestamp: new Date().toISOString()
+		};
+
+		res.json(response);
+	} catch (error) {
+		console.error('Error saving alert frequency settings:', error);
+		const response: APIResponse = {
+			success: false,
+			message: 'Failed to save alert frequency settings',
+			timestamp: new Date().toISOString()
+		};
+		res.status(500).json(response);
+	}
+}));
+
+/**
  * @route POST /api/settings/reset - Reset to default settings
  * @desc Reset all settings to default values
  * @access Public
