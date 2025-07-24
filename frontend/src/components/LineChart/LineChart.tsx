@@ -202,10 +202,18 @@ const AppLineChart: React.FC = () => {
 				ticks: {
 					display: false, // Remove y-axis value labels
 				},
+				title: {
+					display: true,
+					text: 'Value',
+				},
 			},
 			x: {
 				ticks: {
 					display: false, // Remove x-axis value labels
+				},
+				title: {
+					display: true,
+					text: 'Time',
 				},
 			},
 		},

@@ -218,8 +218,8 @@ const History = () => {
 												'N/A'
 									}</span>
 									<span className={styles.sensorItem}><b>Rain Status:</b> {
-										entry.rainStatus === true ? '🌧️ Raining' :
-											entry.rainStatus === false ? '☀️ No Rain' :
+										(entry.rainStatus === 1 || entry.rainStatus === true) ? '🌧️ Raining' :
+											(entry.rainStatus === 0 || entry.rainStatus === false) ? '☀️ No Rain' :
 												'N/A'
 									}</span>
 									<span className={styles.sensorItem}><b>Plant Height:</b> {entry.plantHeight?.toFixed(1) || 'N/A'}cm</span>

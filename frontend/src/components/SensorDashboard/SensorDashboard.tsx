@@ -90,7 +90,7 @@ const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color
 		}
 	} else {
 		// For other sensors, display "N/A" if value is invalid or empty
-		displayValue = value === '--' || value === '0' || value === '' || value === null || value === undefined ? 'N/A' : value;
+		displayValue = value === '--' || value === '' || value === null || value === undefined ? 'N/A' : value;
 	}
 
 	const isValidValue = displayValue !== 'N/A';

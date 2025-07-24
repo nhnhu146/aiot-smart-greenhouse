@@ -54,27 +54,25 @@ const MqttExamples = () => {
 			]
 		},
 		{
-			name: "Water Level",
+			name: "Water Level (Binary)",
 			topic: "greenhouse/sensors/water",
-			dataType: "Number",
-			unit: "%",
-			description: "Mức nước trong bình chứa",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Mức nước trong bình chứa (nhị phân: 0=bình thường, 1=ngập nước)",
 			examples: [
-				{ description: "Mức nước đầy", value: 100 },
-				{ description: "Mức nước trung bình", value: 50 },
-				{ description: "Mức nước thấp", value: 20 }
+				{ description: "Mức nước bình thường", value: 0 },
+				{ description: "Ngập nước (báo động)", value: 1 }
 			]
 		},
 		{
-			name: "Light Intensity",
+			name: "Light Level (Binary)",
 			topic: "greenhouse/sensors/light",
-			dataType: "Number",
-			unit: "lux",
-			description: "Cường độ ánh sáng môi trường",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Cường độ ánh sáng môi trường (nhị phân: 0=tối, 1=sáng)",
 			examples: [
-				{ description: "Ban ngày tươi sáng", value: 25000 },
-				{ description: "Buổi sáng/chiều", value: 8000 },
-				{ description: "Tối hoặc có mây", value: 200 }
+				{ description: "Tối (cần bật đèn)", value: 0 },
+				{ description: "Sáng (đủ ánh sáng)", value: 1 }
 			]
 		},
 		{
@@ -90,11 +88,11 @@ const MqttExamples = () => {
 			]
 		},
 		{
-			name: "Rain Detection",
+			name: "Rain Detection (Binary)",
 			topic: "greenhouse/sensors/rain",
 			dataType: "Binary",
 			unit: "0/1",
-			description: "Phát hiện mưa (0=không mưa, 1=có mưa)",
+			description: "Phát hiện mưa (nhị phân: 0=không mưa, 1=có mưa)",
 			examples: [
 				{ description: "Trời khô ráo", value: 0 },
 				{ description: "Đang có mưa", value: 1 }

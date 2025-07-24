@@ -15,7 +15,8 @@
  */
 void sendWaterLevelValue(int waterLevel) {
   // Convert to binary: 0 = normal (no flood), 1 = flooded
-  int binaryValue = (waterLevel == 0) ? 1 : 0; // Float switch: LOW = water present (flood)
+  // Float switch: HIGH (1) = no water (normal), LOW (0) = water present (flooded)
+  int binaryValue = (waterLevel == 1) ? 0 : 1; // Correct logic: 1=normal, 0=flooded input -> 0=normal, 1=flooded output
   String payload = String(binaryValue);
   client.publish(water_level_topic, payload.c_str());
   Serial.println("Sent water level (binary): " + payload + " (0=normal, 1=flooded)");
@@ -51,6 +52,7 @@ const char* humidity_topic     = "greenhouse/sensors/humidity";
 const char* soil_moisture_topic= "greenhouse/sensors/soil";
 const char* light_level_topic  = "greenhouse/sensors/light";
 const char* water_level_topic  = "greenhouse/sensors/water";
+const char* rain_status_topic  = "greenhouse/sensors/rain";
 
 // LCD setup for 16x2 I2C display at address 0x27
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -205,7 +207,7 @@ void loop() {
     sendHumidityValue(h);
     sendSoilMoistureValue(moisture);
     sendLightLevelValue(Photon_value);
-    sendRainSensorValue(rainvalue);
+    sendRainStatusValue(rainvalue);
     
     // FR-006: Gửi dữ liệu chiều cao cây (plant height)
     sendPlantHeightValue(distanceCm);
@@ -413,10 +415,22 @@ void sendSoilMoistureValue(int moisture) {
  *
  * @return void
  */
+/**
+ * @brief Publishes the water level value to the MQTT broker.
+ *
+ * Converts the water level value to binary: 0 = normal, 1 = flooded
+ *
+ * @param[in] waterLevel The water level measured by float switch (0 or 1).
+ *
+ * @return void
+ */
 void sendWaterLevelValue(int waterLevel) {
-  String payload = String(waterLevel);
+  // Convert to binary: 0 = normal (no flood), 1 = flooded
+  // Float switch: HIGH (1) = no water (normal), LOW (0) = water present (flooded)
+  int binaryValue = (waterLevel == 1) ? 0 : 1; // Correct logic: 1=normal, 0=flooded input -> 0=normal, 1=flooded output
+  String payload = String(binaryValue);
   client.publish(water_level_topic, payload.c_str());
-  Serial.println("Sent water level: " + payload);
+  Serial.println("Sent water level (binary): " + payload + " (0=normal, 1=flooded)");
 }
 
 /**
@@ -445,9 +459,13 @@ void sendLightLevelValue(int lightLevel) {
  *
  * @return void
  */
-void sendRainSensorValue(int rain) {
+void sendRainStatusValue(int rain) {
   // Convert to binary: 0 = no rain, 1 = raining (threshold: 500)
   int binaryValue = (rain < 500) ? 1 : 0; // Lower analog value = more moisture = rain
+  String payload = String(binaryValue);
+  client.publish(rain_status_topic, payload.c_str());
+  Serial.println("Sent rain status (binary): " + payload + " (0=no rain, 1=raining) - Raw: " + String(rain));
+}
   String payload = String(binaryValue);
   client.publish("greenhouse/sensors/rain", payload.c_str());
   Serial.println("Sent rain (binary): " + payload + " (0=no rain, 1=raining) - Raw: " + String(rain));
