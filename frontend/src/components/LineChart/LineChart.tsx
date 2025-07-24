@@ -186,11 +186,27 @@ const AppLineChart: React.FC = () => {
 				display: true,
 				text: 'Sensor Data Trends (Last 24 Hours)',
 			},
+			tooltip: {
+				enabled: true,
+			},
+		},
+		elements: {
+			point: {
+				pointStyle: false as const, // Remove point markers
+			},
 		},
 		scales: {
 			y: {
 				beginAtZero: true,
 				suggestedMax: 100,
+				ticks: {
+					display: false, // Remove y-axis value labels
+				},
+			},
+			x: {
+				ticks: {
+					display: false, // Remove x-axis value labels
+				},
 			},
 		},
 	};

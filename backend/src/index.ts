@@ -569,11 +569,11 @@ function setupMQTTHandlers() {
 
 				// Record automatic device controls based on sensor readings
 				if (sensorType === 'light' && typeof sensorValue === 'number') {
-					const shouldTurnOn = sensorValue < 500;
+					const shouldTurnOn = sensorValue === 0; // Binary: 0 = dark, turn on light
 					const currentTime = Date.now();
 					// Simple state tracking to avoid duplicate recordings
 					if (!lastLightAutomation || currentTime - lastLightAutomation > 60000) {
-						await recordAutomationHistory('light', shouldTurnOn ? 'HIGH' : 'LOW', `Light sensor: ${sensorValue} < 500`);
+						await recordAutomationHistory('light', shouldTurnOn ? 'HIGH' : 'LOW', `Light sensor: ${sensorValue === 0 ? 'dark' : 'bright'}`);
 						lastLightAutomation = currentTime;
 					}
 				}
@@ -629,17 +629,18 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 				newData.soilMoisture = value; // Keep raw 0/1 value
 				break;
 			case 'water':
-				newData.waterLevel = value;
+				// For water level: 0 = normal, 1 = flooded (binary values)
+				newData.waterLevel = value; // Keep raw 0/1 value
 				break;
 			case 'light':
-				// For light sensor: 0 = dark, 1 = bright (raw binary values)
+				// For light sensor: 0 = dark, 1 = bright (binary values)
 				newData.lightLevel = value; // Keep raw 0/1 value
 				break;
 			case 'height':
 				newData.plantHeight = value;
 				break;
 			case 'rain':
-				// For rain sensor: 0 = no rain, 1 = raining (raw binary values)
+				// For rain sensor: 0 = no rain, 1 = raining (binary values)
 				newData.rainStatus = value === 1; // Convert 1 to true, 0 to false
 				break;
 			default:

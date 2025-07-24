@@ -207,6 +207,16 @@ const History = () => {
 											entry.soilMoisture === 0 ? 'Dry' :
 												'N/A'
 									}</span>
+									<span className={styles.sensorItem}><b>Water Level:</b> {
+										entry.waterLevel === 1 ? '🌊 Flooded' :
+											entry.waterLevel === 0 ? '✅ Normal' :
+												'N/A'
+									}</span>
+									<span className={styles.sensorItem}><b>Light Level:</b> {
+										entry.lightLevel === 1 ? '☀️ Bright' :
+											entry.lightLevel === 0 ? '🌙 Dark' :
+												'N/A'
+									}</span>
 									<span className={styles.sensorItem}><b>Rain Status:</b> {
 										entry.rainStatus === true ? '🌧️ Raining' :
 											entry.rainStatus === false ? '☀️ No Rain' :

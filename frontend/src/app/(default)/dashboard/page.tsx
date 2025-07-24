@@ -455,7 +455,7 @@ const Dashboard = () => {
 									🤖 <strong>Automation Active:</strong> Devices are being controlled automatically based on sensor readings.
 									<br />
 									<small>
-										• Light: ON when light level &lt; 500 |
+										• Light: ON when light level = 0 (dark) |
 										• Pump: ON when soil moisture = 0 (dry) |
 										• Devices controlled automatically
 									</small>

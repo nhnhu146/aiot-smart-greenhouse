@@ -4,7 +4,22 @@
 #include <DHT.h>                // For DHT temperature and humidity sensor
 #include <Wire.h>               // For I2C communication
 #include <LiquidCrystal_I2C.h>  // For LCD display via I2C
-#include <esp_task_wdt.h>       // For watchdog timer
+#include <es/**
+ * @brief Publishes the water level value to the MQTT broker.
+ *
+ * Converts the water level value to binary: 0 = normal, 1 = flooded
+ *
+ * @param[in] waterLevel The water level measured by float switch (0 or 1).
+ *
+ * @return void
+ */
+void sendWaterLevelValue(int waterLevel) {
+  // Convert to binary: 0 = normal (no flood), 1 = flooded
+  int binaryValue = (waterLevel == 0) ? 1 : 0; // Float switch: LOW = water present (flood)
+  String payload = String(binaryValue);
+  client.publish(water_level_topic, payload.c_str());
+  Serial.println("Sent water level (binary): " + payload + " (0=normal, 1=flooded)");
+}     // For watchdog timer
 
 // ==============================
 // Wi-Fi Configuration
@@ -407,33 +422,35 @@ void sendWaterLevelValue(int waterLevel) {
 /**
  * @brief Publishes the light level value to the MQTT broker.
  *
- * Converts the light level value to a string and publishes it to the configured
- * `light_level_topic`.
+ * Converts the light level value to binary: 0 = dark, 1 = bright
  *
  * @param[in] lightLevel The light level measured by the photonresistor.
  *
  * @return void
  */
 void sendLightLevelValue(int lightLevel) {
-  String payload = String(lightLevel);
+  // Convert to binary: 0 = dark, 1 = bright (threshold: 500)
+  int binaryValue = (lightLevel > 500) ? 1 : 0;
+  String payload = String(binaryValue);
   client.publish(light_level_topic, payload.c_str());
-  Serial.println("Sent light level: " + payload);
+  Serial.println("Sent light level (binary): " + payload + " (0=dark, 1=bright) - Raw: " + String(lightLevel));
 }
 
 /**
  * @brief Publishes the rain sensor value to the MQTT broker.
  *
- * Converts the rain sensor value to a string and publishes it to the configured
- * `rain_sensor_topic`.
+ * Converts the rain sensor value to binary: 0 = no rain, 1 = raining
  *
  * @param[in] rain The rain sensor value.
  *
  * @return void
  */
 void sendRainSensorValue(int rain) {
-  String payload = String(rain);
+  // Convert to binary: 0 = no rain, 1 = raining (threshold: 500)
+  int binaryValue = (rain < 500) ? 1 : 0; // Lower analog value = more moisture = rain
+  String payload = String(binaryValue);
   client.publish("greenhouse/sensors/rain", payload.c_str());
-  Serial.println("Sent rain: " + payload);
+  Serial.println("Sent rain (binary): " + payload + " (0=no rain, 1=raining) - Raw: " + String(rain));
 }
 
 /**

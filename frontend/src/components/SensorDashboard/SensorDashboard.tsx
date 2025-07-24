@@ -40,7 +40,7 @@ interface SensorCardProps {
 }
 
 const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color }) => {
-	// Special handling for soil moisture (binary values)
+	// Special handling for binary sensors
 	let displayValue = value;
 	let displayUnit = unit;
 
@@ -50,6 +50,39 @@ const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color
 			displayUnit = '';
 		} else if (value === '0') {
 			displayValue = 'Dry';
+			displayUnit = '';
+		} else if (value === '--' || value === '' || value === null || value === undefined) {
+			displayValue = 'N/A';
+			displayUnit = '';
+		}
+	} else if (title === 'Water Level') {
+		if (value === '1') {
+			displayValue = 'Flooded';
+			displayUnit = '';
+		} else if (value === '0') {
+			displayValue = 'Normal';
+			displayUnit = '';
+		} else if (value === '--' || value === '' || value === null || value === undefined) {
+			displayValue = 'N/A';
+			displayUnit = '';
+		}
+	} else if (title === 'Light Level') {
+		if (value === '1') {
+			displayValue = 'Bright';
+			displayUnit = '';
+		} else if (value === '0') {
+			displayValue = 'Dark';
+			displayUnit = '';
+		} else if (value === '--' || value === '' || value === null || value === undefined) {
+			displayValue = 'N/A';
+			displayUnit = '';
+		}
+	} else if (title === 'Rain Status') {
+		if (value === '1' || value === 'true') {
+			displayValue = 'Raining';
+			displayUnit = '';
+		} else if (value === '0' || value === 'false') {
+			displayValue = 'No Rain';
 			displayUnit = '';
 		} else if (value === '--' || value === '' || value === null || value === undefined) {
 			displayValue = 'N/A';
@@ -163,28 +196,28 @@ const SensorDashboard: React.FC = () => {
 		{
 			key: 'soil',
 			title: 'Soil Moisture',
-			unit: '',
+			unit: '', // Binary: Wet/Dry
 			icon: '🌱',
 			color: 'success'
 		},
 		{
 			key: 'water',
 			title: 'Water Level',
-			unit: '',
+			unit: '', // Binary: Normal/Flooded
 			icon: '🚰',
 			color: 'primary'
 		},
 		{
 			key: 'light',
 			title: 'Light Level',
-			unit: 'lux',
+			unit: '', // Binary: Dark/Bright
 			icon: '☀️',
 			color: 'warning'
 		},
 		{
 			key: 'rain',
 			title: 'Rain Status',
-			unit: '',
+			unit: '', // Binary: No Rain/Raining
 			icon: '🌧️',
 			color: 'secondary'
 		},

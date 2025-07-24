@@ -11,6 +11,8 @@ interface ChartDataPoint {
 	temperature: number;
 	humidity: number;
 	soilMoisture: number;
+	waterLevel?: number; // Binary: 0 = normal, 1 = flooded
+	lightLevel?: number; // Binary: 0 = dark, 1 = bright
 	plantHeight?: number; // Plant height in cm
 	rainStatus?: boolean; // Rain status
 }
@@ -87,6 +89,8 @@ class MockDataService {
 				temperature: 20 + Math.random() * 15, // 20-35°C
 				humidity: 40 + Math.random() * 40,    // 40-80%
 				soilMoisture: Math.random() > 0.3 ? 1 : 0, // Binary: 70% wet (1), 30% dry (0)
+				waterLevel: Math.random() > 0.9 ? 1 : 0,   // Binary: 10% chance of flooding (1)
+				lightLevel: Math.random() > 0.5 ? 1 : 0,   // Binary: 50% chance of bright (1)
 				rainStatus: Math.random() > 0.7,     // 30% chance of rain
 				plantHeight: 10 + Math.random() * 20   // 10-30cm
 			});
@@ -193,7 +197,10 @@ class MockDataService {
 					temperature: sensor.temperature,
 					humidity: sensor.humidity,
 					soilMoisture: sensor.soilMoisture,
-					plantHeight: sensor.plantHeight
+					waterLevel: sensor.waterLevel,
+					lightLevel: sensor.lightLevel,
+					plantHeight: sensor.plantHeight,
+					rainStatus: sensor.rainStatus
 				}));
 
 				return { data: mappedData, isMock: false };

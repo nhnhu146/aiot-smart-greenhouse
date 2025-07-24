@@ -413,19 +413,20 @@ export class EmailService {
 			const sensorType = this.formatSensorType(alert.type);
 			const currentValue = this.formatCurrentValue(alert);
 			const threshold = this.formatThreshold(alert.threshold);
+			const message = alert.message || 'Sensor value detected';
 
 			return `
-			<div class="alert-item ${alert.level}">
+			<div class="alert-item ${alert.level || 'medium'}">
 				<div class="alert-header">
 					<div class="alert-type">${sensorType}</div>
-					<div class="alert-level ${alert.level}">${alert.level}</div>
+					<div class="alert-level ${alert.level || 'medium'}">${(alert.level || 'medium').toUpperCase()}</div>
 				</div>
 				<div class="alert-details">
 					<strong>Current Value:</strong> ${currentValue}<br>
 					<strong>Threshold:</strong> ${threshold}<br>
-					<strong>Message:</strong> ${alert.message}
+					<strong>Message:</strong> ${message}
 				</div>
-				<div class="alert-time">${new Date(alert.timestamp).toLocaleString()}</div>
+				<div class="alert-time">${alert.timestamp ? new Date(alert.timestamp).toLocaleString() : 'N/A'}</div>
 			</div>`;
 		}).join('');
 	}
@@ -437,21 +438,41 @@ export class EmailService {
 			case 'humidity': return '💧 Humidity';
 			case 'soilMoisture': return '🌱 Soil Moisture';
 			case 'waterLevel': return '🚰 Water Level';
-			default: return `⚠️ ${type}`;
+			case 'lightLevel': return '☀️ Light Level';
+			case 'rainStatus': return '🌧️ Rain Status';
+			case 'plantHeight': return '📏 Plant Height';
+			default: return `⚠️ ${type || 'Unknown Sensor'}`;
 		}
 	}
 
 	// Format current value for display
 	private formatCurrentValue(alert: any): string {
+		if (alert.currentValue === null || alert.currentValue === undefined) {
+			return 'N/A';
+		}
+
 		if (alert.type === 'soilMoisture') {
 			return alert.currentValue === 0 ? 'Dry (0)' : alert.currentValue === 1 ? 'Wet (1)' : `${alert.currentValue}`;
 		}
+
+		if (alert.type === 'waterLevel') {
+			return alert.currentValue === 0 ? 'Normal (0)' : alert.currentValue === 1 ? 'Flooded (1)' : `${alert.currentValue}`;
+		}
+
+		if (alert.type === 'lightLevel') {
+			return alert.currentValue === 0 ? 'Dark (0)' : alert.currentValue === 1 ? 'Bright (1)' : `${alert.currentValue}`;
+		}
+
+		if (alert.type === 'rainStatus') {
+			return alert.currentValue === 0 ? 'No Rain (0)' : alert.currentValue === 1 ? 'Raining (1)' : `${alert.currentValue}`;
+		}
+
 		return `${alert.currentValue}${this.getUnit(alert.type)}`;
 	}
 
 	// Format threshold for display
 	private formatThreshold(threshold: any): string {
-		if (!threshold || threshold === null) {
+		if (!threshold || threshold === null || threshold === undefined) {
 			return 'Auto-alert (no threshold)';
 		}
 		if (threshold.min !== undefined && threshold.max !== undefined) {
@@ -463,7 +484,7 @@ export class EmailService {
 		if (threshold.max !== undefined) {
 			return `Max: ${threshold.max}`;
 		}
-		return 'N/A';
+		return 'Auto-alert (binary sensor)';
 	}
 
 	// Get unit for sensor type
@@ -471,7 +492,11 @@ export class EmailService {
 		switch (type) {
 			case 'temperature': return '°C';
 			case 'humidity': return '%';
-			case 'waterLevel': return '%';
+			case 'waterLevel': return '';
+			case 'plantHeight': return 'cm';
+			case 'soilMoisture': return '';
+			case 'lightLevel': return '';
+			case 'rainStatus': return '';
 			default: return '';
 		}
 	}
