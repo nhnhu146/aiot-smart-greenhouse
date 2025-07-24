@@ -675,23 +675,27 @@ class AlertService {
 	private groupAlertsByType(alerts: any[]) {
 		const summary = {
 			totalAlerts: alerts.length,
-			highPriority: 0,
-			mediumPriority: 0,
-			lowPriority: 0,
+			criticalCount: 0,
+			highCount: 0,
+			mediumCount: 0,
+			lowCount: 0,
 			alerts: alerts,
 			timestamp: new Date().toISOString()
 		};
 
 		alerts.forEach(alert => {
 			switch (alert.level) {
+				case 'critical':
+					summary.criticalCount++;
+					break;
 				case 'high':
-					summary.highPriority++;
+					summary.highCount++;
 					break;
 				case 'medium':
-					summary.mediumPriority++;
+					summary.mediumCount++;
 					break;
 				default:
-					summary.lowPriority++;
+					summary.lowCount++;
 			}
 		});
 

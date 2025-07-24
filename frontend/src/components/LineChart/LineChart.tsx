@@ -189,6 +189,9 @@ const AppLineChart: React.FC = () => {
 			tooltip: {
 				enabled: true,
 			},
+			datalabels: {
+				display: false, // Remove value labels on data points
+			},
 		},
 		elements: {
 			point: {
@@ -200,7 +203,7 @@ const AppLineChart: React.FC = () => {
 				beginAtZero: true,
 				suggestedMax: 100,
 				ticks: {
-					display: false, // Remove y-axis value labels
+					display: true, // Show y-axis tick labels
 				},
 				title: {
 					display: true,
@@ -209,7 +212,7 @@ const AppLineChart: React.FC = () => {
 			},
 			x: {
 				ticks: {
-					display: false, // Remove x-axis value labels
+					display: true, // Show x-axis tick labels (time)
 				},
 				title: {
 					display: true,
