@@ -296,6 +296,62 @@ const ApiExamples = () => {
 				{ description: "Đất khô (cần tưới)", value: 0 },
 				{ description: "Đất ẩm (đủ nước)", value: 1 }
 			]
+		},
+		{
+			name: "Water Level (Binary)",
+			topic: "greenhouse/sensors/water",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Mức nước trong bình chứa (nhị phân: 0=bình thường, 1=ngập nước)",
+			examples: [
+				{ description: "Mức nước bình thường", value: 0 },
+				{ description: "Ngập nước (báo động)", value: 1 }
+			]
+		},
+		{
+			name: "Light Level (Binary)",
+			topic: "greenhouse/sensors/light",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Cường độ ánh sáng môi trường (nhị phân: 0=tối, 1=sáng)",
+			examples: [
+				{ description: "Tối (cần bật đèn)", value: 0 },
+				{ description: "Sáng (đủ ánh sáng)", value: 1 }
+			]
+		},
+		{
+			name: "Plant Height",
+			topic: "greenhouse/sensors/height",
+			dataType: "Number",
+			unit: "cm",
+			description: "Chiều cao cây trồng (đo bằng siêu âm)",
+			examples: [
+				{ description: "Cây con", value: 15 },
+				{ description: "Cây phát triển", value: 45 },
+				{ description: "Cây trưởng thành", value: 80 }
+			]
+		},
+		{
+			name: "Rain Detection (Binary)",
+			topic: "greenhouse/sensors/rain",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Phát hiện mưa (nhị phân: 0=không mưa, 1=có mưa)",
+			examples: [
+				{ description: "Trời khô ráo", value: 0 },
+				{ description: "Đang có mưa", value: 1 }
+			]
+		},
+		{
+			name: "Motion Detection (Binary)",
+			topic: "greenhouse/sensors/motion",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Phát hiện chuyển động (nhị phân: 0=không có, 1=có chuyển động)",
+			examples: [
+				{ description: "Không có chuyển động", value: 0 },
+				{ description: "Phát hiện chuyển động", value: 1 }
+			]
 		}
 	];
 
@@ -303,21 +359,41 @@ const ApiExamples = () => {
 		{
 			name: "Light Control",
 			topic: "greenhouse/devices/light/control",
-			dataType: "Boolean",
+			dataType: "Number",
 			description: "Điều khiển đèn LED chiếu sáng (ESP32 nhận 1/0)",
 			examples: [
-				{ description: "Bật đèn", value: true },
-				{ description: "Tắt đèn", value: false }
+				{ description: "Bật đèn", value: 1 },
+				{ description: "Tắt đèn", value: 0 }
 			]
 		},
 		{
 			name: "Pump Control",
 			topic: "greenhouse/devices/pump/control",
-			dataType: "Boolean",
+			dataType: "Number",
 			description: "Điều khiển máy bơm tưới nước (ESP32 nhận 1/0)",
 			examples: [
-				{ description: "Bật máy bơm", value: true },
-				{ description: "Tắt máy bơm", value: false }
+				{ description: "Bật máy bơm", value: 1 },
+				{ description: "Tắt máy bơm", value: 0 }
+			]
+		},
+		{
+			name: "Door Control",
+			topic: "greenhouse/devices/door/control",
+			dataType: "Number",
+			description: "Điều khiển servo motor cửa chính (ESP32 nhận 1/0)",
+			examples: [
+				{ description: "Mở cửa", value: 1 },
+				{ description: "Đóng cửa", value: 0 }
+			]
+		},
+		{
+			name: "Window Control",
+			topic: "greenhouse/devices/window/control",
+			dataType: "Number",
+			description: "Điều khiển servo motor cửa sổ thông gió (ESP32 nhận 1/0)",
+			examples: [
+				{ description: "Mở cửa sổ", value: 1 },
+				{ description: "Đóng cửa sổ", value: 0 }
 			]
 		}
 	];

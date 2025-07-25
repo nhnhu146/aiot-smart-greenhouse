@@ -23,7 +23,18 @@ class FrontendAutomationService {
 	async loadConfiguration(): Promise<AutomationConfig | null> {
 		try {
 			const response = await apiClient.getAutomationConfig();
-			this.config = response.data;
+
+			// Map backend structure to frontend structure
+			if (response.data) {
+				this.config = {
+					enabled: response.data.automationEnabled ?? false,
+					lightControl: response.data.lightControlEnabled ?? true,
+					pumpControl: response.data.pumpControlEnabled ?? true,
+					doorControl: response.data.doorControlEnabled ?? false,
+					windowControl: response.data.windowControlEnabled ?? true
+				};
+			}
+
 			this.notifyListeners();
 			return this.config;
 		} catch (error) {
@@ -35,8 +46,38 @@ class FrontendAutomationService {
 	// Update automation config via backend
 	async updateConfiguration(newConfig: Partial<AutomationConfig>): Promise<boolean> {
 		try {
-			const response = await apiClient.updateAutomationConfig(newConfig);
-			this.config = response.data;
+			// Map frontend structure to backend structure
+			const backendConfig: any = {};
+
+			if (newConfig.enabled !== undefined) {
+				backendConfig.automationEnabled = newConfig.enabled;
+			}
+			if (newConfig.lightControl !== undefined) {
+				backendConfig.lightControlEnabled = newConfig.lightControl;
+			}
+			if (newConfig.pumpControl !== undefined) {
+				backendConfig.pumpControlEnabled = newConfig.pumpControl;
+			}
+			if (newConfig.doorControl !== undefined) {
+				backendConfig.doorControlEnabled = newConfig.doorControl;
+			}
+			if (newConfig.windowControl !== undefined) {
+				backendConfig.windowControlEnabled = newConfig.windowControl;
+			}
+
+			const response = await apiClient.updateAutomationConfig(backendConfig);
+
+			// Map backend response back to frontend structure
+			if (response.data) {
+				this.config = {
+					enabled: response.data.automationEnabled ?? false,
+					lightControl: response.data.lightControlEnabled ?? true,
+					pumpControl: response.data.pumpControlEnabled ?? true,
+					doorControl: response.data.doorControlEnabled ?? false,
+					windowControl: response.data.windowControlEnabled ?? true
+				};
+			}
+
 			this.notifyListeners();
 			return true;
 		} catch (error) {

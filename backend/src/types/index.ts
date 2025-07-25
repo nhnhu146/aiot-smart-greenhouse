@@ -3,12 +3,12 @@ export interface SensorData {
 	// Remove timestamp since we use MongoDB's createdAt
 	temperature?: number | null;
 	humidity?: number | null;
-	soilMoisture?: boolean | null;
-	waterLevel?: boolean | null;
+	soilMoisture?: number | null; // Binary: 0 = dry, 1 = wet
+	waterLevel?: number | null; // Binary: 0 = normal, 1 = flooded
 	plantHeight?: number | null;
-	rainStatus?: boolean | null;
-	lightLevel?: boolean | null;
-	motionDetected?: boolean | null;
+	rainStatus?: number | null; // Binary: 0 = no rain, 1 = raining
+	lightLevel?: number | null; // Binary: 0 = dark, 1 = bright
+	motionDetected?: number | null; // Binary: 0 = no motion, 1 = motion detected
 	deviceId?: string;
 	dataQuality?: 'complete' | 'partial' | 'error';
 	createdAt?: Date;
@@ -65,6 +65,16 @@ export interface Settings {
 		pumpControl: boolean;
 		doorControl: boolean;
 		windowControl: boolean;
+		// Automation thresholds
+		lightThreshold: number; // 0 = dark (turn on light), 1 = bright (turn off light)
+		pumpThreshold: number; // 0 = dry (turn on pump), 1 = wet (turn off pump)
+		temperatureThreshold: {
+			windowOpen: number; // Temperature to open window
+			doorOpen: number; // Temperature to open door (emergency)
+		};
+		motionThreshold: {
+			doorOpen: boolean; // Whether to open door on motion
+		};
 		updatedAt: Date;
 	};
 	updatedAt?: Date;

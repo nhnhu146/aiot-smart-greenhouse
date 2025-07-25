@@ -97,6 +97,17 @@ const MqttExamples = () => {
 				{ description: "Trời khô ráo", value: 0 },
 				{ description: "Đang có mưa", value: 1 }
 			]
+		},
+		{
+			name: "Motion Detection (Binary)",
+			topic: "greenhouse/sensors/motion",
+			dataType: "Binary",
+			unit: "0/1",
+			description: "Phát hiện chuyển động (nhị phân: 0=không có, 1=có chuyển động)",
+			examples: [
+				{ description: "Không có chuyển động", value: 0 },
+				{ description: "Phát hiện chuyển động", value: 1 }
+			]
 		}
 	];
 
@@ -139,6 +150,16 @@ const MqttExamples = () => {
 			examples: [
 				{ description: "Mở cửa sổ", value: 1 },
 				{ description: "Đóng cửa sổ", value: 0 }
+			]
+		},
+		{
+			name: "Microphone Control",
+			topic: "greenhouse/devices/microphone/control",
+			dataType: "Number",
+			description: "Điều khiển microphone ghi âm (ESP32 nhận 1/0)",
+			examples: [
+				{ description: "Bật microphone", value: 1 },
+				{ description: "Tắt microphone", value: 0 }
 			]
 		}
 	];

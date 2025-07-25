@@ -16,7 +16,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 // Import services and middleware
-import { databaseService, mqttService, alertService, webSocketService, DataMergerService } from './services';
+import { databaseService, mqttService, alertService, webSocketService, DataMergerService, automationService } from './services';
 import { errorHandler, notFoundHandler } from './middleware';
 import routes from './routes';
 
@@ -600,7 +600,11 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 				break;
 			case 'rain':
 				// For rain sensor: 0 = no rain, 1 = raining (binary values)
-				newData.rainStatus = value === 1; // Convert 1 to true, 0 to false
+				newData.rainStatus = value; // Keep raw 0/1 value
+				break;
+			case 'motion':
+				// For motion sensor: 0 = no motion, 1 = motion detected (binary values)
+				newData.motionDetected = value; // Keep raw 0/1 value
 				break;
 			default:
 				console.warn(`🔍 Unknown sensor type: ${sensorType}`);

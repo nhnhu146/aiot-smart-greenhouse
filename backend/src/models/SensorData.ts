@@ -23,14 +23,14 @@ const SensorDataSchema: Schema = new Schema({
 		type: Number,
 		required: false, // Allow partial data saves
 		min: 0,
-		max: 1024, // ADC range for analog sensors
+		max: 1, // Binary: 0 = dry, 1 = wet (based on embedded.ino)
 		default: null
 	},
 	waterLevel: {
 		type: Number,
 		required: false, // Allow partial data saves
 		min: 0,
-		max: 100,
+		max: 1, // Binary: 0 = normal, 1 = flooded
 		default: null
 	},
 	plantHeight: {
@@ -41,20 +41,24 @@ const SensorDataSchema: Schema = new Schema({
 		default: null
 	},
 	rainStatus: {
-		type: Boolean,
+		type: Number,
 		required: false, // Allow partial data saves
+		min: 0,
+		max: 1, // Binary: 0 = no rain, 1 = raining (based on embedded.ino)
 		default: null
 	},
 	lightLevel: {
 		type: Number,
 		required: false,
 		min: 0,
-		max: 4095, // ADC range for ESP32
+		max: 1, // Binary: 0 = dark, 1 = bright (based on embedded.ino)
 		default: null
 	},
 	motionDetected: {
-		type: Boolean,
+		type: Number,
 		required: false,
+		min: 0,
+		max: 1, // Binary: 0 = no motion, 1 = motion detected (based on embedded.ino)
 		default: null
 	},
 	// Device identifier for tracking data source

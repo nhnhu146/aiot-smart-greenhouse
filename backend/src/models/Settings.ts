@@ -129,6 +129,39 @@ const SettingsSchema: Schema = new Schema({
 			type: Boolean,
 			default: false
 		},
+		// Automation thresholds - when to trigger devices
+		lightThreshold: {
+			type: Number,
+			default: 0, // Turn on light when light sensor = 0 (dark)
+			min: 0,
+			max: 1
+		},
+		pumpThreshold: {
+			type: Number,
+			default: 0, // Turn on pump when soil moisture = 0 (dry)
+			min: 0,
+			max: 1
+		},
+		temperatureThreshold: {
+			windowOpen: {
+				type: Number,
+				default: 30, // Open window when temp > 30°C
+				min: 20,
+				max: 50
+			},
+			doorOpen: {
+				type: Number,
+				default: 35, // Open door when temp > 35°C (emergency)
+				min: 25,
+				max: 50
+			}
+		},
+		motionThreshold: {
+			doorOpen: {
+				type: Boolean,
+				default: true, // Open door when motion detected
+			}
+		},
 		updatedAt: {
 			type: Date,
 			default: Date.now

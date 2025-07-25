@@ -8,6 +8,7 @@ import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
 import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import { useAutomation } from '@/hooks/useAutomation';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
 import styles from './dashboard.module.scss';
 
@@ -42,6 +43,7 @@ const formatTimeVN = (timestamp?: string | Date) => {
 
 const Dashboard = () => {
 	const { persistentSensorData, sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
+	const { config: automationConfig, toggleAutomation } = useAutomation();
 	const [data, setData] = useState<SensorData | null>(null);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
@@ -50,8 +52,10 @@ const Dashboard = () => {
 	// Device control states
 	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
 	const [userInteraction, setUserInteraction] = useState(false);
-	const [autoMode, setAutoMode] = useState(true);
 	const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+	// Derive autoMode from automation config
+	const autoMode = automationConfig?.enabled ?? false;
 
 	// Sensor values state - Use null for no data available
 	const [sensorValues, setSensorValues] = useState({
@@ -111,15 +115,12 @@ const Dashboard = () => {
 		setTimeout(() => setUserInteraction(false), 5 * 60 * 1000);
 	}, [sendDeviceControl]);
 
-	const toggleAutoMode = useCallback(() => {
-		setAutoMode(prev => {
-			const newAutoMode = !prev;
-			if (newAutoMode) {
-				setUserInteraction(false); // Enable auto control when turning on auto mode
-			}
-			return newAutoMode;
-		});
-	}, []);
+	const toggleAutoMode = useCallback(async () => {
+		const success = await toggleAutomation();
+		if (success) {
+			setUserInteraction(false); // Enable auto control when turning on auto mode
+		}
+	}, [toggleAutomation]);
 
 	// Memorize automation logic to prevent unnecessary rerenders
 	const automationLogic = useCallback((sensor: string, value: any, currentSensorValues: any) => {
@@ -453,6 +454,7 @@ const Dashboard = () => {
 											switchId={activity.device}
 											switchState={switchStates.get(activity.device) || false}
 											onSwitchChange={(state: boolean) => handleSwitchChange(activity.device, state)}
+											disabled={autoMode}
 										/>
 									</Col>
 								))}

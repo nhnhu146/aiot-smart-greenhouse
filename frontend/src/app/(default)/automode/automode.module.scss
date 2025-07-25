@@ -1,0 +1,79 @@
+.automodeContainer {
+	min-height: 80vh;
+}
+
+.sectionCard {
+	border: 1px solid #dee2e6;
+	border-radius: 0.5rem;
+	margin-bottom: 1.5rem;
+	box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+	transition: box-shadow 0.15s ease-in-out;
+}
+
+.sectionCard:hover {
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.sectionCard .card-header {
+	background-color: #f8f9fa;
+	border-bottom: 1px solid #dee2e6;
+	font-weight: 600;
+}
+
+.thresholdInput {
+	max-width: 200px;
+}
+
+.statusBadge {
+	font-size: 0.875rem;
+	padding: 0.5rem 1rem;
+}
+
+.actionButtons {
+	gap: 1rem;
+}
+
+.loadingSpinner {
+	min-height: 50vh;
+}
+
+.switchLabel {
+	font-weight: 500;
+	margin-left: 0.5rem;
+}
+
+.emergencyAlert {
+	border-left: 4px solid #dc3545;
+}
+
+.temperatureGroup {
+	background-color: #f8f9fa;
+	padding: 1rem;
+	border-radius: 0.375rem;
+	margin-bottom: 1rem;
+}
+
+.thresholdCard {
+	border: 1px solid #e3f2fd;
+	background-color: #fafafa;
+}
+
+.binarySelect {
+	background-color: #fff;
+	border: 1px solid #ced4da;
+}
+
+.binarySelect:disabled {
+	background-color: #e9ecef;
+	opacity: 0.65;
+}
+
+.automationEnabled {
+	background-color: #d4edda;
+	border-color: #c3e6cb;
+}
+
+.automationDisabled {
+	background-color: #f8d7da;
+	border-color: #f5c6cb;
+}
