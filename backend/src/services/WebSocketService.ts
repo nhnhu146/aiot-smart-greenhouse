@@ -49,12 +49,6 @@ class WebSocketService {
 				timestamp: new Date().toISOString()
 			});
 
-			// Handle device control commands from frontend
-			socket.on('device:control', (data: { device: string; action: string; value?: any }) => {
-				console.log(`🎮 Device control received from ${socket.id}:`, data);
-				this.handleDeviceControl(socket, data);
-			});
-
 			// Handle real-time chart data requests
 			socket.on('request-chart-data', () => {
 				console.log(`📊 Chart data requested by ${socket.id}`);
@@ -231,99 +225,6 @@ class WebSocketService {
 			timestamp: new Date().toISOString(),
 			connectedClients: this.connectedClients.size
 		});
-	}
-
-	// Handle device control from frontend
-	private async handleDeviceControl(socket: Socket, data: {
-		device: string;
-		action: string;
-		value?: any;
-		controlId?: string;
-		source?: string;
-	}) {
-		try {
-			const controlId = data.controlId || `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-			console.log(`🎮 Device control request [${controlId}]: ${data.device} -> ${data.action}`);
-
-			// Import services dynamically to avoid circular dependency
-			const { mqttService } = require('./MQTTService');
-			const { DeviceHistory } = require('../models');
-
-			// Publish device control command to MQTT broker
-			let mqttSent = false;
-			if (mqttService && mqttService.isClientConnected()) {
-				// Convert frontend action to MQTT format (use 1/0 instead of HIGH/LOW)
-				let mqttAction = data.action;
-				if (data.action === 'on' || data.action === 'true') {
-					mqttAction = '1'; // Use '1' instead of 'HIGH'
-				} else if (data.action === 'off' || data.action === 'false') {
-					mqttAction = '0'; // Use '0' instead of 'LOW'
-				}
-
-				mqttService.publishDeviceControl(data.device, mqttAction);
-				console.log(`📡 MQTT command sent [${controlId}]: ${data.device} -> ${mqttAction}`);
-				mqttSent = true;
-			} else {
-				console.warn('⚠️ MQTT service not available for device control');
-			}
-
-			// Record device control history
-			try {
-				// Map 1/0 to proper action based on device type (updated from HIGH/LOW)
-				let mappedAction = data.action;
-				if (data.action === '1' || data.action === 'HIGH') {
-					mappedAction = ['light', 'pump'].includes(data.device) ? 'on' : 'open';
-				} else if (data.action === '0' || data.action === 'LOW') {
-					mappedAction = ['light', 'pump'].includes(data.device) ? 'off' : 'close';
-				}
-
-				const deviceHistory = new DeviceHistory({
-					deviceId: `greenhouse_${data.device}`,
-					deviceType: data.device,
-					action: mappedAction,
-					status: ['on', 'open', '1', 'HIGH'].includes(data.action),
-					controlType: 'websocket',
-					userId: socket.id,
-					timestamp: new Date(),
-					success: mqttSent,
-					controlId,
-					...(mqttSent ? {} : { errorMessage: 'MQTT service not available' })
-				});
-
-				await deviceHistory.save();
-				console.log(`📝 Device control history recorded [${controlId}]: ${data.device} -> ${data.action}`);
-			} catch (historyError) {
-				console.error('❌ Failed to record device control history:', historyError);
-			}
-
-			// Broadcast device status update to all clients for real-time feedback
-			this.broadcastDeviceStatus(`greenhouse/devices/${data.device}/status`, {
-				device: data.device,
-				status: data.action,
-				timestamp: new Date().toISOString()
-			});
-
-			// Send confirmation back to requesting client
-			socket.emit('device-control-response', {
-				success: true,
-				device: data.device,
-				action: data.action,
-				controlId,
-				mqttSent,
-				timestamp: new Date().toISOString(),
-				message: `${data.device} ${data.action} command processed successfully`
-			});
-
-			console.log(`✅ Device control processed [${controlId}]: ${data.device} -> ${data.action}`);
-		} catch (error) {
-			console.error('❌ Device control error:', error);
-			socket.emit('device-control-response', {
-				success: false,
-				controlId: data.controlId,
-				error: 'Failed to process device control',
-				timestamp: new Date().toISOString()
-			});
-		}
 	}
 
 	// Send latest chart data to specific client
