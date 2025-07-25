@@ -58,10 +58,7 @@ router.get('/:deviceType', asyncHandler(async (req: Request, res: Response) => {
 
 // POST /api/devices/control - Điều khiển thiết bị
 router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (req: Request, res: Response) => {
-	const { deviceType, action, duration, controlId, source }: DeviceControl & {
-		controlId?: string;
-		source?: 'api' | 'websocket' | 'hybrid'
-	} = req.body;
+	const { deviceType, action, duration }: DeviceControl = req.body;
 
 	// Validate action for specific device types
 	if (['door', 'window'].includes(deviceType) && !['open', 'close'].includes(action)) {
@@ -72,13 +69,13 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 		throw new AppError(`Invalid action for ${deviceType}. Use "on" or "off"`, 400);
 	}
 
-	const generatedControlId = controlId || `api_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+	const generatedControlId = `api_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 	try {
-		// Convert action to MQTT format that ESP32 understands
-		let mqttCommand = 'LOW'; // Default to OFF/LOW
+		// Convert action to MQTT format that ESP32 understands (0/1 values)
+		let mqttCommand = '0'; // Default to OFF/CLOSE
 		if (action === 'on' || action === 'open') {
-			mqttCommand = 'HIGH';
+			mqttCommand = '1'; // ON/OPEN
 		}
 
 		// Send simple MQTT command (not JSON - ESP32 expects simple strings)
@@ -102,7 +99,7 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			deviceType,
 			action,
 			status,
-			controlType: source === 'hybrid' ? 'hybrid' : 'api',
+			controlType: 'api',
 			userId: 'api-user',
 			timestamp: new Date(),
 			success: true,
@@ -110,20 +107,6 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 		});
 
 		await deviceHistory.save();
-
-		// If this is a hybrid request, send real-time update via WebSocket
-		if (source === 'hybrid') {
-			const { webSocketService } = require('../services/WebSocketService');
-			webSocketService.broadcastDeviceControl({
-				controlId: generatedControlId,
-				deviceType,
-				action,
-				status,
-				source: 'hybrid',
-				timestamp: new Date().toISOString(),
-				success: true
-			});
-		}
 
 		const response: APIResponse = {
 			success: true,

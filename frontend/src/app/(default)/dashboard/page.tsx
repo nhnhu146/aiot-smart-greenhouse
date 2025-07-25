@@ -93,7 +93,17 @@ const Dashboard = () => {
 
 	const handleSwitchChange = useCallback((device: string, state: boolean) => {
 		setSwitchStates((prev) => new Map(prev).set(device, state));
-		const action = state ? 'HIGH' : 'LOW';
+
+		// Map device and state to proper action format
+		let action: string;
+		if (['light', 'pump'].includes(device)) {
+			action = state ? 'on' : 'off';
+		} else if (['door', 'window'].includes(device)) {
+			action = state ? 'open' : 'close';
+		} else {
+			action = state ? 'on' : 'off'; // fallback
+		}
+
 		sendDeviceControl(device, action);
 		setUserInteraction(true);
 
@@ -124,7 +134,7 @@ const Dashboard = () => {
 			setSwitchStates((prev) => {
 				const currentState = prev.get('light') || false;
 				if (currentState !== shouldTurnOn) {
-					sendDeviceControl('light', shouldTurnOn ? 'HIGH' : 'LOW');
+					sendDeviceControl('light', shouldTurnOn ? 'on' : 'off');
 					return new Map(prev).set('light', shouldTurnOn);
 				}
 				return prev;
@@ -137,7 +147,7 @@ const Dashboard = () => {
 			setSwitchStates((prev) => {
 				const currentState = prev.get('pump') || false;
 				if (currentState !== shouldTurnOn) {
-					sendDeviceControl('pump', shouldTurnOn ? 'HIGH' : 'LOW');
+					sendDeviceControl('pump', shouldTurnOn ? 'on' : 'off');
 					return new Map(prev).set('pump', shouldTurnOn);
 				}
 				return prev;

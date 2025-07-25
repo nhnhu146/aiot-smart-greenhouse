@@ -282,7 +282,7 @@ class WebSocketService {
 					deviceType: data.device,
 					action: mappedAction,
 					status: ['on', 'open', 'HIGH'].includes(data.action),
-					controlType: data.source === 'hybrid' ? 'hybrid' : 'websocket',
+					controlType: 'websocket',
 					userId: socket.id,
 					timestamp: new Date(),
 					success: mqttSent,
@@ -313,19 +313,6 @@ class WebSocketService {
 				timestamp: new Date().toISOString(),
 				message: `${data.device} ${data.action} command processed successfully`
 			});
-
-			// If this is from hybrid request, broadcast confirmation
-			if (data.source === 'hybrid') {
-				this.broadcastDeviceControl({
-					controlId,
-					deviceType: data.device,
-					action: data.action,
-					status: ['on', 'open', 'HIGH'].includes(data.action),
-					source: 'hybrid',
-					timestamp: new Date().toISOString(),
-					success: mqttSent
-				});
-			}
 
 			console.log(`✅ Device control processed [${controlId}]: ${data.device} -> ${data.action}`);
 		} catch (error) {
