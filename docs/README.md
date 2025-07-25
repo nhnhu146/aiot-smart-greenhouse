@@ -9,19 +9,20 @@ This directory contains comprehensive documentation for the Smart Greenhouse sys
 | Document | Description |
 |----------|-------------|
 | [`FIXES_SUMMARY.md`](FIXES_SUMMARY.md) | Complete summary of all system fixes and improvements |
-| [`RESOLUTION_SUMMARY.md`](RESOLUTION_SUMMARY.md) | Issue resolution tracking and solutions |
-| [`update.md`](update.md) | DevOps updates and configuration changes |
+| [`DATA_MERGER_UI_UPDATES.md`](DATA_MERGER_UI_UPDATES.md) | Data management and UI improvements |
+| [`ALERT_FIXES_SUMMARY.md`](ALERT_FIXES_SUMMARY.md) | Alert system fixes and optimizations |
 | [`devops-status.md`](devops-status.md) | Current deployment and security status |
 | [`EMAIL_CONTRAST_FIXES.md`](EMAIL_CONTRAST_FIXES.md) | Email template contrast improvements |
 
 ### 🎯 Quick Reference
 
 #### Recent Major Fixes
-- ✅ **Email Spam Issue**: Fixed AlertService batch system (Jan 2025)
+- ✅ **Device Control Simplified**: API-only approach, removed hybrid system (Jan 2025)
+- ✅ **MQTT Values Fixed**: Using 0/1 instead of HIGH/LOW for ESP32 compatibility
+- ✅ **Production Error Fixed**: DeviceHistory validation error resolved
+- ✅ **Email Spam Issue**: Fixed AlertService batch system
 - ✅ **Dashboard Controls**: Fixed WebSocket MQTT integration
-- ✅ **Device History**: Populated missing control history data
-- ✅ **Sensor Data**: Smart merging algorithm for N/A values
-- ✅ **Security**: Optimized container port exposure
+- ✅ **Data Quality**: Enhanced DataMergerService for duplicate handling
 
 #### System Status
 - 🚀 **Deployment**: Fully containerized with Docker Compose

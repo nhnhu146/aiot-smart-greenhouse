@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { getWebSocketUrl, getWebSocketConfig, logConnectionInfo } from "@/lib/websocketConfig";
+import deviceControlService, { DeviceControlRequest } from "@/services/deviceControlService";
 
 interface SensorData {
 	sensor: string;
@@ -43,7 +44,7 @@ interface UseWebSocketReturn {
 	persistentSensorData: PersistentSensorState;
 	deviceStatus: DeviceStatus | null;
 	alerts: Alert[];
-	sendDeviceControl: (device: string, action: string, value?: any) => Promise<any>;
+	sendDeviceControl: (deviceType: string, action: string) => Promise<any>;
 	clearAlerts: () => void;
 }
 
@@ -192,35 +193,18 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 	// Function to send device control commands via API only
 	const sendDeviceControl = useCallback(async (
-		device: string,
-		action: string,
-		value?: any
+		deviceType: string,
+		action: string
 	): Promise<any> => {
 		try {
-			const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-			const controlData = {
-				deviceType: device,
-				action,
-				...(value && { value }),
-				source: 'api'
+			const request: DeviceControlRequest = {
+				deviceType: deviceType as any,
+				action: action as any
 			};
 
-			console.log('🎮 Sending device control via API:', controlData);
+			console.log('🎮 Sending device control via API:', request);
 
-			const response = await fetch(`${apiBaseUrl}/api/devices/control`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(controlData)
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || `HTTP ${response.status}`);
-			}
-
-			const result = await response.json();
+			const result = await deviceControlService.sendDeviceControl(request);
 			console.log('✅ Device control response:', result);
 			return result;
 		} catch (error) {

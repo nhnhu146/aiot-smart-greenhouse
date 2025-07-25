@@ -78,7 +78,7 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			mqttCommand = '1'; // ON/OPEN
 		}
 
-		// Send simple MQTT command (not JSON - ESP32 expects simple strings)
+		// Send simple MQTT command (0/1 values)
 		await mqttService.publishDeviceControl(deviceType, mqttCommand);
 
 		// Update device status in database
@@ -99,11 +99,10 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			deviceType,
 			action,
 			status,
-			controlType: 'api',
+			controlType: 'manual', // Use 'manual' instead of 'api'
 			userId: 'api-user',
 			timestamp: new Date(),
-			success: true,
-			controlId: generatedControlId
+			success: true
 		});
 
 		await deviceHistory.save();
