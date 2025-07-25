@@ -161,7 +161,7 @@ const VoiceCommands = () => {
 										disabled={isSending}
 									/>
 									<Form.Text className="text-muted">
-										Try commands like: "turn on light", "open door", "close window", "auto mode"
+										Try commands like: &quot;turn on light&quot;, &quot;open door&quot;, &quot;close window&quot;, &quot;auto mode&quot;
 									</Form.Text>
 								</Form.Group>
 								<Button

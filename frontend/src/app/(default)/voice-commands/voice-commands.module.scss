@@ -34,7 +34,7 @@
 		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 	}
 
-	.card-header {
+	:global(.card-header) {
 		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 		border-radius: 15px 15px 0 0 !important;
@@ -96,7 +96,7 @@
 	max-width: 200px;
 	word-break: break-word;
 
-	code {
+	:global(code) {
 		background: #f8f9fa;
 		padding: 0.25rem 0.5rem;
 		border-radius: 5px;
@@ -176,12 +176,12 @@
 	}
 }
 
-tbody tr {
+.tableContainer :global(tbody tr) {
 	animation: slideIn 0.3s ease-out;
 }
 
 /* Button hover effects */
-.btn-primary {
+.voiceCommands :global(.btn-primary) {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border: none;
 	border-radius: 8px;
@@ -201,7 +201,7 @@ tbody tr {
 	}
 }
 
-.btn-outline-primary {
+.voiceCommands :global(.btn-outline-primary) {
 	border-color: #667eea;
 	color: #667eea;
 	border-radius: 8px;
