@@ -300,7 +300,21 @@ export class DataMergerService {
 	 */
 	public async autoMergeOnDataReceive(newData: any): Promise<boolean> {
 		try {
-			const timestamp = new Date(newData.createdAt);
+			// Validate and parse timestamp
+			let timestamp: Date;
+
+			if (!newData.createdAt) {
+				console.warn('⚠️ No createdAt field in newData, using current time');
+				timestamp = new Date();
+			} else {
+				timestamp = new Date(newData.createdAt);
+
+				// Check if date is valid
+				if (isNaN(timestamp.getTime())) {
+					console.warn(`⚠️ Invalid createdAt value: ${newData.createdAt}, using current time`);
+					timestamp = new Date();
+				}
+			}
 
 			// Find existing records within same second
 			const startOfSecond = new Date(timestamp);
@@ -321,8 +335,14 @@ export class DataMergerService {
 				return false;
 			}
 
+			// Ensure newData has valid createdAt for merging
+			const newDataForMerge = {
+				...newData,
+				createdAt: timestamp // Use the validated timestamp
+			};
+
 			// Merge with existing data
-			const allDocs = [...existingDocs, newData];
+			const allDocs = [...existingDocs, newDataForMerge];
 			await this.mergeDocumentGroup(allDocs);
 
 			console.log(`🔄 Auto-merged data for timestamp: ${timestamp.toISOString()}`);
@@ -330,6 +350,12 @@ export class DataMergerService {
 
 		} catch (error) {
 			console.error('❌ Error in auto-merge:', error);
+
+			// Log additional context for debugging
+			if (error instanceof Error && error.message.includes('Cast to date failed')) {
+				console.error('❌ Date validation error. newData.createdAt:', newData?.createdAt);
+			}
+
 			return false;
 		}
 	}
