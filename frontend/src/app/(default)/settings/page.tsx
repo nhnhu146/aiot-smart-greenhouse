@@ -33,8 +33,8 @@ const SettingsPage = () => {
 	const [thresholds, setThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
 		humidityThreshold: { min: 40, max: 80 },
-		soilMoistureThreshold: { min: 1, max: 1 },
-		waterLevelThreshold: { min: 20, max: 90 }
+		soilMoistureThreshold: { min: 0, max: 1 }, // Binary: 0=dry, 1=wet
+		waterLevelThreshold: { min: 0, max: 1 }    // Binary: 0=none, 1=full
 	});
 
 	const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
@@ -62,8 +62,8 @@ const SettingsPage = () => {
 	const [originalThresholds, setOriginalThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
 		humidityThreshold: { min: 40, max: 80 },
-		soilMoistureThreshold: { min: 1, max: 1 },
-		waterLevelThreshold: { min: 20, max: 90 }
+		soilMoistureThreshold: { min: 0, max: 1 }, // Binary: 0=dry, 1=wet
+		waterLevelThreshold: { min: 0, max: 1 }    // Binary: 0=none, 1=full
 	});
 	const [originalEmailRecipients, setOriginalEmailRecipients] = useState<string[]>([]);
 	const [originalEmailAlerts, setOriginalEmailAlerts] = useState<EmailAlertsConfig>({
@@ -285,8 +285,8 @@ const SettingsPage = () => {
 		setThresholds({
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 1, max: 1 },
-			waterLevelThreshold: { min: 20, max: 90 }
+			soilMoistureThreshold: { min: 0, max: 1 }, // Binary: 0=dry, 1=wet
+			waterLevelThreshold: { min: 0, max: 1 }    // Binary: 0=none, 1=full
 		});
 
 		setEmailAlerts({
@@ -432,43 +432,21 @@ const SettingsPage = () => {
 									</div>
 								</Col>
 
-								{/* Water Level Settings */}
+								{/* Water Level Settings - Removed thresholds, auto-alert when empty */}
 								<Col md={6} className="mb-4">
-									<h6>🚰 Water Level (%)</h6>
-									<Row>
-										<Col>
-											<Form.Group className="mb-2">
-												<Form.Label>Minimum</Form.Label>
-												<Form.Control
-													type="number"
-													value={thresholds.waterLevelThreshold.min}
-													onChange={(e) => setThresholds({
-														...thresholds,
-														waterLevelThreshold: {
-															...thresholds.waterLevelThreshold,
-															min: Number(e.target.value)
-														}
-													})}
-												/>
-											</Form.Group>
-										</Col>
-										<Col>
-											<Form.Group className="mb-2">
-												<Form.Label>Maximum</Form.Label>
-												<Form.Control
-													type="number"
-													value={thresholds.waterLevelThreshold.max}
-													onChange={(e) => setThresholds({
-														...thresholds,
-														waterLevelThreshold: {
-															...thresholds.waterLevelThreshold,
-															max: Number(e.target.value)
-														}
-													})}
-												/>
-											</Form.Group>
-										</Col>
-									</Row>
+									<h6>🚰 Water Level (Binary)</h6>
+									<div className="alert alert-info">
+										<small>
+											<strong>Auto-Alert:</strong> Tự động gửi cảnh báo khi trống (0).<br />
+											<strong>Không cần cấu hình:</strong> Ngưỡng đã được loại bỏ.
+										</small>
+									</div>
+									<div className="text-muted">
+										<small>
+											• 0 = Trống (None) → Gửi cảnh báo tự động<br />
+											• 1 = Đầy (Full) → Không cảnh báo
+										</small>
+									</div>
 								</Col>
 							</Row>
 

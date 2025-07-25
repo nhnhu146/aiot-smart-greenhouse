@@ -10,8 +10,8 @@ const navItems = [
 	{ label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },
 	// { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' }, // Hidden for now
 	{ label: 'History', icon: '/cloud.svg', path: '/history' },
-	{ label: 'MQTT Examples', icon: '/setup.svg', path: '/mqtt-examples' },
 	{ label: 'Settings', icon: '/settings.svg', path: '/settings' },
+	{ label: 'MQTT Examples', icon: '/globe.svg', path: '/mqtt-examples' },
 ];
 
 const AppSidebar = () => {

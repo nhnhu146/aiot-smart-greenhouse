@@ -3,11 +3,11 @@ export interface SensorData {
 	// Remove timestamp since we use MongoDB's createdAt
 	temperature?: number | null;
 	humidity?: number | null;
-	soilMoisture?: number | null;
-	waterLevel?: number | null;
+	soilMoisture?: boolean | null;
+	waterLevel?: boolean | null;
 	plantHeight?: number | null;
 	rainStatus?: boolean | null;
-	lightLevel?: number | null;
+	lightLevel?: boolean | null;
 	motionDetected?: boolean | null;
 	deviceId?: string;
 	dataQuality?: 'complete' | 'partial' | 'error';
@@ -40,14 +40,6 @@ export interface Settings {
 		max: number;
 	};
 	humidityThreshold: {
-		min: number;
-		max: number;
-	};
-	soilMoistureThreshold: {
-		min: number;
-		max: number;
-	};
-	waterLevelThreshold: {
 		min: number;
 		max: number;
 	};

@@ -5,8 +5,6 @@ import { emailService } from './EmailService';
 export interface ThresholdConfig {
 	temperatureThreshold: { min: number; max: number };
 	humidityThreshold: { min: number; max: number };
-	soilMoistureThreshold: { min: number; max: number };
-	waterLevelThreshold: { min: number; max: number };
 }
 
 export interface EmailAlertsConfig {
@@ -80,9 +78,8 @@ class AlertService {
 			if (settings) {
 				this.currentThresholds = {
 					temperatureThreshold: settings.temperatureThreshold,
-					humidityThreshold: settings.humidityThreshold,
-					soilMoistureThreshold: settings.soilMoistureThreshold,
-					waterLevelThreshold: settings.waterLevelThreshold
+					humidityThreshold: settings.humidityThreshold
+					// soilMoisture and waterLevel are binary values (0/1)
 				};
 				console.log('⚙️ Alert thresholds loaded:', this.currentThresholds);
 			} else {
@@ -98,11 +95,11 @@ class AlertService {
 	private setDefaultThresholds(): void {
 		this.currentThresholds = {
 			temperatureThreshold: { min: 18, max: 30 },
-			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 0, max: 0 }, // Binary: No threshold - always alert when dry (0)
-			waterLevelThreshold: { min: 20, max: 90 }
+			humidityThreshold: { min: 40, max: 80 }
+			// soilMoisture is 0 (dry) or 1 (wet)
+			// waterLevel is 0 (none) or 1 (full)
 		};
-		console.log('🔧 Using default thresholds (Soil Moisture: No threshold):', this.currentThresholds);
+		console.log('🔧 Using default thresholds (Soil Moisture & Water Level are binary 0/1):', this.currentThresholds);
 	}
 
 	// Main function to check all sensor thresholds
@@ -447,36 +444,51 @@ class AlertService {
 	}
 
 	private async checkWaterLevel(value: number, traceId: string): Promise<void> {
-		if (!this.currentThresholds) return;
-
-		const threshold = this.currentThresholds.waterLevelThreshold;
 		const lastValue = this.lastCheckedValues.get('waterLevel');
+		const lastAlertTime = this.lastAlertTimes.get('waterLevel') || 0;
+		const now = Date.now();
 
-		console.log(`[${traceId}] 🚰 Checking water level: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
+		// Water level is binary: 1 = full, 0 = none
+		// NO THRESHOLD CHECKS - Always alert when empty (0)
+		console.log(`[${traceId}] 🚰 Checking water level: ${value === 1 ? 'FULL (1)' : 'NONE (0)'}`);
 
-		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
-			console.log(`[${traceId}] 🚰 Water level change too small: ${value}% vs last ${lastValue}%`);
+		// Check if value actually changed
+		if (lastValue !== undefined && lastValue === value) {
+			console.log(`[${traceId}] 🚰 Water level unchanged: ${value === 1 ? 'FULL' : 'NONE'}`);
 			return;
 		}
 
-		if (value < threshold.min) {
-			console.log(`[${traceId}] 🚨 [Water Level] BELOW threshold: ${value}% < ${threshold.min}%`);
+		// Check cooldown period - prevent spam alerts
+		if (value === 0 && (now - lastAlertTime) < this.alertCooldownMs) {
+			const remainingCooldown = Math.ceil((this.alertCooldownMs - (now - lastAlertTime)) / 1000 / 60);
+			console.log(`[${traceId}] ⏰ Water level alert in cooldown: ${remainingCooldown} minutes remaining`);
+			this.lastCheckedValues.set('waterLevel', value); // Update value but skip alert
+			return;
+		}
+
+		// Alert when water level is empty (value = 0) - NO THRESHOLD NEEDED
+		if (value === 0) {
+			console.log(`[${traceId}] 🚨 [Water Level] NONE - Water tank is empty! (Default alert)`);
+
+			// Update alert time to prevent duplicates
+			this.lastAlertTimes.set('waterLevel', now);
+
 			await notificationService.triggerAlert({
 				type: 'waterLevel',
-				level: value < 10 ? 'critical' : 'high',
-				message: `Water level too low: ${value}% (minimum: ${threshold.min}%) - Refill water tank`,
+				level: 'critical',
+				message: `Water level is NONE (0) - Refill water tank immediately`,
 				currentValue: value,
-				threshold: threshold
+				threshold: null // No threshold for binary water level
 			});
 
-			// Send email alert if enabled
+			// Send email alert if enabled - ALWAYS for empty tank
 			if (this.emailRecipients.length > 0 && this.emailAlerts.waterLevel) {
 				const alert = {
 					type: 'waterLevel',
-					level: value < 10 ? 'critical' : 'high',
-					message: `Water level too low: ${value}% (minimum: ${threshold.min}%) - Refill water tank`,
+					level: 'critical',
+					message: `Water level is NONE (0) - Refill water tank immediately`,
 					currentValue: value,
-					threshold: threshold,
+					threshold: null, // No threshold configuration
 					timestamp: new Date().toISOString()
 				};
 
@@ -490,16 +502,20 @@ class AlertService {
 					for (const recipient of this.emailRecipients) {
 						await emailService.sendAlertEmail(
 							recipient,
-							'💧 Smart Greenhouse - Low Water Level Alert',
+							'� Smart Greenhouse - Empty Water Tank Alert',
 							'Water Level',
-							`${value}%`,
-							`Min: ${threshold.min}%`
+							'None (Default Alert)',
+							'Auto-alert when empty'
 						);
 					}
 				}
 			}
+		} else if (value === 1) {
+			console.log(`✅ Water level is FULL (1) - Water tank has water`);
+			// Clear alert time when water level becomes full again
+			this.lastAlertTimes.delete('waterLevel');
 		} else {
-			console.log(`✅ Water level within range: ${value}%`);
+			console.log(`[${traceId}] ⚠️ Unexpected water level value: ${value}`);
 		}
 
 		this.lastCheckedValues.set('waterLevel', value);

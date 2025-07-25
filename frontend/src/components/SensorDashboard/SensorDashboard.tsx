@@ -57,10 +57,10 @@ const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color
 		}
 	} else if (title === 'Water Level') {
 		if (value === '1') {
-			displayValue = 'Flooded';
+			displayValue = 'Full';
 			displayUnit = '';
 		} else if (value === '0') {
-			displayValue = 'Normal';
+			displayValue = 'None';
 			displayUnit = '';
 		} else if (value === '--' || value === '' || value === null || value === undefined) {
 			displayValue = 'N/A';
@@ -137,9 +137,9 @@ const SensorDashboard: React.FC = () => {
 					// Only update with valid numeric values
 					const numericValue = parseFloat(sensorInfo.value);
 					if (!isNaN(numericValue)) {
-						// Special handling for soil moisture (binary values)
+						// Special handling for binary sensors (soil, water, light, rain)
 						let formattedValue;
-						if (sensorType === 'soil') {
+						if (sensorType === 'soil' || sensorType === 'water' || sensorType === 'light' || sensorType === 'rain') {
 							formattedValue = numericValue.toString(); // Keep binary values as is (0 or 1)
 						} else {
 							formattedValue = numericValue.toFixed(1); // Format other sensors with 1 decimal
@@ -203,7 +203,7 @@ const SensorDashboard: React.FC = () => {
 		{
 			key: 'water',
 			title: 'Water Level',
-			unit: '', // Binary: Normal/Flooded
+			unit: '', // Binary: None/Full
 			icon: '🚰',
 			color: 'primary'
 		},
