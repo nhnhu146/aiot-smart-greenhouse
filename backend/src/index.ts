@@ -130,7 +130,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
 	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100000'), // limit each IP to 100 requests per windowMs
+	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // Increased from 100000 to 1000 (reasonable limit)
 	message: {
 		success: false,
 		message: 'Too many requests from this IP, please try again later',
@@ -141,6 +141,22 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+
+// Special rate limiter for automation status endpoint (more lenient)
+const automationLimiter = rateLimit({
+	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
+	max: parseInt(process.env.AUTOMATION_RATE_LIMIT || '60'), // 60 requests per minute
+	message: {
+		success: false,
+		message: 'Too many automation requests, please try again later',
+		timestamp: new Date().toISOString()
+	},
+	standardHeaders: true,
+	legacyHeaders: false
+});
+
+// Apply special rate limiting to automation endpoints
+app.use('/api/automation', automationLimiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -549,6 +565,20 @@ function setupMQTTHandlers() {
 
 				// Send debug feedback for successful processing
 				mqttService.publishDebugFeedback(topic, messageString, 'success');
+			}
+
+			// Handle voice commands from greenhouse/command topic
+			else if (topic === 'greenhouse/command') {
+				console.log(`🎤 Received voice command: ${messageString}`);
+
+				// Import voice command service
+				const { voiceCommandService } = await import('./services');
+
+				// Process voice command with default confidence
+				await voiceCommandService.processVoiceCommand(messageString, 0.95);
+
+				// Send debug feedback
+				mqttService.publishDebugFeedback(topic, messageString, 'voice_command_processed');
 			}
 
 		} catch (error) {

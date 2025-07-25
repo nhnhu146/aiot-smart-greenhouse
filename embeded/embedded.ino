@@ -10,10 +10,12 @@
 #include "freertos/task.h"
 #include "driver/i2s.h"
 
-
 #define I2S_WS      18  // Word Select (LRCL)
 #define I2S_SD      5   // Serial Data (DOUT from mic)
 #define I2S_SCK     19  // Serial Clock (BCLK)
+#define I2S_SAMPLE_RATE   (16000)
+#define CONFIDENCE_THRESHOLD 0.85f
+
 
 /** Audio buffers, pointers and selectors */
 typedef struct {
@@ -31,8 +33,6 @@ static bool debug_nn = false; // Set this to true to see e.g. features generated
 static int print_results = -(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
 static bool record_status = true;
 bool setup_mic = true;
-
-
 
 // ==============================
 // Wi-Fi Configuration
@@ -71,6 +71,8 @@ const char* light_level_topic  = "greenhouse/sensors/light";
 const char* water_level_topic  = "greenhouse/sensors/water";
 
 const char* mode_topic = "greenhouse/system/mode";
+
+const char* voice_command = "greenhouse/command";
 
 // LCD setup for 16x2 I2C display at address 0x27
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -139,7 +141,7 @@ void setup() {
   ei_printf("\nStarting continious inference in 2 seconds...\n");
   ei_sleep(2000);
 
-  if (microphone_inference_start(16000) == false) {
+  if (microphone_inference_start(EI_CLASSIFIER_SLICE_SIZE) == false) {
       ei_printf("ERR: Could not allocate audio buffer (size %d), this could be due to the window length of your model\r\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT);
       return;
   }
@@ -232,7 +234,7 @@ void loop() {
       snprintf(line2, sizeof(line2), "S: %d W: %d P: %s",
               moisture,
               FloatSwitchValue,
-              FloatSwitchValue ? "ON" : "OFF");
+              FloatSwitchValue ? "ON " : "OFF");
 
       lcd.setCursor(0, 0);
       lcd.print("                ");
@@ -279,15 +281,27 @@ void loop() {
       ei_printf_float(result.classification[ix].value);
       ei_printf("\n");
     }
-// #if EI_CLASSIFIER_HAS_ANOMALY == 1
-//     ei_printf("    anomaly score: ");
-//     ei_printf_float(result.anomaly);
-//     ei_printf("\n");
-// #endif
     print_results = 0;
   }
 
-  
+  float max_score = 0.0f;
+  size_t best_idx = 0;
+
+  for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+      if (result.classification[ix].value > max_score) {
+          max_score = result.classification[ix].value;
+          best_idx = ix;
+      }
+  }
+
+  if (max_score > CONFIDENCE_THRESHOLD){
+    const char* best_label = result.classification[best_idx].label;
+    ei_printf("Voice command detected: %s (%.2f)\n", best_label, max_score);
+    client.publish("greenhouse/command", best_label);
+    Serial.print("Sent voice command: ");
+    Serial.println(best_label);
+  }
+
 }
 
 /**
@@ -649,7 +663,6 @@ void controlPump(char* value) {
     digitalWrite(pump, HIGH);
   }
 }
-
 
 /**
  * @brief Handles incoming MQTT messages.

@@ -6,6 +6,7 @@ export { default as Alert } from './Alert';
 export { default as PasswordReset } from './PasswordReset';
 export { UserSettings } from './UserSettings';
 export { default as AutomationSettings } from './AutomationSettings';
+export { default as VoiceCommand } from './VoiceCommand';
 
 export type { ISensorData } from './SensorData';
 export type { IDeviceStatus } from './DeviceStatus';
@@ -15,3 +16,4 @@ export type { IAlert } from './Alert';
 export type { IUserSettings } from './UserSettings';
 export type { IPasswordReset } from './PasswordReset';
 export type { IAutomationSettings } from './AutomationSettings';
+export type { IVoiceCommand } from './VoiceCommand';

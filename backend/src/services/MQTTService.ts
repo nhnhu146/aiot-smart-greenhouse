@@ -85,7 +85,8 @@ class MQTTService {
 			'greenhouse/sensors/motion',
 			'greenhouse/devices/+/control',
 			'greenhouse/devices/+/status',
-			'greenhouse/system/mode'
+			'greenhouse/system/mode',
+			'greenhouse/command'
 		];
 
 		topics.forEach(topic => {

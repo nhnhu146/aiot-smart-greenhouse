@@ -9,6 +9,7 @@ import styles from './Sidebar.module.scss';
 const navItems = [
 	{ label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },
 	// { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' }, // Hidden for now
+	{ label: 'Voice Received', icon: '/bot.svg', path: '/voice-commands' },
 	{ label: 'History', icon: '/cloud.svg', path: '/history' },
 	{ label: 'AutoMode', icon: '/settings.svg', path: '/automode' },
 	{ label: 'Settings', icon: '/settings.svg', path: '/settings' },

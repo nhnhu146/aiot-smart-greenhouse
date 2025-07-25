@@ -1,0 +1,217 @@
+.voiceCommands {
+	padding: 2rem 0;
+	min-height: 100vh;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.pageTitle {
+	color: white;
+	font-weight: 700;
+	font-size: 2.5rem;
+	margin-bottom: 0.5rem;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.pageDescription {
+	color: rgba(255, 255, 255, 0.9);
+	font-size: 1.1rem;
+	margin-bottom: 2rem;
+}
+
+.testCard,
+.statusCard,
+.historyCard {
+	border: none;
+	border-radius: 15px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+	backdrop-filter: blur(10px);
+	background: rgba(255, 255, 255, 0.95);
+	margin-bottom: 2rem;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+	&:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+	}
+
+	.card-header {
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+		border-radius: 15px 15px 0 0 !important;
+		font-weight: 600;
+
+		h5 {
+			color: #495057;
+			margin: 0;
+		}
+	}
+}
+
+.statusGrid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.statusItem {
+	text-align: center;
+	padding: 1rem;
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+	border-radius: 10px;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.statusValue {
+	font-size: 2rem;
+	font-weight: 700;
+	color: #495057;
+	margin-bottom: 0.5rem;
+}
+
+.statusLabel {
+	font-size: 0.9rem;
+	color: #6c757d;
+	text-transform: uppercase;
+	font-weight: 500;
+	letter-spacing: 0.5px;
+}
+
+.tableContainer {
+	max-height: 500px;
+	overflow-y: auto;
+	border-radius: 10px;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.timeCell {
+	font-size: 0.85rem;
+	color: #6c757d;
+	white-space: nowrap;
+	width: 150px;
+}
+
+.commandCell {
+	font-family: 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', Consolas, 'Courier New', monospace;
+	max-width: 200px;
+	word-break: break-word;
+
+	code {
+		background: #f8f9fa;
+		padding: 0.25rem 0.5rem;
+		border-radius: 5px;
+		border: 1px solid #e9ecef;
+		font-size: 0.85rem;
+	}
+}
+
+.responseCell {
+	max-width: 250px;
+	word-break: break-word;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.voiceCommands {
+		padding: 1rem 0;
+	}
+
+	.pageTitle {
+		font-size: 2rem;
+	}
+
+	.statusGrid {
+		grid-template-columns: 1fr;
+		gap: 0.5rem;
+	}
+
+	.statusItem {
+		padding: 0.75rem;
+	}
+
+	.statusValue {
+		font-size: 1.5rem;
+	}
+
+	.tableContainer {
+		font-size: 0.85rem;
+	}
+
+	.timeCell,
+	.commandCell,
+	.responseCell {
+		max-width: none;
+	}
+}
+
+/* Custom scrollbar for table */
+.tableContainer::-webkit-scrollbar {
+	width: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+	background: #c1c1c1;
+	border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+	background: #a8a8a8;
+}
+
+/* Animation for new commands */
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+tbody tr {
+	animation: slideIn 0.3s ease-out;
+}
+
+/* Button hover effects */
+.btn-primary {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 8px;
+	padding: 0.5rem 1.5rem;
+	font-weight: 500;
+	transition: all 0.3s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+	}
+
+	&:disabled {
+		transform: none;
+		box-shadow: none;
+		opacity: 0.6;
+	}
+}
+
+.btn-outline-primary {
+	border-color: #667eea;
+	color: #667eea;
+	border-radius: 8px;
+	font-weight: 500;
+	transition: all 0.3s ease;
+
+	&:hover {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border-color: #667eea;
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+	}
+}

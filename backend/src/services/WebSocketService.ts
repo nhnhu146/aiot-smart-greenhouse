@@ -167,6 +167,30 @@ class WebSocketService {
 		});
 	}
 
+	// Broadcast voice command updates to all connected clients
+	broadcastVoiceCommand(voiceCommandData: {
+		id: string;
+		command: string;
+		confidence: number;
+		timestamp: string;
+		processed: boolean;
+		response?: string;
+		errorMessage?: string;
+	}) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`🎤 Broadcasting voice command: "${voiceCommandData.command}" (${voiceCommandData.confidence})`);
+
+		// Emit to all clients
+		this.io.emit('voice-command', voiceCommandData);
+
+		// Also emit to voice commands history channel
+		this.io.emit('voice-command-history', voiceCommandData);
+	}
+
 	// Send notification to specific client or all clients
 	sendNotification(notification: any, clientId?: string) {
 		if (!this.io) {

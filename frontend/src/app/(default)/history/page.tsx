@@ -7,6 +7,7 @@ import mockDataService, {
 	type ChartDataPoint,
 	type DeviceControl,
 } from "@/services/mockDataService";
+import useWebSocket from "@/hooks/useWebSocket";
 import styles from "./history.module.scss";
 
 // Force dynamic rendering
@@ -26,6 +27,9 @@ const History = () => {
 	const [monthFilter, setMonthFilter] = useState("");
 	const [yearFilter, setYearFilter] = useState("");
 	const [isExporting, setIsExporting] = useState(false);
+
+	// WebSocket integration for real-time updates
+	const { socket, sensorData, persistentSensorData } = useWebSocket();
 
 	// Format timestamp to display date-time consistently
 	const formatDateTime = (timestamp: string): string => {
@@ -136,6 +140,64 @@ const History = () => {
 		};
 		fetchData();
 	}, []);
+
+	// WebSocket listeners for real-time updates
+	useEffect(() => {
+		if (socket) {
+			// Listen for device control confirmations
+			const handleDeviceControl = (controlData: any) => {
+				console.log("📱 Received device control confirmation:", controlData);
+
+				// Create a new device control entry
+				const newControl: DeviceControl = {
+					_id: controlData.controlId || Date.now().toString(),
+					deviceId: controlData.deviceType,
+					deviceType: controlData.deviceType,
+					action: controlData.action,
+					status: controlData.status,
+					controlType: controlData.source === 'automation' ? 'auto' : 'manual',
+					triggeredBy: controlData.source === 'automation' ? 'Automation' : 'Manual control',
+					timestamp: controlData.timestamp,
+					success: controlData.success
+				};
+
+				// Add to the beginning of the device controls list
+				setDeviceControls(prev => [newControl, ...prev]);
+			};
+
+			// Listen for sensor data updates to add to history
+			const handleSensorData = (sensorUpdate: any) => {
+				console.log("📊 Received sensor data update:", sensorUpdate);
+
+				// Create new chart data point from sensor update
+				if (sensorUpdate.sensor && sensorUpdate.data?.value !== undefined) {
+					const newDataPoint: ChartDataPoint = {
+						time: sensorUpdate.timestamp || new Date().toISOString(),
+						temperature: sensorUpdate.sensor === 'temperature' ? sensorUpdate.data.value : null,
+						humidity: sensorUpdate.sensor === 'humidity' ? sensorUpdate.data.value : null,
+						soilMoisture: sensorUpdate.sensor === 'soil' ? sensorUpdate.data.value : null,
+						waterLevel: sensorUpdate.sensor === 'water' ? sensorUpdate.data.value : null,
+						lightLevel: sensorUpdate.sensor === 'light' ? sensorUpdate.data.value : null,
+						rainStatus: sensorUpdate.sensor === 'rain' ? sensorUpdate.data.value : null,
+						plantHeight: sensorUpdate.sensor === 'height' ? sensorUpdate.data.value : null,
+					};
+
+					// Add to the beginning of the data list (limit to prevent memory issues)
+					setData(prev => [newDataPoint, ...prev.slice(0, 999)]);
+				}
+			};
+
+			socket.on('device-control-confirmation', handleDeviceControl);
+			socket.on('sensor:data', handleSensorData);
+			socket.on('sensor-data', handleSensorData); // Legacy compatibility
+
+			return () => {
+				socket.off('device-control-confirmation', handleDeviceControl);
+				socket.off('sensor:data', handleSensorData);
+				socket.off('sensor-data', handleSensorData);
+			};
+		}
+	}, [socket]);
 
 	// Apply filters when filter state or data changes
 	useEffect(() => {
