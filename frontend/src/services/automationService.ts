@@ -79,4 +79,5 @@ class FrontendAutomationService {
 	}
 }
 
-export default new FrontendAutomationService();
+const frontendAutomationService = new FrontendAutomationService();
+export default frontendAutomationService;

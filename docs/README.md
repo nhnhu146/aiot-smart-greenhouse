@@ -2,38 +2,51 @@
 
 ## 📋 Documentation Overview
 
-This directory contains comprehensive documentation for the Smart Greenhouse system, including fixes, updates, and deployment guides.
+This directory contains comprehensive documentation for the AIoT Smart Greenhouse system.
 
-### 📖 Available Documents
+### 📄 Key Documents
 
-| Document | Description |
-|----------|-------------|
-| [`FIXES_SUMMARY.md`](FIXES_SUMMARY.md) | Complete summary of all system fixes and improvements |
-| [`DATA_MERGER_UI_UPDATES.md`](DATA_MERGER_UI_UPDATES.md) | Data management and UI improvements |
-| [`ALERT_FIXES_SUMMARY.md`](ALERT_FIXES_SUMMARY.md) | Alert system fixes and optimizations |
-| [`devops-status.md`](devops-status.md) | Current deployment and security status |
-| [`EMAIL_CONTRAST_FIXES.md`](EMAIL_CONTRAST_FIXES.md) | Email template contrast improvements |
+#### 🌟 **[SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md)** 
+**Main documentation** - Complete system guide including:
+- Quick start & deployment instructions  
+- Architecture overview & features
+- Recent updates & improvements
+- API documentation & examples
+- Troubleshooting & maintenance
+
+#### 🔧 **Technical References**
+- **[AUTOMATION_MIGRATION_SUMMARY.md](./AUTOMATION_MIGRATION_SUMMARY.md)** - Automation system architecture
+- **[MQTT_CONTROL_MIGRATION.md](./MQTT_CONTROL_MIGRATION.md)** - MQTT protocol standardization  
+- **[ALERT_FIXES_SUMMARY.md](./ALERT_FIXES_SUMMARY.md)** - Alert system improvements
+- **[FIXES_SUMMARY.md](./FIXES_SUMMARY.md)** - Historical bug fixes and solutions
 
 ### 🎯 Quick Reference
 
-#### Recent Major Fixes
-- ✅ **Device Control Simplified**: API-only approach, removed hybrid system (Jan 2025)
-- ✅ **MQTT Values Fixed**: Using 0/1 instead of HIGH/LOW for ESP32 compatibility
-- ✅ **Production Error Fixed**: DeviceHistory validation error resolved
-- ✅ **Email Spam Issue**: Fixed AlertService batch system
-- ✅ **Dashboard Controls**: Fixed WebSocket MQTT integration
-- ✅ **Data Quality**: Enhanced DataMergerService for duplicate handling
+#### Recent Major Updates (July 2025)
+- ✅ **Enhanced History UI**: Modern filter interface with gradient design
+- ✅ **Route Protection**: Middleware-based authentication system
+- ✅ **Backend Automation**: Centralized automation logic for better performance  
+- ✅ **MQTT Standardization**: Numeric 1/0 values for device control
+- ✅ **Documentation Consolidation**: Streamlined docs with main overview
 
 #### System Status
 - 🚀 **Deployment**: Fully containerized with Docker Compose
-- 🔐 **Security**: Only frontend port (3000) exposed
-- 📧 **Email Alerts**: Batch system active (5-minute intervals)
-- 🌐 **Frontend**: Next.js with WebSocket real-time updates
+- 🔐 **Security**: Protected routes with automatic redirects
+- 📧 **Email Alerts**: Batch system prevents spam
+- 🌐 **Frontend**: Next.js with real-time WebSocket updates
 - 🛠️ **Backend**: Node.js/TypeScript with MQTT integration
+- 📊 **Database**: MongoDB with optimized queries
 
-### 🔧 Development Notes
+### 🔗 External Links
+- **GitHub Repository**: [aiot-smart-greenhouse](https://github.com/nhnhu146/aiot-smart-greenhouse)
+- **Docker Hub**: Container images (if published)
+- **MQTT Broker**: mqtt.noboroto.id.vn:1883
 
-For detailed technical information about specific fixes and implementations, refer to the individual documentation files in this directory.
+### 📞 Support
+- **Issues**: Create GitHub issue for bugs/features
+- **Deployment**: Check Docker Compose logs
+- **Development**: See SYSTEM_OVERVIEW.md development guide
 
-### 📅 Last Updated
-January 2025 - Email spam resolution and documentation reorganization
+---
+
+**⭐ Start with [SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md) for complete system documentation**

@@ -34,6 +34,8 @@ class AuthService {
 
 	async signIn(email: string, password: string): Promise<AuthResponse> {
 		try {
+			console.log('🔐 AuthService signin attempt for:', email.trim());
+
 			const response = await fetch(`${this.API_BASE_URL}/api/auth/signin`, {
 				method: 'POST',
 				headers: {
@@ -43,10 +45,14 @@ class AuthService {
 			});
 
 			const data = await response.json();
+			console.log('🔐 Signin response:', { success: data.success, hasToken: !!data.token, hasUser: !!data.user });
 
 			if (data.success && data.user && data.token) {
 				this.currentUser = { ...data.user, token: data.token };
 				this.saveToStorage(data.user, data.token);
+				console.log('✅ User authenticated and stored');
+			} else {
+				console.log('❌ Signin failed:', data.message);
 			}
 
 			return data;
@@ -140,15 +146,29 @@ class AuthService {
 	private saveToStorage(user: User, token: string): void {
 		localStorage.setItem('user', JSON.stringify(user));
 		localStorage.setItem('token', token);
-		// Also save to cookies for middleware
-		document.cookie = `token=${token}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
+
+		// Set cookie for middleware with proper attributes
+		const isSecure = window.location.protocol === 'https:';
+		const maxAge = 24 * 60 * 60; // 24 hours
+		let cookieString = `token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+
+		if (isSecure) {
+			cookieString += '; Secure';
+		}
+
+		document.cookie = cookieString;
+		console.log('💾 Token saved to localStorage and cookie');
 	}
 
 	private clearStorage(): void {
 		localStorage.removeItem('user');
 		localStorage.removeItem('token');
-		// Clear cookie
-		document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		// Clear cookie properly with all possible attributes
+		document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
+		// Also try clearing with Secure attribute for HTTPS
+		if (window.location.protocol === 'https:') {
+			document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax; Secure';
+		}
 	}
 }
 

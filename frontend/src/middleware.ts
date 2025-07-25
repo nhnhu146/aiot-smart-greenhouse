@@ -1,88 +1,68 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// This function can be marked `async` if using `await` inside
+const protectedRoutes = [
+	'/dashboard',
+	'/history',
+	'/settings',
+	'/api-examples',
+	'/mqtt-examples'
+];
+
+const publicRoutes = [
+	'/',
+	'/signin',
+	'/signup',
+	'/forgot-password',
+	'/reset-password'
+];
+
 export function middleware(request: NextRequest) {
-	const { pathname } = request.nextUrl
+	const { pathname } = request.nextUrl;
 
-	// Skip middleware for static files
+	// Skip middleware for static files and API routes
 	if (
-		pathname.includes('._next') ||
-		pathname.includes('/favicon.ico') ||
-		pathname.includes('.svg') ||
-		pathname.includes('.png') ||
-		pathname.includes('.jpg') ||
-		pathname.includes('.jpeg') ||
-		pathname.includes('.gif') ||
-		pathname.includes('.ico') ||
-		pathname.includes('.css') ||
-		pathname.includes('.js')
+		pathname.startsWith('/_next') ||
+		pathname.startsWith('/api') ||
+		pathname.includes('.') // Files with extensions
 	) {
-		return NextResponse.next()
+		return NextResponse.next();
 	}
 
-	// Define public paths that don't require authentication
-	const publicPaths = [
-		'/',
-		'/signin',
-		'/signup',
-		'/landing',
-		'/reset-password',
-		'/forgot-password',
-		'/_next',
-		'/favicon.ico',
-		'/api',
-		'/logo.svg',
-		'/avatar.svg',
-		'/background.svg',
-		'/bot.svg',
-		'/chatbot.svg',
-		'/close-eye.svg',
-		'/cloud.svg',
-		'/dashboard.svg',
-		'/logout.svg',
-		'/next.svg',
-		'/notifications.svg',
-		'/open-eye.svg',
-		'/settings.svg',
-		'/setup.svg',
-		'/signin.svg',
-		'/signup.svg',
-		'/vercel.svg',
-		'/activity.svg'
-	]
+	// Check if route needs protection
+	const isProtectedRoute = protectedRoutes.some(route =>
+		pathname.startsWith(route)
+	);
 
-	// Check if the path is public
-	const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
+	const isPublicRoute = publicRoutes.some(route =>
+		pathname === route || pathname.startsWith(route)
+	);
 
-	// If it's a public path, allow access
-	if (isPublicPath) {
-		return NextResponse.next()
+	// Get auth token from cookies
+	const token = request.cookies.get('token')?.value;
+
+	// Debug logging
+	console.log(`🔍 Middleware - Path: ${pathname}, Token: ${token ? 'present' : 'missing'}, Protected: ${isProtectedRoute}, Public: ${isPublicRoute}`);
+
+	// If accessing protected route without token, redirect to signin
+	if (isProtectedRoute && !token) {
+		console.log(`🚫 Redirecting to signin: ${pathname} (no token)`);
+		const signInUrl = new URL('/signin', request.url);
+		signInUrl.searchParams.set('callbackUrl', pathname);
+		return NextResponse.redirect(signInUrl);
 	}
 
-	// For protected paths, check if user has token
-	const token = request.cookies.get('token')?.value ||
-		request.headers.get('authorization')?.replace('Bearer ', '')
-
-	// If no token and trying to access protected route, redirect to signin
-	if (!token && !isPublicPath) {
-		return NextResponse.redirect(new URL('/signin', request.url))
+	// If accessing signin with valid token, redirect to dashboard
+	if (pathname === '/signin' && token) {
+		console.log(`✅ Redirecting to dashboard: ${pathname} (has token)`);
+		return NextResponse.redirect(new URL('/dashboard', request.url));
 	}
 
-	return NextResponse.next()
+	return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
 	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - api (API routes)
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * - public assets (images, svgs, etc.)
-		 */
-		'/((?!api|_next/static|_next/image|favicon.ico|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.ico).*)',
+		'/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
 	],
-}
+};
