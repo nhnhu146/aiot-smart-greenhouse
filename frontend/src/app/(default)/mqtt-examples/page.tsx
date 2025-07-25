@@ -104,41 +104,41 @@ const MqttExamples = () => {
 		{
 			name: "Light Control",
 			topic: "greenhouse/devices/light/control",
-			dataType: "String",
-			description: "Điều khiển đèn LED chiếu sáng (ESP32 nhận HIGH/LOW)",
+			dataType: "Number",
+			description: "Điều khiển đèn LED chiếu sáng (ESP32 nhận 1/0)",
 			examples: [
-				{ description: "Bật đèn", value: "HIGH" },
-				{ description: "Tắt đèn", value: "LOW" }
+				{ description: "Bật đèn", value: 1 },
+				{ description: "Tắt đèn", value: 0 }
 			]
 		},
 		{
 			name: "Pump Control",
 			topic: "greenhouse/devices/pump/control",
-			dataType: "String",
-			description: "Điều khiển máy bơm tưới nước (ESP32 nhận HIGH/LOW)",
+			dataType: "Number",
+			description: "Điều khiển máy bơm tưới nước (ESP32 nhận 1/0)",
 			examples: [
-				{ description: "Bật máy bơm", value: "HIGH" },
-				{ description: "Tắt máy bơm", value: "LOW" }
+				{ description: "Bật máy bơm", value: 1 },
+				{ description: "Tắt máy bơm", value: 0 }
 			]
 		},
 		{
 			name: "Door Control",
 			topic: "greenhouse/devices/door/control",
-			dataType: "String",
-			description: "Điều khiển servo motor cửa chính (ESP32 nhận HIGH/LOW)",
+			dataType: "Number",
+			description: "Điều khiển servo motor cửa chính (ESP32 nhận 1/0)",
 			examples: [
-				{ description: "Mở cửa", value: "HIGH" },
-				{ description: "Đóng cửa", value: "LOW" }
+				{ description: "Mở cửa", value: 1 },
+				{ description: "Đóng cửa", value: 0 }
 			]
 		},
 		{
 			name: "Window Control",
 			topic: "greenhouse/devices/window/control",
-			dataType: "String",
-			description: "Điều khiển servo motor cửa sổ thông gió (ESP32 nhận HIGH/LOW)",
+			dataType: "Number",
+			description: "Điều khiển servo motor cửa sổ thông gió (ESP32 nhận 1/0)",
 			examples: [
-				{ description: "Mở cửa sổ", value: "HIGH" },
-				{ description: "Đóng cửa sổ", value: "LOW" }
+				{ description: "Mở cửa sổ", value: 1 },
+				{ description: "Đóng cửa sổ", value: 0 }
 			]
 		}
 	];
@@ -147,8 +147,11 @@ const MqttExamples = () => {
 		if (dataType === "Boolean" || dataType === "Binary") {
 			return value ? "1" : "0";
 		}
+		if (dataType === "Number") {
+			return value.toString(); // Return numeric values as strings for MQTT
+		}
 		if (dataType === "String") {
-			return value; // Return as-is for HIGH/LOW strings
+			return value; // Return as-is for any remaining string values
 		}
 		return value.toString();
 	};
@@ -326,21 +329,24 @@ const MqttExamples = () => {
 
 					<h6>Test Device Control (Publish) - ESP32 Format:</h6>
 					<div className="mb-3">
-						<p className="small text-info">💡 ESP32 chỉ nhận &quot;HIGH&quot;/&quot;LOW&quot; strings, không phải &quot;1&quot;/&quot;0&quot;</p>
+						<p className="small text-info">💡 ESP32 nhận số &quot;1&quot;/&quot;0&quot;, không phải &quot;HIGH&quot;/&quot;LOW&quot;</p>
 						<code className="d-block p-2 bg-light mb-2">
-							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m &quot;HIGH&quot;
+							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m &quot;1&quot;
 						</code>
 						<code className="d-block p-2 bg-light mb-2">
-							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/pump/control -m &quot;LOW&quot;
+							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/pump/control -m &quot;0&quot;
 						</code>
 						<code className="d-block p-2 bg-light mb-2">
-							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/door/control -m &quot;HIGH&quot;
+							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/door/control -m &quot;1&quot;
+						</code>
+						<code className="d-block p-2 bg-light mb-2">
+							mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/window/control -m &quot;0&quot;
 						</code>
 						<Button
 							size="sm"
 							variant="outline-secondary"
 							className="mt-2"
-							onClick={() => copyToClipboard('mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m "HIGH"', 'test_control')}
+							onClick={() => copyToClipboard('mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m "1"', 'test_control')}
 						>
 							{copiedTopic === 'test_control' ? '✓ Copied' : 'Copy Light ON Command'}
 						</Button>

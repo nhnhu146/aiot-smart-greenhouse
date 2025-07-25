@@ -168,13 +168,13 @@ router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (
 	// Schedule the command
 	setTimeout(async () => {
 		try {
-			// Convert action to MQTT format that ESP32 understands
-			let mqttCommand = 'LOW'; // Default to OFF/LOW
+			// Convert action to MQTT format that ESP32 understands (1/0 values)
+			let mqttCommand = '0'; // Default to OFF/CLOSE
 			if (action === 'on' || action === 'open') {
-				mqttCommand = 'HIGH';
+				mqttCommand = '1'; // ON/OPEN
 			}
 
-			// Send simple MQTT command (not JSON - ESP32 expects simple strings)
+			// Send simple MQTT command (1/0 values)
 			await mqttService.publishDeviceControl(deviceType, mqttCommand);
 
 			// Update device status in database

@@ -252,12 +252,12 @@ class WebSocketService {
 			// Publish device control command to MQTT broker
 			let mqttSent = false;
 			if (mqttService && mqttService.isClientConnected()) {
-				// Convert frontend action to MQTT format
+				// Convert frontend action to MQTT format (use 1/0 instead of HIGH/LOW)
 				let mqttAction = data.action;
 				if (data.action === 'on' || data.action === 'true') {
-					mqttAction = 'HIGH';
+					mqttAction = '1'; // Use '1' instead of 'HIGH'
 				} else if (data.action === 'off' || data.action === 'false') {
-					mqttAction = 'LOW';
+					mqttAction = '0'; // Use '0' instead of 'LOW'
 				}
 
 				mqttService.publishDeviceControl(data.device, mqttAction);
@@ -269,11 +269,11 @@ class WebSocketService {
 
 			// Record device control history
 			try {
-				// Map HIGH/LOW to proper action based on device type
+				// Map 1/0 to proper action based on device type (updated from HIGH/LOW)
 				let mappedAction = data.action;
-				if (data.action === 'HIGH') {
+				if (data.action === '1' || data.action === 'HIGH') {
 					mappedAction = ['light', 'pump'].includes(data.device) ? 'on' : 'open';
-				} else if (data.action === 'LOW') {
+				} else if (data.action === '0' || data.action === 'LOW') {
 					mappedAction = ['light', 'pump'].includes(data.device) ? 'off' : 'close';
 				}
 
@@ -281,7 +281,7 @@ class WebSocketService {
 					deviceId: `greenhouse_${data.device}`,
 					deviceType: data.device,
 					action: mappedAction,
-					status: ['on', 'open', 'HIGH'].includes(data.action),
+					status: ['on', 'open', '1', 'HIGH'].includes(data.action),
 					controlType: 'websocket',
 					userId: socket.id,
 					timestamp: new Date(),

@@ -107,6 +107,32 @@ const SettingsSchema: Schema = new Schema({
 			type: Boolean,
 			default: true
 		}
+	},
+	automation: {
+		enabled: {
+			type: Boolean,
+			default: true
+		},
+		lightControl: {
+			type: Boolean,
+			default: true
+		},
+		pumpControl: {
+			type: Boolean,
+			default: true
+		},
+		doorControl: {
+			type: Boolean,
+			default: false
+		},
+		windowControl: {
+			type: Boolean,
+			default: false
+		},
+		updatedAt: {
+			type: Date,
+			default: Date.now
+		}
 	}
 }, {
 	timestamps: true,

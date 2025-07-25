@@ -108,30 +108,6 @@ const authenticateToken = (req: any, res: Response, next: NextFunction): void =>
 	}
 };
 
-// Record automatic device control history
-async function recordAutomationHistory(deviceType: string, action: string, triggerReason: string) {
-	try {
-		await DeviceHistory.create({
-			deviceId: `greenhouse_${deviceType}`,
-			deviceType: deviceType,
-			action: action,
-			status: 'success',
-			controlType: 'auto',
-			triggeredBy: triggerReason,
-			userId: null, // No user for automation
-			timestamp: new Date(),
-			success: true
-		});
-		console.log(`📊 Recorded automation history: ${deviceType} ${action} (${triggerReason})`);
-	} catch (error) {
-		console.error(`❌ Failed to record automation history:`, error);
-	}
-}
-
-// Track last automation times to avoid duplicates
-let lastLightAutomation = 0;
-let lastPumpAutomation = 0;
-
 // Create Express app
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -567,26 +543,9 @@ function setupMQTTHandlers() {
 					await checkSensorAlerts(sensorType, sensorValue);
 				}
 
-				// Record automatic device controls based on sensor readings
-				if (sensorType === 'light' && typeof sensorValue === 'number') {
-					const shouldTurnOn = sensorValue === 0; // Binary: 0 = dark, turn on light
-					const currentTime = Date.now();
-					// Simple state tracking to avoid duplicate recordings
-					if (!lastLightAutomation || currentTime - lastLightAutomation > 60000) {
-						await recordAutomationHistory('light', shouldTurnOn ? 'HIGH' : 'LOW', `Light sensor: ${sensorValue === 0 ? 'dark' : 'bright'}`);
-						lastLightAutomation = currentTime;
-					}
-				}
-
-				if (sensorType === 'soil' && typeof sensorValue === 'number') {
-					const shouldTurnOn = sensorValue === 0; // Dry soil
-					const currentTime = Date.now();
-					// Simple state tracking to avoid duplicate recordings
-					if (!lastPumpAutomation || currentTime - lastPumpAutomation > 60000) {
-						await recordAutomationHistory('pump', shouldTurnOn ? 'HIGH' : 'LOW', `Soil moisture: ${sensorValue === 0 ? 'dry' : 'wet'}`);
-						lastPumpAutomation = currentTime;
-					}
-				}
+				// Process automation using AutomationService
+				const { automationService } = await import('./services');
+				await automationService.processSensorData(sensorType, sensorValue);
 
 				// Send debug feedback for successful processing
 				mqttService.publishDebugFeedback(topic, messageString, 'success');

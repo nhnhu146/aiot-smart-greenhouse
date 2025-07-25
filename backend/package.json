@@ -12,8 +12,6 @@
 		"clean": "rimraf dist",
 		"create-admin": "node create-admin.js",
 		"build:windows": "tsc && powershell -Command \"if (Test-Path 'dist/templates') { Remove-Item -Path 'dist/templates' -Recurse -Force }; Copy-Item -Path 'src/templates' -Destination 'dist/templates' -Recurse -Force\"",
-		"data:merge": "ts-node src/utils/dataMerger.ts",
-		"data:merge:build": "npm run build && node dist/utils/dataMerger.js",
 		"alerts:cleanup": "ts-node src/utils/alertCleanup.ts",
 		"alerts:cleanup:build": "npm run build && node dist/utils/alertCleanup.js"
 	},

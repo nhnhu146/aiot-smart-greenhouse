@@ -114,6 +114,22 @@ class ApiClient {
 		});
 	}
 
+	// Automation APIs
+	async getAutomationConfig(): Promise<any> {
+		return this.request('/api/automation');
+	}
+
+	async updateAutomationConfig(config: any): Promise<any> {
+		return this.request('/api/automation', {
+			method: 'PUT',
+			body: JSON.stringify(config),
+		});
+	}
+
+	async getAutomationStatus(): Promise<any> {
+		return this.request('/api/automation/status');
+	}
+
 	// Chat API (using backend instead of Hugging Face)
 	async askQuestion(question: string): Promise<any> {
 		return this.request('/api/chat', {

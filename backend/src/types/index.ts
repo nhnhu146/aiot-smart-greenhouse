@@ -59,6 +59,14 @@ export interface Settings {
 		soilMoisture: boolean;
 		waterLevel: boolean;
 	};
+	automation?: {
+		enabled: boolean;
+		lightControl: boolean;
+		pumpControl: boolean;
+		doorControl: boolean;
+		windowControl: boolean;
+		updatedAt: Date;
+	};
 	updatedAt?: Date;
 }
 

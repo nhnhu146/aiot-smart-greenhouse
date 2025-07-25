@@ -490,18 +490,24 @@ void sendPlantHeightValue(long height) {
 /**
  * @brief Controls the LED light based on MQTT command.
  *
- * Turns the light ON or OFF based on the received command string ("HIGH" or "LOW").
+ * Turns the light ON or OFF based on the received command string ("1" or "0").
  *
- * @param[in] value A string representing the desired light state.
+ * @param[in] value A string representing the desired light state ("1" = ON, "0" = OFF).
  *
  * @return void
  *
  * @note Uses digitalWrite with the configured LED pin.
  */
 void controlLights(char* value) {
-  if (strcmp(value, "LOW") == 0) { // Compare C-style strings correctly
+  if (strcmp(value, "0") == 0) { // Compare C-style strings correctly - "0" = OFF
     digitalWrite(Led, LOW);
-  } else {
+  } else if (strcmp(value, "1") == 0) { // "1" = ON
+    digitalWrite(Led, HIGH);
+  }
+  // Backward compatibility: still support HIGH/LOW
+  else if (strcmp(value, "LOW") == 0) {
+    digitalWrite(Led, LOW);
+  } else if (strcmp(value, "HIGH") == 0) {
     digitalWrite(Led, HIGH);
   }
 }
@@ -512,12 +518,35 @@ void controlLights(char* value) {
  * Opens or closes the window based on the command received from MQTT.
  * The servo angle is smoothly adjusted to simulate realistic motion.
  *
- * @param[in] value A string representing the desired window state ("HIGH" or "LOW").
+ * @param[in] value A string representing the desired window state ("1" = OPEN, "0" = CLOSE).
  *
  * @return void
  */
 void controlWindow(char* value) {
-  if (strcmp(value, "LOW") == 0) { // Compare C-style strings correctly
+  if (strcmp(value, "0") == 0) { // "0" = CLOSE
+    for(int posDegrees = 120; posDegrees >= 60; posDegrees--) {
+      windowServo.write(posDegrees);
+      delay(20);
+    }
+  } else if (strcmp(value, "1") == 0) { // "1" = OPEN
+    for(int posDegrees = 60; posDegrees <= 120; posDegrees++) {
+      windowServo.write(posDegrees);
+      delay(20);
+    }
+  }
+  // Backward compatibility: still support HIGH/LOW
+  else if (strcmp(value, "LOW") == 0) {
+    for(int posDegrees = 120; posDegrees >= 60; posDegrees--) {
+      windowServo.write(posDegrees);
+      delay(20);
+    }
+  } else if (strcmp(value, "HIGH") == 0) {
+    for(int posDegrees = 60; posDegrees <= 120; posDegrees++) {
+      windowServo.write(posDegrees);
+      delay(20);
+    }
+  }
+}
     for(int posDegrees = 140; posDegrees <= 180; posDegrees++) {
       windowServo.write(posDegrees);
       delay(20);
@@ -535,21 +564,33 @@ void controlWindow(char* value) {
  *
  * Opens or closes the door smoothly based on the MQTT command received.
  *
- * @param[in] value A string representing the desired door state ("HIGH" or "LOW").
+ * @param[in] value A string representing the desired door state ("1" = OPEN, "0" = CLOSE).
  *
  * @return void
  */
 void controlDoor(char* value) {
-  if (strcmp(value, "LOW") == 0) { // Compare C-style strings correctly
+  if (strcmp(value, "0") == 0) { // "0" = CLOSE
     for(int posDegrees = 160; posDegrees >= 90; posDegrees--) {
       doorServo.write(posDegrees);
       delay(20);
     }
-  } else {
+  } else if (strcmp(value, "1") == 0) { // "1" = OPEN
     for(int posDegrees = 90; posDegrees <= 160; posDegrees++) {
       doorServo.write(posDegrees);
       delay(20);
-    } 
+    }
+  }
+  // Backward compatibility: still support HIGH/LOW
+  else if (strcmp(value, "LOW") == 0) {
+    for(int posDegrees = 160; posDegrees >= 90; posDegrees--) {
+      doorServo.write(posDegrees);
+      delay(20);
+    }
+  } else if (strcmp(value, "HIGH") == 0) {
+    for(int posDegrees = 90; posDegrees <= 160; posDegrees++) {
+      doorServo.write(posDegrees);
+      delay(20);
+    }
   }
 }
 
@@ -558,15 +599,20 @@ void controlDoor(char* value) {
  *
  * Opens or closes the pump smoothly based on the MQTT command received.
  *
- * @param[in] value A string representing the desired pump state ("HIGH" or "LOW").
+ * @param[in] value A string representing the desired pump state ("1" = ON, "0" = OFF).
  *
  * @return void
  */
 void controlPump(char* value) {
-  if (strcmp(value, "LOW") == 0) {
+  if (strcmp(value, "0") == 0) { // "0" = OFF
     digitalWrite(pump, LOW);
+  } else if (strcmp(value, "1") == 0) { // "1" = ON
+    digitalWrite(pump, HIGH);
   }
-  else {
+  // Backward compatibility: still support HIGH/LOW
+  else if (strcmp(value, "LOW") == 0) {
+    digitalWrite(pump, LOW);
+  } else if (strcmp(value, "HIGH") == 0) {
     digitalWrite(pump, HIGH);
   }
 }
@@ -576,15 +622,20 @@ void controlPump(char* value) {
  *
  * Opens or closes the microphone smoothly based on the MQTT command received.
  *
- * @param[in] value A string representing the desired microphone state ("HIGH" or "LOW").
+ * @param[in] value A string representing the desired microphone state ("1" = ON, "0" = OFF).
  *
  * @return void
  */
 void controlmicrophone(char* value) {
-  if (strcmp(value, "LOW") == 0) {
+  if (strcmp(value, "0") == 0) { // "0" = OFF
     digitalWrite(microphone, LOW);
+  } else if (strcmp(value, "1") == 0) { // "1" = ON
+    digitalWrite(microphone, HIGH);
   }
-  else {
+  // Backward compatibility: still support HIGH/LOW
+  else if (strcmp(value, "LOW") == 0) {
+    digitalWrite(microphone, LOW);
+  } else if (strcmp(value, "HIGH") == 0) {
     digitalWrite(microphone, HIGH);
   }
 }

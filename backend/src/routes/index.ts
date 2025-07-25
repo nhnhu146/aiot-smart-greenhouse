@@ -11,6 +11,7 @@ import alertsRouter from './alerts';
 import authRouter from './auth';
 import userSettingsRouter from './userSettings';
 import dataRouter from './data';
+import automationRouter from './automation';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use('/alerts', alertsRouter);
 router.use('/auth', authRouter);
 router.use('/user-settings', userSettingsRouter);
 router.use('/data', dataRouter);
+router.use('/automation', automationRouter);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
