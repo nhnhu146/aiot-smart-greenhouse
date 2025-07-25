@@ -121,20 +121,19 @@ const Dashboard = () => {
 		});
 	}, []);
 
-	// Memoize automation logic to prevent unnecessary rerenders
+	// Memorize automation logic to prevent unnecessary rerenders
 	const automationLogic = useCallback((sensor: string, value: any, currentSensorValues: any) => {
 		if (!autoMode || userInteraction) return;
-
-		const numValue = typeof value === 'object' ? value.value : parseFloat(value);
-		if (isNaN(numValue)) return;
+		console.log(`🔄 Automation logic triggered for ${sensor} with value:`, value);
+		if (isNaN(value)) return;
 
 		// Light control based on light sensor
 		if (sensor === 'light') {
-			const shouldTurnOn = numValue < 500;
+			const shouldTurnOn = value === 0;
 			setSwitchStates((prev) => {
 				const currentState = prev.get('light') || false;
 				if (currentState !== shouldTurnOn) {
-					sendDeviceControl('light', shouldTurnOn ? 'on' : 'off');
+					sendDeviceControl('light', shouldTurnOn ? '1' : '0');
 					return new Map(prev).set('light', shouldTurnOn);
 				}
 				return prev;
@@ -143,7 +142,7 @@ const Dashboard = () => {
 
 		// Pump control based on soil moisture (binary: 0=dry, 1=wet)
 		if (sensor === 'soil') {
-			const shouldTurnOn = numValue === 0; // If soil moisture = 0 (dry), turn on pump
+			const shouldTurnOn = value === 0; // If soil moisture = 0 (dry), turn on pump
 			setSwitchStates((prev) => {
 				const currentState = prev.get('pump') || false;
 				if (currentState !== shouldTurnOn) {
@@ -458,7 +457,14 @@ const Dashboard = () => {
 									</Col>
 								))}
 							</Row>
-
+							<div className="d-flex gap-3 align-items-center mb-3">
+								<Badge bg={autoMode ? "success" : "secondary"}>
+									Auto Mode: {autoMode ? "ON" : "OFF"}
+								</Badge>
+								<Badge bg={userInteraction ? "warning" : "info"}>
+									User Interaction: {userInteraction ? "Active" : "Inactive"}
+								</Badge>
+							</div>
 							{/* Automation Status */}
 							{autoMode && !userInteraction && (
 								<Alert variant="info" className="mt-3 mb-0">
