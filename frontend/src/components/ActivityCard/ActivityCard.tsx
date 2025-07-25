@@ -15,11 +15,13 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ title, icon, switchState, o
   const [localActive, setLocalActive] = useState(switchState);
   
   const handleCardClick = () => {
+    const newState = !localActive;
+    // Update UI immediately
+    setLocalActive(newState);
     if (onSwitchChange) {
-      // Update UI immediately
-      setLocalActive(!localActive);
-      // Call callback to update actual state
-      onSwitchChange(!switchState);
+      // Call callback to update actual state with the new state
+      onSwitchChange(newState);
+      console.log(`[ActivityCard] Clicked: ${title}, current: ${localActive}, new: ${newState}`);
     }
   };
   
