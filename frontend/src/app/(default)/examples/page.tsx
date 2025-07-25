@@ -407,22 +407,22 @@ const Examples = () => {
 							<div className="mb-3">
 								<p className="small text-info">💡 ESP32 gửi chỉ giá trị số hoặc binary, không phải JSON object</p>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/temperature -m "25.5"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/temperature -m &quot;25.5&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/humidity -m "65"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/humidity -m &quot;65&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/soil -m "0"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/soil -m &quot;0&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/water -m "1"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/water -m &quot;1&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/light -m "1"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/light -m &quot;1&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/height -m "35"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/sensors/height -m &quot;35&quot;
 								</code>
 								<Button
 									size="sm"
@@ -436,18 +436,18 @@ const Examples = () => {
 
 							<h6>Test Device Control (Publish) - ESP32 Format:</h6>
 							<div className="mb-3">
-								<p className="small text-info">💡 ESP32 nhận số "1"/"0", không phải "HIGH"/"LOW"</p>
+								<p className="small text-info">💡 ESP32 nhận số &quot;1&quot;/&quot;0&quot;, không phải &quot;HIGH&quot;/&quot;LOW&quot;</p>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m "1"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m &quot;1&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/pump/control -m "0"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/pump/control -m &quot;0&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/door/control -m "1"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/door/control -m &quot;1&quot;
 								</code>
 								<code className="d-block p-2 bg-light mb-2">
-									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/window/control -m "0"
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/window/control -m &quot;0&quot;
 								</code>
 								<Button
 									size="sm"
@@ -462,7 +462,7 @@ const Examples = () => {
 							<h6>Subscribe to All Topics:</h6>
 							<div className="mb-3">
 								<code className="d-block p-2 bg-light">
-									mosquitto_sub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t "greenhouse/+/+"
+									mosquitto_sub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t &quot;greenhouse/+/+&quot;
 								</code>
 								<Button
 									size="sm"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Row, Col, Form, Button, Alert, Badge, Spinner } from 'react-bootstrap';
 import { useAutomation } from '@/hooks/useAutomation';
 import styles from './automode.module.scss';
@@ -106,12 +106,7 @@ const AutomodeSettings = () => {
 	// Sync main automation toggle with the shared hook
 	const autoMode = automationConfig?.enabled ?? false;
 
-	// Load settings on component mount
-	useEffect(() => {
-		loadSettings();
-	}, []);
-
-	const loadSettings = async () => {
+	const loadSettings = useCallback(async () => {
 		setLoading(true);
 		try {
 			const response = await fetch(`${API_BASE_URL}/api/automation`);
@@ -126,7 +121,12 @@ const AutomodeSettings = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
+
+	// Load settings on component mount
+	useEffect(() => {
+		loadSettings();
+	}, [loadSettings]);
 
 	const saveSettings = async () => {
 		setSaving(true);
