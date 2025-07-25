@@ -120,7 +120,8 @@ const VoiceCommands = () => {
 		fetchVoiceCommands();
 	}, []);
 
-	const getConfidenceBadge = (confidence: number) => {
+	const getConfidenceBadge = (confidence: number | null | undefined) => {
+		if (confidence == null) return "secondary"; // N/A case
 		if (confidence >= 0.9) return "success";
 		if (confidence >= 0.7) return "warning";
 		return "danger";
@@ -253,7 +254,7 @@ const VoiceCommands = () => {
 													</td>
 													<td>
 														<Badge bg={getConfidenceBadge(command.confidence)}>
-															{(command.confidence * 100).toFixed(0)}%
+															{command.confidence != null ? (command.confidence * 100).toFixed(0) + '%' : 'N/A'}
 														</Badge>
 													</td>
 													<td>

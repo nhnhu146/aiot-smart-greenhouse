@@ -114,7 +114,7 @@ export class VoiceCommandService {
 		}
 
 		// If no command matches, return a generic response
-		return `Command "${command}" received but not recognized`;
+		return `Command "${command}" received`;
 	}
 
 	async getVoiceCommands(limit: number = 50): Promise<any[]> {
