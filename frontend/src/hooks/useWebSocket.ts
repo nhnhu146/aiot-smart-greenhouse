@@ -3,6 +3,10 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { getWebSocketUrl, getWebSocketConfig, logConnectionInfo } from "@/lib/websocketConfig";
+import deviceControlService, {
+	DeviceControlRequest,
+	DeviceControlOptions
+} from "@/services/deviceControlService";
 
 interface SensorData {
 	sensor: string;
@@ -43,7 +47,8 @@ interface UseWebSocketReturn {
 	persistentSensorData: PersistentSensorState;
 	deviceStatus: DeviceStatus | null;
 	alerts: Alert[];
-	sendDeviceControl: (device: string, action: string, value?: any) => void;
+	sendDeviceControl: (device: string, action: string, value?: any, options?: DeviceControlOptions) => Promise<any>;
+	sendDeviceControlHybrid: (request: DeviceControlRequest, options?: DeviceControlOptions) => Promise<any>;
 	clearAlerts: () => void;
 }
 
@@ -190,8 +195,13 @@ export default function useWebSocket(): UseWebSocketReturn {
 		};
 	}, [updateSensorData, updateDeviceStatus, updateAlerts]); // Stable dependencies
 
-	// Function to send device control commands
-	const sendDeviceControl = useCallback((device: string, action: string, value?: any) => {
+	// Function to send device control commands (legacy method - WebSocket only)
+	const sendDeviceControl = useCallback(async (
+		device: string,
+		action: string,
+		value?: any,
+		options: DeviceControlOptions = {}
+	): Promise<any> => {
 		if (socket && isConnected) {
 			const controlData = {
 				device,
@@ -200,12 +210,49 @@ export default function useWebSocket(): UseWebSocketReturn {
 				timestamp: new Date().toISOString()
 			};
 
-			console.log('🎮 Sending device control:', controlData);
-			socket.emit('device:control', controlData);
+			console.log('🎮 Sending device control (legacy WebSocket):', controlData);
+
+			return new Promise((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					reject(new Error('WebSocket control timeout'));
+				}, options.timeout || 5000);
+
+				// Listen for response
+				const responseHandler = (response: any) => {
+					if (response.device === device) {
+						clearTimeout(timeout);
+						socket.off('device-control-response', responseHandler);
+						if (response.success) {
+							resolve(response);
+						} else {
+							reject(new Error(response.error || 'Control failed'));
+						}
+					}
+				};
+
+				socket.on('device-control-response', responseHandler);
+				socket.emit('device:control', controlData);
+			});
 		} else {
-			console.warn('⚠️ WebSocket not connected, cannot send device control');
+			throw new Error('WebSocket not connected');
 		}
 	}, [socket, isConnected]);
+
+	// Function to send device control using hybrid approach (POST API + WebSocket)
+	const sendDeviceControlHybrid = useCallback(async (
+		request: DeviceControlRequest,
+		options: DeviceControlOptions = {}
+	): Promise<any> => {
+		try {
+			console.log('🚀 Sending hybrid device control:', request);
+			const response = await deviceControlService.sendDeviceControl(request, options);
+			console.log('✅ Hybrid device control response:', response);
+			return response;
+		} catch (error) {
+			console.error('❌ Hybrid device control failed:', error);
+			throw error;
+		}
+	}, []);
 
 	// Function to clear alerts
 	const clearAlerts = useCallback(() => {
@@ -220,6 +267,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 		deviceStatus,
 		alerts,
 		sendDeviceControl,
+		sendDeviceControlHybrid,
 		clearAlerts
 	};
 }

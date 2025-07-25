@@ -3,7 +3,21 @@
 #include <ESP32Servo.h>         // For controlling servo motors
 #include <DHT.h>                // For DHT temperature and humidity sensor
 #include <Wire.h>               // For I2C communication
-#include <LiquidCrystal_I2C.h>  // For LCD display via I2C
+#include <Liqui/**
+ * @brief Publishes the ultrasonic distance value to the MQTT broker.
+ *
+ * Converts the distance value to a string and publishes it to the configured
+ * `height_topic` for plant height measurement.
+ *
+ * @param[in] distance The measured distance in centimeters.
+ *
+ * @return void
+ */
+void sendUltraSonicValue(long distance) {
+  String payload = String(distance);
+  client.publish("greenhouse/sensors/height", payload.c_str());
+  Serial.println("Sent plant height: " + payload + " cm");
+}  // For LCD display via I2C
 #include <es/**
  * @brief Publishes the water level value to the MQTT broker.
  *
@@ -408,16 +422,6 @@ void sendSoilMoistureValue(int moisture) {
 /**
  * @brief Publishes the water level value to the MQTT broker.
  *
- * Converts the water level value to a string and publishes it to the configured
- * `water_level_topic`.
- *
- * @param[in] waterLevel The water level status (0 or 1).
- *
- * @return void
- */
-/**
- * @brief Publishes the water level value to the MQTT broker.
- *
  * Converts the water level value to binary: 0 = normal, 1 = flooded
  *
  * @param[in] waterLevel The water level measured by float switch (0 or 1).
@@ -465,10 +469,6 @@ void sendRainStatusValue(int rain) {
   String payload = String(binaryValue);
   client.publish(rain_status_topic, payload.c_str());
   Serial.println("Sent rain status (binary): " + payload + " (0=no rain, 1=raining) - Raw: " + String(rain));
-}
-  String payload = String(binaryValue);
-  client.publish("greenhouse/sensors/rain", payload.c_str());
-  Serial.println("Sent rain (binary): " + payload + " (0=no rain, 1=raining) - Raw: " + String(rain));
 }
 
 /**

@@ -142,6 +142,37 @@ class WebSocketService {
 		}
 	}
 
+	// Broadcast device control confirmation to all connected clients
+	broadcastDeviceControl(controlData: {
+		controlId: string;
+		deviceType: string;
+		action: string;
+		status: boolean;
+		source: string;
+		timestamp: string;
+		success: boolean;
+	}) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`🎮 Broadcasting device control: ${controlData.deviceType} -> ${controlData.action}`);
+
+		// Emit to all clients
+		this.io.emit('device-control-confirmation', controlData);
+
+		// Also emit to specific device channel
+		this.io.emit(`device-control-${controlData.deviceType}`, controlData);
+
+		// Broadcast device status update
+		this.broadcastDeviceStatus(`greenhouse/devices/${controlData.deviceType}/status`, {
+			device: controlData.deviceType,
+			status: controlData.action,
+			timestamp: controlData.timestamp
+		});
+	}
+
 	// Send notification to specific client or all clients
 	sendNotification(notification: any, clientId?: string) {
 		if (!this.io) {
@@ -203,9 +234,16 @@ class WebSocketService {
 	}
 
 	// Handle device control from frontend
-	private async handleDeviceControl(socket: Socket, data: { device: string; action: string; value?: any }) {
+	private async handleDeviceControl(socket: Socket, data: {
+		device: string;
+		action: string;
+		value?: any;
+		controlId?: string;
+		source?: string;
+	}) {
 		try {
-			console.log(`🎮 Device control request: ${data.device} -> ${data.action}`);
+			const controlId = data.controlId || `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+			console.log(`🎮 Device control request [${controlId}]: ${data.device} -> ${data.action}`);
 
 			// Import services dynamically to avoid circular dependency
 			const { mqttService } = require('./MQTTService');
@@ -223,7 +261,7 @@ class WebSocketService {
 				}
 
 				mqttService.publishDeviceControl(data.device, mqttAction);
-				console.log(`📡 MQTT command sent: ${data.device} -> ${mqttAction}`);
+				console.log(`📡 MQTT command sent [${controlId}]: ${data.device} -> ${mqttAction}`);
 				mqttSent = true;
 			} else {
 				console.warn('⚠️ MQTT service not available for device control');
@@ -244,15 +282,16 @@ class WebSocketService {
 					deviceType: data.device,
 					action: mappedAction,
 					status: ['on', 'open', 'HIGH'].includes(data.action),
-					controlType: 'manual', // WebSocket controls are always manual
-					userId: socket.id, // Use socket ID as user identifier
+					controlType: data.source === 'hybrid' ? 'hybrid' : 'websocket',
+					userId: socket.id,
 					timestamp: new Date(),
 					success: mqttSent,
+					controlId,
 					...(mqttSent ? {} : { errorMessage: 'MQTT service not available' })
 				});
 
 				await deviceHistory.save();
-				console.log(`📝 Device control history recorded: ${data.device} -> ${data.action}`);
+				console.log(`📝 Device control history recorded [${controlId}]: ${data.device} -> ${data.action}`);
 			} catch (historyError) {
 				console.error('❌ Failed to record device control history:', historyError);
 			}
@@ -269,15 +308,31 @@ class WebSocketService {
 				success: true,
 				device: data.device,
 				action: data.action,
+				controlId,
 				mqttSent,
-				timestamp: new Date().toISOString()
+				timestamp: new Date().toISOString(),
+				message: `${data.device} ${data.action} command processed successfully`
 			});
 
-			console.log(`✅ Device control processed: ${data.device} -> ${data.action}`);
+			// If this is from hybrid request, broadcast confirmation
+			if (data.source === 'hybrid') {
+				this.broadcastDeviceControl({
+					controlId,
+					deviceType: data.device,
+					action: data.action,
+					status: ['on', 'open', 'HIGH'].includes(data.action),
+					source: 'hybrid',
+					timestamp: new Date().toISOString(),
+					success: mqttSent
+				});
+			}
+
+			console.log(`✅ Device control processed [${controlId}]: ${data.device} -> ${data.action}`);
 		} catch (error) {
 			console.error('❌ Device control error:', error);
 			socket.emit('device-control-response', {
 				success: false,
+				controlId: data.controlId,
 				error: 'Failed to process device control',
 				timestamp: new Date().toISOString()
 			});
