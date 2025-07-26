@@ -8,7 +8,7 @@ const router = express.Router();
 // Rate limiting for user settings
 const settingsLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 20, // limit each IP to 20 requests per windowMs
+	max: 2000, // limit each IP to 20 requests per windowMs
 	message: {
 		success: false,
 		message: 'Too many settings requests from this IP, please try again later'

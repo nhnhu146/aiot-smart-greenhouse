@@ -130,7 +130,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
 	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // Increased from 100000 to 1000 (reasonable limit)
+	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '900000'), // Increased from 100000 to 1000 (reasonable limit)
 	message: {
 		success: false,
 		message: 'Too many requests from this IP, please try again later',
@@ -144,8 +144,8 @@ app.use(limiter);
 
 // Special rate limiter for automation status endpoint (more lenient)
 const automationLimiter = rateLimit({
-	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
-	max: parseInt(process.env.AUTOMATION_RATE_LIMIT || '60'), // 60 requests per minute
+	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+	max: parseInt(process.env.AUTOMATION_RATE_LIMIT || '900000'), // 600 requests per minute
 	message: {
 		success: false,
 		message: 'Too many automation requests, please try again later',
