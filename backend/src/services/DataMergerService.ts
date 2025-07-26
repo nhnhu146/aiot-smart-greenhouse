@@ -24,12 +24,12 @@ export class DataMergerService {
 	}
 
 	/**
-	 * Merge sensor data records with same timestamp (hour, minute, second)
+	 * Merge sensor data records with same timestamp (enhanced to handle exact and near duplicates)
 	 * This handles duplicate data from multiple sources (MQTT, WebSocket, manual)
 	 */
 	public async mergeSameTimestampData(): Promise<MergeStatistics> {
 		try {
-			console.log('🔄 Starting data merge for same timestamps...');
+			console.log('🔄 Starting enhanced data merge for duplicate timestamps...');
 
 			const stats: MergeStatistics = {
 				totalDuplicates: 0,
@@ -38,11 +38,11 @@ export class DataMergerService {
 				processedGroups: 0
 			};
 
-			// Enhanced aggregation pipeline to find duplicates by exact timestamp
-			const pipeline: any[] = [
+			// First: Handle exact timestamp duplicates
+			const exactDuplicates = await SensorDataModel.aggregate([
 				{
 					$group: {
-						_id: '$createdAt', // Group by exact timestamp
+						_id: '$createdAt',
 						docs: { $push: '$$ROOT' },
 						count: { $sum: 1 }
 					}
@@ -51,40 +51,73 @@ export class DataMergerService {
 					$match: { count: { $gt: 1 } }
 				},
 				{
-					$sort: { 'count': -1 } // Process groups with most duplicates first
-				},
-				{
-					$limit: 500 // Process in larger batches for efficiency
+					$sort: { 'count': -1 }
 				}
-			];
+			]);
 
-			const duplicateGroups = await SensorDataModel.aggregate(pipeline);
-			stats.totalDuplicates = duplicateGroups.length;
+			console.log(`📊 Found ${exactDuplicates.length} groups with exact timestamp duplicates`);
 
-			console.log(`📊 Found ${stats.totalDuplicates} groups with exact duplicate timestamps`);
-
-			// Process each group of duplicates
-			for (const group of duplicateGroups) {
+			// Process exact duplicates first
+			for (const group of exactDuplicates) {
 				const docs = group.docs;
 				if (docs.length < 2) continue;
 
-				// Enhanced merging with strict duplicate checking
 				const mergeResult = await this.mergeDocumentGroupEnhanced(docs);
 				stats.mergedRecords += mergeResult.merged;
 				stats.deletedRecords += mergeResult.deleted;
 				stats.processedGroups++;
-
-				// Log progress
-				if (stats.processedGroups % 20 === 0) {
-					console.log(`🔄 Processed ${stats.processedGroups}/${stats.totalDuplicates} groups...`);
-				}
 			}
 
-			console.log('✅ Data merge completed:', stats);
+			// Second: Handle second-level near duplicates (after exact duplicates are cleaned)
+			const pipeline: any[] = [
+				{
+					$group: {
+						_id: {
+							year: { $year: '$createdAt' },
+							month: { $month: '$createdAt' },
+							day: { $dayOfMonth: '$createdAt' },
+							hour: { $hour: '$createdAt' },
+							minute: { $minute: '$createdAt' },
+							second: { $second: '$createdAt' } // Group by second for precise duplicates
+						},
+						docs: { $push: '$$ROOT' },
+						count: { $sum: 1 }
+					}
+				},
+				{
+					$match: { count: { $gt: 1 } }
+				},
+				{
+					$sort: { 'count': -1 }
+				},
+				{
+					$limit: 200 // Process reasonable batch size
+				}
+			];
+
+			const minuteDuplicates = await SensorDataModel.aggregate(pipeline);
+			console.log(`📊 Found ${minuteDuplicates.length} groups with minute-level duplicates`);
+
+			// Process minute-level duplicates
+			for (const group of minuteDuplicates) {
+				const docs = group.docs;
+				if (docs.length < 2) continue;
+
+				const mergeResult = await this.mergeDocumentGroupEnhanced(docs);
+				stats.mergedRecords += mergeResult.merged;
+				stats.deletedRecords += mergeResult.deleted;
+				stats.processedGroups++;
+			}
+
+			stats.totalDuplicates = exactDuplicates.length + minuteDuplicates.length;
+
+			console.log(`📊 Found ${stats.totalDuplicates} groups with duplicate data in same minute`);
+
+			console.log('✅ Enhanced data merge completed:', stats);
 			return stats;
 
 		} catch (error) {
-			console.error('❌ Error in data merge:', error);
+			console.error('❌ Error in enhanced data merge:', error);
 			throw error;
 		}
 	}
@@ -295,7 +328,7 @@ export class DataMergerService {
 	}
 
 	/**
-	 * Auto-merge on data reception (real-time merging)
+	 * Auto-merge on data reception (enhanced real-time merging)
 	 * Called when new sensor data is received via MQTT or WebSocket
 	 */
 	public async autoMergeOnDataReceive(newData: any): Promise<boolean> {
@@ -316,24 +349,26 @@ export class DataMergerService {
 				}
 			}
 
-			// Find existing records within same second
-			const startOfSecond = new Date(timestamp);
-			startOfSecond.setMilliseconds(0);
+			// Enhanced duplicate detection: check within same minute window
+			const startOfMinute = new Date(timestamp);
+			startOfMinute.setSeconds(0, 0); // Start of minute
 
-			const endOfSecond = new Date(startOfSecond);
-			endOfSecond.setMilliseconds(999);
+			const endOfMinute = new Date(startOfMinute);
+			endOfMinute.setSeconds(59, 999); // End of minute
 
 			const existingDocs = await SensorDataModel.find({
 				createdAt: {
-					$gte: startOfSecond,
-					$lte: endOfSecond
+					$gte: startOfMinute,
+					$lte: endOfMinute
 				}
 			}).lean();
 
 			if (existingDocs.length === 0) {
-				// No duplicates, proceed normally
+				// No duplicates in this minute, proceed normally
 				return false;
 			}
+
+			console.log(`🔍 Found ${existingDocs.length} existing records in same minute`);
 
 			// Ensure newData has valid createdAt for merging
 			const newDataForMerge = {
@@ -341,15 +376,15 @@ export class DataMergerService {
 				createdAt: timestamp // Use the validated timestamp
 			};
 
-			// Merge with existing data
+			// Merge with existing data using enhanced logic
 			const allDocs = [...existingDocs, newDataForMerge];
-			await this.mergeDocumentGroup(allDocs);
+			await this.mergeDocumentGroupEnhanced(allDocs);
 
-			console.log(`🔄 Auto-merged data for timestamp: ${timestamp.toISOString()}`);
+			console.log(`🔄 Auto-merged data for minute: ${timestamp.toLocaleString()}`);
 			return true;
 
 		} catch (error) {
-			console.error('❌ Error in auto-merge:', error);
+			console.error('❌ Error in enhanced auto-merge:', error);
 
 			// Log additional context for debugging
 			if (error instanceof Error && error.message.includes('Cast to date failed')) {
@@ -361,21 +396,58 @@ export class DataMergerService {
 	}
 
 	/**
-	 * Schedule periodic merge (for cron job)
+	 * Schedule periodic merge (enhanced frequency for better performance)
 	 */
-	public async schedulePeriodicMerge(intervalMinutes: number = 30): Promise<void> {
-		console.log(`⏰ Scheduling periodic merge every ${intervalMinutes} minutes`);
+	public async schedulePeriodicMerge(intervalMinutes: number = 5): Promise<void> {
+		console.log(`⏰ Scheduling enhanced periodic merge every ${intervalMinutes} minutes`);
 
 		setInterval(async () => {
 			try {
 				const stats = await this.mergeSameTimestampData();
 				if (stats.processedGroups > 0) {
 					console.log(`🔄 Periodic merge completed: ${stats.mergedRecords} merged, ${stats.deletedRecords} deleted`);
+				} else {
+					console.log('✅ No duplicates found in periodic merge');
 				}
 			} catch (error) {
 				console.error('❌ Error in periodic merge:', error);
 			}
 		}, intervalMinutes * 60 * 1000);
+	}
+
+	/**
+	 * Pre-save merge check - called before saving new sensor data
+	 * Returns merged document if duplicates found, null if no duplicates
+	 */
+	public async preSaveMergeCheck(newData: any): Promise<any | null> {
+		try {
+			// Check for exact timestamp duplicates
+			const existingDoc = await SensorDataModel.findOne({
+				createdAt: newData.createdAt
+			}).lean();
+
+			if (!existingDoc) {
+				return null; // No duplicates, proceed with normal save
+			}
+
+			console.log(`🔄 Pre-save merge: Found existing data for timestamp ${newData.createdAt}`);
+
+			// Merge the new data with existing
+			const mergedData = this.mergeDocumentDataComplete([existingDoc, newData], existingDoc);
+			
+			// Update existing document with merged data
+			const updated = await SensorDataModel.findByIdAndUpdate(
+				existingDoc._id,
+				{ $set: mergedData },
+				{ new: true, lean: true }
+			);
+
+			return updated;
+
+		} catch (error) {
+			console.error('❌ Error in pre-save merge check:', error);
+			return null;
+		}
 	}
 }
 

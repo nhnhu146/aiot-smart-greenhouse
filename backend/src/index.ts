@@ -678,16 +678,20 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 			sensorDoc.dataQuality = filledSensors >= 4 ? 'complete' : 'partial';
 		}
 
-		// Auto-merge check for duplicate timestamps
+		// Pre-save merge check for duplicate timestamps
 		const dataMergerService = DataMergerService.getInstance();
-		const wasMerged = await dataMergerService.autoMergeOnDataReceive(newData);
+		const mergedDoc = await dataMergerService.preSaveMergeCheck(newData);
 
-		// Only save if not merged (merged data is already saved)
-		if (!wasMerged && sensorDoc) {
-			await sensorDoc.save();
+		if (mergedDoc) {
+			// Data was merged with existing record
+			console.log(`💾 Merged ${sensorType} sensor data: ${value} (merged with existing)`);
+		} else {
+			// No duplicates found, save new document
+			if (sensorDoc) {
+				await sensorDoc.save();
+				console.log(`💾 Saved ${sensorType} sensor data: ${value} (new record)`);
+			}
 		}
-
-		console.log(`💾 Saved ${sensorType} sensor data: ${value} ${wasMerged ? '(merged)' : ''}`);
 
 	} catch (error) {
 		console.error(`❌ Error saving sensor data to database:`, error);
@@ -785,8 +789,8 @@ async function startServer() {
 
 		// Initialize Data Merger Service and start periodic merge
 		const dataMergerService = DataMergerService.getInstance();
-		await dataMergerService.schedulePeriodicMerge(30); // Every 30 minutes
-		console.log('✅ Data merger service initialized');
+		await dataMergerService.schedulePeriodicMerge(2); // Every 2 minutes for more aggressive merging
+		console.log('✅ Data merger service initialized with 2-minute intervals');
 
 		// Start Express server
 		const server = httpServer.listen(PORT, () => {

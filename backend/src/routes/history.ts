@@ -4,6 +4,7 @@ import { validateQuery, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
 import { formatVietnamTimestamp } from '../utils/timezone';
+import { DataMergerService } from '../services/DataMergerService';
 
 const router = Router();
 
@@ -21,6 +22,32 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	}
 
 	const skip = (page - 1) * limit;
+
+	// Smart merge: only merge if duplicates detected
+	const mergerService = DataMergerService.getInstance();
+	try {
+		// Quick duplicate check first
+		const quickDuplicateCheck = await SensorData.aggregate([
+			{ $match: query },
+			{
+				$group: {
+					_id: '$createdAt',
+					count: { $sum: 1 }
+				}
+			},
+			{ $match: { count: { $gt: 1 } } },
+			{ $limit: 1 }
+		]);
+
+		if (quickDuplicateCheck.length > 0) {
+			await mergerService.mergeSameTimestampData();
+			console.log('✅ Data merged before history fetch (duplicates found)');
+		} else {
+			console.log('✅ No duplicates detected, skipping merge');
+		}
+	} catch (mergeError) {
+		console.warn('⚠️ Merge failed, continuing with raw data:', mergeError);
+	}
 
 	// Get sensor data history
 	const [sensorHistory, deviceHistory, deviceControlHistory, alertHistory] = await Promise.all([
@@ -111,6 +138,32 @@ router.get('/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req
 	}
 
 	const skip = (page - 1) * limit;
+
+	// Smart merge for sensors: only if duplicates exist
+	const mergerService = DataMergerService.getInstance();
+	try {
+		// Quick duplicate check first
+		const quickDuplicateCheck = await SensorData.aggregate([
+			{ $match: query },
+			{
+				$group: {
+					_id: '$createdAt',
+					count: { $sum: 1 }
+				}
+			},
+			{ $match: { count: { $gt: 1 } } },
+			{ $limit: 1 }
+		]);
+
+		if (quickDuplicateCheck.length > 0) {
+			await mergerService.mergeSameTimestampData();
+			console.log('✅ Sensor data merged before fetch (duplicates found)');
+		} else {
+			console.log('✅ No sensor duplicates detected, skipping merge');
+		}
+	} catch (mergeError) {
+		console.warn('⚠️ Sensor merge failed, continuing with raw data:', mergeError);
+	}
 
 	const [data, total] = await Promise.all([
 		SensorData.find(query)
