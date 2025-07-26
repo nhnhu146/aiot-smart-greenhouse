@@ -25,6 +25,7 @@ export const useAutomation = () => {
 	const [config, setConfig] = useState<AutomationConfig | null>(null);
 	const [status, setStatus] = useState<AutomationStatus | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [updating, setUpdating] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	// Load automation configuration from backend
@@ -57,8 +58,11 @@ export const useAutomation = () => {
 
 	// Update automation configuration
 	const updateConfig = useCallback(async (newConfig: Partial<AutomationConfig>) => {
+		if (updating) return false; // Prevent concurrent updates
+
 		try {
-			setLoading(true);
+			setUpdating(true);
+			setError(null);
 			const success = await automationService.updateConfiguration(newConfig);
 			if (success) {
 				await loadConfig(); // Reload to get updated config
@@ -71,23 +75,23 @@ export const useAutomation = () => {
 			console.error('Error updating automation config:', err);
 			return false;
 		} finally {
-			setLoading(false);
+			setUpdating(false);
 		}
-	}, [loadConfig, loadStatus]);
+	}, [loadConfig, loadStatus, updating]);
 
 	// Toggle automation enabled/disabled
 	const toggleAutomation = useCallback(async () => {
-		if (!config) return false;
+		if (!config || updating) return false;
 
 		return await updateConfig({ enabled: !config.enabled });
-	}, [config, updateConfig]);
+	}, [config, updateConfig, updating]);
 
 	// Toggle specific device automation
 	const toggleDeviceAutomation = useCallback(async (deviceType: keyof Omit<AutomationConfig, 'enabled'>) => {
-		if (!config) return false;
+		if (!config || updating) return false;
 
 		return await updateConfig({ [deviceType]: !config[deviceType] });
-	}, [config, updateConfig]);
+	}, [config, updateConfig, updating]);
 
 	// Load initial data
 	useEffect(() => {
@@ -108,6 +112,7 @@ export const useAutomation = () => {
 		config,
 		status,
 		loading,
+		updating,
 		error,
 		loadConfig,
 		loadStatus,

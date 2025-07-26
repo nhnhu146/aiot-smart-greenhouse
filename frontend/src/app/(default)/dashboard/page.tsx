@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Container, Row, Col, Card, Badge, Alert, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Alert, Form, Spinner } from 'react-bootstrap';
 import AppLineChart from '@/components/LineChart/LineChart';
 import AppSemiDoughnutChart from '@/components/SemiDoughnutChart/SemiDoughnutChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
@@ -43,7 +43,7 @@ const formatTimeVN = (timestamp?: string | Date) => {
 
 const Dashboard = () => {
 	const { persistentSensorData, sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
-	const { config: automationConfig, toggleAutomation } = useAutomation();
+	const { config: automationConfig, toggleAutomation, updating: automationUpdating } = useAutomation();
 	const [data, setData] = useState<SensorData | null>(null);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
@@ -389,8 +389,12 @@ const Dashboard = () => {
 									label={`Auto Mode ${autoMode ? 'ON' : 'OFF'}`}
 									checked={autoMode}
 									onChange={toggleAutoMode}
+									disabled={automationUpdating}
 									className={autoMode ? 'text-success' : 'text-warning'}
 								/>
+								{automationUpdating && (
+									<Spinner size="sm" />
+								)}
 								{userInteraction && (
 									<Badge bg="warning" text="dark">
 										Manual Override Active

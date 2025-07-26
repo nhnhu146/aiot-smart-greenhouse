@@ -62,7 +62,7 @@ interface AutomationSettings {
 }
 
 const AutomodeSettings = () => {
-	const { config: automationConfig, toggleAutomation, updateConfig, loading: hookLoading } = useAutomation();
+	const { config: automationConfig, toggleAutomation, updateConfig, loading: hookLoading, updating: hookUpdating } = useAutomation();
 
 	const [settings, setSettings] = useState<AutomationSettings>({
 		automationEnabled: false,
@@ -101,12 +101,40 @@ const AutomodeSettings = () => {
 
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [resetting, setResetting] = useState(false);
+	const [reloading, setReloading] = useState(false);
 	const [message, setMessage] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
+
+	// Check if any action is in progress
+	const isAnyActionInProgress = loading || saving || resetting || reloading || hookUpdating;
 
 	// Sync main automation toggle with the shared hook
 	const autoMode = automationConfig?.enabled ?? false;
 
 	const loadSettings = useCallback(async () => {
+		if (isAnyActionInProgress) return; // Prevent multiple concurrent actions
+
+		setReloading(true);
+		try {
+			const response = await fetch(`${API_BASE_URL}/api/automation`);
+			const data = await response.json();
+
+			if (data.success && data.data) {
+				setSettings(data.data);
+				showMessage('success', 'Settings reloaded successfully!');
+			} else {
+				showMessage('danger', data.message || 'Failed to load automation settings');
+			}
+		} catch (error) {
+			console.error('Error loading automation settings:', error);
+			showMessage('danger', 'Failed to load automation settings');
+		} finally {
+			setReloading(false);
+		}
+	}, [isAnyActionInProgress]);
+
+	// Initial load function (no success message)
+	const initialLoadSettings = useCallback(async () => {
 		setLoading(true);
 		try {
 			const response = await fetch(`${API_BASE_URL}/api/automation`);
@@ -114,6 +142,8 @@ const AutomodeSettings = () => {
 
 			if (data.success && data.data) {
 				setSettings(data.data);
+			} else {
+				showMessage('danger', data.message || 'Failed to load automation settings');
 			}
 		} catch (error) {
 			console.error('Error loading automation settings:', error);
@@ -125,10 +155,12 @@ const AutomodeSettings = () => {
 
 	// Load settings on component mount
 	useEffect(() => {
-		loadSettings();
-	}, [loadSettings]);
+		initialLoadSettings();
+	}, [initialLoadSettings]);
 
 	const saveSettings = async () => {
+		if (isAnyActionInProgress) return; // Prevent multiple concurrent actions
+
 		setSaving(true);
 		try {
 			const response = await fetch(`${API_BASE_URL}/api/automation`, {
@@ -156,7 +188,9 @@ const AutomodeSettings = () => {
 	};
 
 	const resetToDefaults = async () => {
-		setSaving(true);
+		if (isAnyActionInProgress) return; // Prevent multiple concurrent actions
+
+		setResetting(true);
 		try {
 			const response = await fetch(`${API_BASE_URL}/api/automation/reset`, {
 				method: 'POST',
@@ -174,7 +208,7 @@ const AutomodeSettings = () => {
 			console.error('Error resetting automation settings:', error);
 			showMessage('danger', 'Failed to reset automation settings');
 		} finally {
-			setSaving(false);
+			setResetting(false);
 		}
 	};
 
@@ -235,14 +269,17 @@ const AutomodeSettings = () => {
 					<h5 className="mb-0">🎛️ Master Control</h5>
 				</Card.Header>
 				<Card.Body>
-					<Form.Check
-						type="switch"
-						id="automation-enabled"
-						label={<strong>Enable Automation System</strong>}
-						checked={autoMode}
-						onChange={toggleAutomation}
-						className="mb-3"
-					/>
+					<div className="d-flex align-items-center gap-2 mb-3">
+						<Form.Check
+							type="switch"
+							id="automation-enabled"
+							label={<strong>Enable Automation System</strong>}
+							checked={autoMode}
+							onChange={toggleAutomation}
+							disabled={hookUpdating}
+						/>
+						{hookUpdating && <Spinner size="sm" />}
+					</div>
 					<p className="text-muted small">
 						Master switch for all automation features. When disabled, all automatic device control will stop.
 					</p>
@@ -544,31 +581,31 @@ const AutomodeSettings = () => {
 						<Button
 							variant="primary"
 							onClick={saveSettings}
-							disabled={saving}
-							className="d-flex align-items-center gap-2"
+							disabled={isAnyActionInProgress}
+							className={`${styles.actionButton} ${saving ? styles.saving : ''} d-flex align-items-center gap-2`}
 						>
 							{saving && <Spinner size="sm" />}
-							💾 Save Settings
+							💾 {saving ? 'Saving...' : 'Save Settings'}
 						</Button>
 
 						<Button
 							variant="outline-secondary"
 							onClick={resetToDefaults}
-							disabled={saving}
-							className="d-flex align-items-center gap-2"
+							disabled={isAnyActionInProgress}
+							className={`${styles.actionButton} ${resetting ? styles.resetting : ''} d-flex align-items-center gap-2`}
 						>
-							{saving && <Spinner size="sm" />}
-							🔄 Reset to Defaults
+							{resetting && <Spinner size="sm" />}
+							🔄 {resetting ? 'Resetting...' : 'Reset to Defaults'}
 						</Button>
 
 						<Button
 							variant="outline-info"
 							onClick={loadSettings}
-							disabled={loading}
-							className="d-flex align-items-center gap-2"
+							disabled={isAnyActionInProgress}
+							className={`${styles.actionButton} ${reloading ? styles.loading : ''} d-flex align-items-center gap-2`}
 						>
-							{loading && <Spinner size="sm" />}
-							🔃 Reload Settings
+							{reloading && <Spinner size="sm" />}
+							🔃 {reloading ? 'Reloading...' : 'Reload Settings'}
 						</Button>
 					</div>
 				</Card.Body>

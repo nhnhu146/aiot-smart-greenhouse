@@ -77,3 +77,31 @@
 	background-color: #f8d7da;
 	border-color: #f5c6cb;
 }
+
+.actionButton {
+	transition: all 0.2s ease-in-out;
+}
+
+.actionButton:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none !important;
+}
+
+.actionButton.saving {
+	background-color: #28a745;
+	border-color: #28a745;
+	color: white;
+}
+
+.actionButton.loading {
+	background-color: #17a2b8;
+	border-color: #17a2b8;
+	color: white;
+}
+
+.actionButton.resetting {
+	background-color: #ffc107;
+	border-color: #ffc107;
+	color: #212529;
+}
