@@ -14,7 +14,7 @@
 #define I2S_SD      5   // Serial Data (DOUT from mic)
 #define I2S_SCK     19  // Serial Clock (BCLK)
 #define I2S_SAMPLE_RATE   (16000)
-#define CONFIDENCE_THRESHOLD 0.85f
+#define CONFIDENCE_THRESHOLD 0.97f
 
 
 /** Audio buffers, pointers and selectors */
@@ -94,7 +94,7 @@ const int rain_pin       = 39;
 const int moisture_pin   = 36;
 const int float_switch   = 14;
 const int PIR_in_pin     = 2;
-const int pump           = 4;
+const int pump_pin       = 4;
 
 DHT dht(15, DHT11);          // DHT11 sensor on GPIO 15
 
@@ -167,7 +167,7 @@ void setup() {
   pinMode(PIR_in_pin, INPUT);
   pinMode(moisture_pin, INPUT);
   pinMode(float_switch, INPUT_PULLUP);
-  pinMode(pump, OUTPUT);
+  pinMode(pump_pin, OUTPUT);
 
   lcd.init();
   lcd.setCursor(0,0);
@@ -285,7 +285,7 @@ void loop() {
   }
 
   float max_score = 0.0f;
-  size_t best_idx = 0;
+  size_t best_idx = 10;
 
   for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
       if (result.classification[ix].value > max_score) {
@@ -297,14 +297,66 @@ void loop() {
   if (max_score > CONFIDENCE_THRESHOLD){
     const char* best_label = result.classification[best_idx].label;
     ei_printf("Voice command detected: %s (%.2f)\n", best_label, max_score);
-    
-    // Format: commandName;score (using semicolon as separator)
-    char command_with_score[100];
-    snprintf(command_with_score, sizeof(command_with_score), "%s;%.2f", best_label, max_score);
-    
-    client.publish("greenhouse/command", command_with_score);
-    Serial.print("Sent voice command with confidence: ");
-    Serial.println(command_with_score);
+    sendVoiceCommand(best_label, max_score);
+  }
+
+// /* TEST REGION FOR AUTOMATION AND VOICE COMMAND */
+//   if ((t > 26 && window == 0 && rainvalue == 0) || best_idx == 3) { // 3 is the index for "MoCuaSap" command
+//     Serial.println("Opening window...");
+//     controlWindow("1"); // Open window
+//     window = 1;
+//   } else if ((t < 24 && window == 1) || rainvalue == 1 || best_idx == 1) { // 4 is the index for "DongCuaSap" command
+//     Serial.println("Closing window...");
+//     controlWindow("0"); // Close window
+//     window = 0;
+//   }
+//   if (moisture == 0 && pump == 0 && FloatSwitchValue == 1) {
+//     Serial.println("Turning on pump...");
+//     controlPump("1"); // Turn on pump
+//     pump = 1;
+//   } else if (moisture == 1 && pump == 1) {
+//     Serial.println("Turning off pump...");
+//     controlPump("0"); // Turn off pump
+//     pump = 0;
+//   }
+//   if ((Photon_value == 0 && light == 0) || best_idx == 4) { // 4 is the index for "MoDen" command
+//     Serial.println("Turning on light...");
+//     controlLights("1"); // Turn on light
+//     light = 1;
+//   } else if ((Photon_value == 1 && light == 1) || best_idx == 5) { // 5 is the index for "TatDen" command
+//     Serial.println("Turning off light...");
+//     controlLights("0"); // Turn off light
+//     light = 0;
+//   }
+//   if ((PIRValue == HIGH && door == 0) || best_idx == 2) { // 2 is the index for "MoCua" command
+//     Serial.println("Opening door...");
+//     controlDoor("1"); // Open door
+//     door = 1;
+//   } else if ((PIRValue == LOW && door == 1) || best_idx == 0) { // 6 is the index for "DongCua" command
+//     Serial.println("Closing door...");
+//     controlDoor("0"); // Close door
+//     door = 0;
+//   }
+
+/* TEST REGION FOR AUTOMATION AND VOICE COMMAND */
+  if (best_idx == 3) { // 3 is the index for "MoCuaSap" command
+    Serial.println("Opening window...");
+    controlWindow("1"); // Open window
+  } else if (best_idx == 1) { // 4 is the index for "DongCuaSap" command
+    Serial.println("Closing window...");
+    controlWindow("0"); // Close window
+  } else if (best_idx == 4) { // 4 is the index for "MoDen" command
+    Serial.println("Turning on light...");
+    controlLights("1"); // Turn on light
+  } else if (best_idx == 5) { // 5 is the index for "TatDen" command
+    Serial.println("Turning off light...");
+    controlLights("0"); // Turn off light
+  } else if (best_idx == 2) { // 2 is the index for "MoCua" command
+    Serial.println("Opening door...");
+    controlDoor("1"); // Open door
+  } else if (best_idx == 0) { // 6 is the index for "DongCua" command
+    Serial.println("Closing door...");
+    controlDoor("0"); // Close door
   }
 
 }
@@ -584,6 +636,19 @@ void sendPlantHeightValue(long height) {
   Serial.println("Sent plant height: " + payload + " cm");
 }
 
+void sendVoiceCommand(const char* label, float score) {
+    char payload[32];
+
+    // Format payload: ví dụ "fan_on:0.92"
+    snprintf(payload, sizeof(payload), "%s; %.2f", label, score);
+
+    // Gửi MQTT (giả sử bạn đã có biến `client` kiểu PubSubClient)
+    client.publish("greenhouse/command", payload);
+
+    // In ra UART để debug (tùy)
+    ei_printf("Sent voice command: %s\n", payload);
+}
+
 /**
  * @brief Controls the LED light based on MQTT command.
  *
@@ -717,15 +782,44 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
 static void audio_inference_callback(uint32_t n_bytes)
 {
-    for(int i = 0; i < n_bytes>>1; i++) {
-      inference.buffers[inference.buf_select][inference.buf_count++] = sampleBuffer[i];
-
-      if(inference.buf_count >= inference.n_samples) {
-          inference.buf_select ^= 1;
-          inference.buf_count = 0;
-          inference.buf_ready = 1;
-      }
+    // Prevent buffer overrun - skip if buffer is not ready
+    if (inference.buf_ready == 1) {
+        return; // Buffer is still being processed, skip this callback
     }
+    
+    uint32_t samples_to_process = n_bytes >> 1; // Divide by 2 for 16-bit samples
+    
+    for(uint32_t i = 0; i < samples_to_process; i++) {
+        // Boundary check to prevent buffer overflow
+        if (inference.buf_count >= inference.n_samples) {
+            break; // Stop processing if buffer is full
+        }
+        
+        // Additional safety check
+        if (i >= sample_buffer_size) {
+            break; // Prevent reading beyond sampleBuffer bounds
+        }
+        
+        inference.buffers[inference.buf_select][inference.buf_count++] = sampleBuffer[i];
+
+        if(inference.buf_count >= inference.n_samples) {
+            inference.buf_select ^= 1;
+            inference.buf_count = 0;
+            inference.buf_ready = 1;
+            break; // Exit loop immediately after switching buffers
+        }
+    }
+}
+
+/**
+ * @brief Reset inference buffers in case of overrun
+ */
+static void reset_inference_buffers(void)
+{
+    inference.buf_ready = 0;
+    inference.buf_count = 0;
+    inference.buf_select = 0;
+    ei_printf("Inference buffers reset due to overrun\n");
 }
 
 static void capture_samples(void* arg) {
@@ -764,7 +858,10 @@ static void capture_samples(void* arg) {
         }
 
         //scale the data (otherwise the sound is too quiet)
-        for (int x = 0; x < i2s_bytes_to_read/2; x++) {
+        uint32_t samples_to_scale = (i2s_bytes_to_read / 2 < sample_buffer_size) ? 
+                                   i2s_bytes_to_read / 2 : sample_buffer_size;
+        
+        for (uint32_t x = 0; x < samples_to_scale; x++) {
             sampleBuffer[x] = (int16_t)(sampleBuffer[x]) * 8;
         }
 
@@ -813,7 +910,8 @@ static bool microphone_inference_start(uint32_t n_samples)
 
     record_status = true;
 
-    xTaskCreate(capture_samples, "CaptureSamples", 1024 * 32, (void*)sample_buffer_size, 10, NULL);
+    // Increase stack size to prevent stack overflow which can cause buffer issues
+    xTaskCreate(capture_samples, "CaptureSamples", 1024 * 40, (void*)sample_buffer_size, 10, NULL);
 
     return true;
 }
@@ -826,20 +924,29 @@ static bool microphone_inference_start(uint32_t n_samples)
 static bool microphone_inference_record(void)
 {
     bool ret = true;
+    uint32_t timeout_counter = 0;
+    const uint32_t MAX_TIMEOUT = 5000; // 5 seconds timeout
 
     if (inference.buf_ready == 1) {
-        ei_printf(
-            "Error sample buffer overrun. Decrease the number of slices per model window "
-            "(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW)\n");
+        ei_printf("Warning: Buffer overrun detected. Processing may be too slow.\n");
+        // Reset buffers to recover from overrun
+        reset_inference_buffers();
         ret = false;
     }
 
-    while (inference.buf_ready == 0) {
+    while (inference.buf_ready == 0 && timeout_counter < MAX_TIMEOUT) {
         delay(1);
+        timeout_counter++;
+    }
+    
+    if (timeout_counter >= MAX_TIMEOUT) {
+        ei_printf("Error: Timeout waiting for audio buffer\n");
+        reset_inference_buffers();
+        ret = false;
     }
 
     inference.buf_ready = 0;
-    return true;
+    return ret;
 }
 
 /**
