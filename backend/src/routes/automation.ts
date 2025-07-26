@@ -42,6 +42,11 @@ const AutomationConfigSchema = z.object({
 	}).optional()
 });
 
+// Simple toggle schema for API compatibility
+const AutomationToggleSchema = z.object({
+	enabled: z.boolean()
+});
+
 /**
  * @route GET /api/automation - Get automation configuration
  * @desc Retrieve current automation settings
@@ -56,6 +61,10 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 			settings = new AutomationSettings();
 			await settings.save();
 		}
+
+		// Ensure AutomationService is loaded with latest config
+		const { automationService } = await import('../services');
+		await automationService.reloadConfiguration();
 
 		const response: APIResponse = {
 			success: true,
@@ -96,11 +105,18 @@ router.put('/', asyncHandler(async (req: Request, res: Response) => {
 
 		await settings.save();
 
-		// IMPORTANT: Update the AutomationService with new configuration
-		const { automationService } = await import('../services');
-		await automationService.updateConfiguration(validatedData);
-
 		console.log(`⚙️ Automation configuration updated:`, validatedData);
+
+		// ✅ CRITICAL: Reload automation service configuration immediately
+		const { automationService } = await import('../services');
+		await automationService.reloadConfiguration();
+
+		// ✅ CRITICAL: Trigger immediate automation check with new settings
+		// This ensures that if thresholds changed, automation responds immediately
+		if (settings.automationEnabled) {
+			await automationService.processImmediateAutomationCheck();
+			console.log('⚡ Immediate automation check triggered after config update');
+		}
 
 		const response: APIResponse = {
 			success: true,
@@ -122,24 +138,49 @@ router.put('/', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 /**
+ * @route POST /api/automation/toggle - Toggle automation on/off
+ * @desc Toggle automation enabled state for frontend compatibility
+ * @access Public
+ */
+router.post('/toggle', asyncHandler(async (req: Request, res: Response) => {
+	try {
+		const { automationService } = await import('../services');
+		const success = await automationService.toggleAutomation();
+
+		if (success) {
+			const settings = await AutomationSettings.findOne();
+
+			const response: APIResponse = {
+				success: true,
+				data: { enabled: settings?.automationEnabled ?? false },
+				message: `Automation ${settings?.automationEnabled ? 'enabled' : 'disabled'} successfully`,
+				timestamp: new Date().toISOString()
+			};
+
+			res.json(response);
+		} else {
+			throw new Error('Failed to toggle automation');
+		}
+	} catch (error) {
+		console.error('[AUTOMATION-TOGGLE] Error:', error);
+		const response: APIResponse = {
+			success: false,
+			message: 'Failed to toggle automation',
+			timestamp: new Date().toISOString()
+		};
+		res.status(500).json(response);
+	}
+}));
+
+/**
  * @route GET /api/automation/status - Get current automation status
  * @desc Get real-time automation status and last actions
  * @access Public
  */
 router.get('/status', asyncHandler(async (req: Request, res: Response) => {
 	try {
-		const settings = await AutomationSettings.findOne();
-
-		const status = {
-			enabled: settings?.automationEnabled ?? false,
-			lastUpdate: settings?.updatedAt ?? new Date(),
-			activeControls: {
-				light: settings?.lightControlEnabled ?? true,
-				pump: settings?.pumpControlEnabled ?? true,
-				door: settings?.doorControlEnabled ?? false,
-				window: settings?.windowControlEnabled ?? true
-			}
-		};
+		const { automationService } = await import('../services');
+		const status = automationService.getAutomationStatus();
 
 		const response: APIResponse = {
 			success: true,
@@ -171,9 +212,14 @@ router.post('/reset', asyncHandler(async (req: Request, res: Response) => {
 		const defaultSettings = new AutomationSettings();
 		await defaultSettings.save();
 
-		// IMPORTANT: Reload the AutomationService with new configuration
+		// ✅ CRITICAL: Reload the AutomationService with new configuration
 		const { automationService } = await import('../services');
-		await automationService.loadConfiguration();
+		await automationService.reloadConfiguration();
+
+		// Trigger immediate automation check with reset settings
+		if (defaultSettings.automationEnabled) {
+			await automationService.processImmediateAutomationCheck();
+		}
 
 		const response: APIResponse = {
 			success: true,

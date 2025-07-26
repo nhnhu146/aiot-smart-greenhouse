@@ -15,6 +15,17 @@ interface AutomationConfig {
 	};
 }
 
+interface AutomationStatus {
+	enabled: boolean;
+	lastUpdate: string;
+	activeControls: {
+		light: boolean;
+		pump: boolean;
+		door: boolean;
+		window: boolean;
+	};
+}
+
 class FrontendAutomationService {
 	private config: AutomationConfig | null = null;
 	private listeners: ((config: AutomationConfig) => void)[] = [];

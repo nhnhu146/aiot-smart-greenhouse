@@ -559,10 +559,6 @@ function setupMQTTHandlers() {
 					await checkSensorAlerts(sensorType, sensorValue);
 				}
 
-				// Process automation using AutomationService
-				const { automationService } = await import('./services');
-				await automationService.processSensorData(sensorType, sensorValue);
-
 				// Send debug feedback for successful processing
 				mqttService.publishDebugFeedback(topic, messageString, 'success');
 			}
@@ -685,13 +681,23 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 		const wasMerged = await dataMergerService.autoMergeOnDataReceive(sensorDoc || newData);
 
 		if (wasMerged) {
-			console.log(`� Merged ${sensorType} sensor data: ${value} (merged with existing record)`);
+			console.log(`🔄 Merged ${sensorType} sensor data: ${value} (merged with existing record)`);
 		} else {
 			// No duplicates found, save new document
 			if (sensorDoc) {
 				await sensorDoc.save();
 				console.log(`💾 Saved ${sensorType} sensor data: ${value} (new record)`);
 			}
+		}
+
+		// ✅ IMPORTANT: Process automation ONLY AFTER data merge is complete
+		// This ensures automation works with the latest merged data
+		try {
+			const { automationService } = await import('./services');
+			await automationService.processSensorData(sensorType, value);
+			console.log(`🤖 Automation processed for ${sensorType}: ${value}`);
+		} catch (automationError) {
+			console.error(`❌ Automation processing error for ${sensorType}:`, automationError);
 		}
 
 	} catch (error) {

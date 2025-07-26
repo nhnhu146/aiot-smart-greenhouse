@@ -1,4 +1,4 @@
-import { AutomationSettings } from '../models';
+import { AutomationSettings, SensorData } from '../models';
 import { IAutomationSettings } from '../models/AutomationSettings';
 import { mqttService } from './index';
 import { DeviceHistory } from '../models';
@@ -10,6 +10,7 @@ class AutomationService {
 	private lastDoorAutomation = 0;
 	private lastWindowAutomation = 0;
 	private readonly AUTOMATION_COOLDOWN = 30000; // 30 seconds cooldown between automations
+	private isDataProcessing = false; // Flag to prevent automation during data merge
 
 	constructor() {
 		this.loadConfiguration();
@@ -41,10 +42,52 @@ class AutomationService {
 		}
 	}
 
-	// Process sensor data for automation
+	// Reload configuration from database (called when settings are updated)
+	async reloadConfiguration(): Promise<void> {
+		console.log('🔄 Reloading automation configuration...');
+		await this.loadConfiguration();
+
+		// If automation is now disabled, log it
+		if (this.config && !this.config.automationEnabled) {
+			console.log('🛑 Automation has been DISABLED - all automatic control stopped');
+		} else if (this.config && this.config.automationEnabled) {
+			console.log('✅ Automation has been ENABLED - automatic control resumed');
+		}
+	}
+
+	// Set data processing flag to prevent automation during data merge
+	setDataProcessing(processing: boolean): void {
+		this.isDataProcessing = processing;
+	}
+
+	// Check if automation is enabled and ready
+	isAutomationReady(): boolean {
+		return this.config !== null &&
+			this.config.automationEnabled &&
+			!this.isDataProcessing;
+	}
+
+	// Get current automation status for API
+	getAutomationStatus(): any {
+		return {
+			enabled: this.config?.automationEnabled ?? false,
+			ready: this.isAutomationReady(),
+			lastUpdate: new Date().toISOString(),
+			activeControls: {
+				light: this.config?.lightControlEnabled ?? false,
+				pump: this.config?.pumpControlEnabled ?? false,
+				door: this.config?.doorControlEnabled ?? false,
+				window: this.config?.windowControlEnabled ?? false
+			},
+			config: this.config
+		};
+	}
+
+	// Process sensor data for automation - only after data merge
 	async processSensorData(sensorType: string, value: number): Promise<void> {
-		if (!this.config || !this.config.automationEnabled) {
-			return; // Automation is disabled
+		// Ensure automation is enabled and not during data processing
+		if (!this.isAutomationReady()) {
+			return;
 		}
 
 		const now = Date.now();
@@ -206,6 +249,73 @@ class AutomationService {
 		return this.config;
 	}
 
+	// Process immediate automation check after config changes
+	// This checks all current sensor values against new thresholds
+	async processImmediateAutomationCheck(): Promise<void> {
+		if (!this.isAutomationReady()) {
+			console.log('🛑 Immediate automation check skipped - automation not ready');
+			return;
+		}
+
+		console.log('⚡ Processing immediate automation check after config change...');
+
+		try {
+			// Get latest sensor data from database
+			const latestSensorData = await SensorData.findOne().sort({ createdAt: -1 });
+
+			if (!latestSensorData) {
+				console.log('ℹ️ No sensor data available for immediate automation check');
+				return;
+			}
+
+			// Check all sensor types with current values against new thresholds
+			const sensorChecks = [
+				{ type: 'lightLevel', value: latestSensorData.lightLevel },
+				{ type: 'soilMoisture', value: latestSensorData.soilMoisture },
+				{ type: 'temperature', value: latestSensorData.temperature },
+				{ type: 'rainStatus', value: latestSensorData.rainStatus },
+				{ type: 'waterLevel', value: latestSensorData.waterLevel },
+				{ type: 'motion', value: latestSensorData.motionDetected }
+			];
+
+			// Process each sensor that has data
+			for (const sensor of sensorChecks) {
+				if (sensor.value !== null && sensor.value !== undefined) {
+					console.log(`⚡ Immediate check: ${sensor.type} = ${sensor.value}`);
+
+					// Temporarily reset cooldowns for immediate response
+					const originalCooldowns = {
+						light: this.lastLightAutomation,
+						pump: this.lastPumpAutomation,
+						door: this.lastDoorAutomation,
+						window: this.lastWindowAutomation
+					};
+
+					// Reset cooldowns to allow immediate action
+					this.lastLightAutomation = 0;
+					this.lastPumpAutomation = 0;
+					this.lastDoorAutomation = 0;
+					this.lastWindowAutomation = 0;
+
+					// Process automation for this sensor
+					await this.processSensorData(sensor.type, sensor.value);
+
+					// Restore cooldowns only for devices that didn't take action
+					const now = Date.now();
+					if (this.lastLightAutomation === 0) this.lastLightAutomation = originalCooldowns.light;
+					if (this.lastPumpAutomation === 0) this.lastPumpAutomation = originalCooldowns.pump;
+					if (this.lastDoorAutomation === 0) this.lastDoorAutomation = originalCooldowns.door;
+					if (this.lastWindowAutomation === 0) this.lastWindowAutomation = originalCooldowns.window;
+				}
+			}
+
+			console.log('✅ Immediate automation check completed');
+
+		} catch (error) {
+			console.error('❌ Error during immediate automation check:', error);
+		}
+	}
+
 	// Update configuration (called when settings change)
 	async updateConfiguration(newConfig: Partial<IAutomationSettings>): Promise<void> {
 		try {
@@ -223,6 +333,45 @@ class AutomationService {
 			console.log('🔧 Automation configuration updated and reloaded');
 		} catch (error) {
 			console.error('❌ Failed to update automation configuration:', error);
+		}
+	}
+
+	// Enable automation (called from API)
+	async enableAutomation(): Promise<boolean> {
+		try {
+			await this.updateConfiguration({ automationEnabled: true });
+			console.log('✅ Automation ENABLED via API');
+			return true;
+		} catch (error) {
+			console.error('❌ Failed to enable automation:', error);
+			return false;
+		}
+	}
+
+	// Disable automation (called from API)
+	async disableAutomation(): Promise<boolean> {
+		try {
+			await this.updateConfiguration({ automationEnabled: false });
+			console.log('🛑 Automation DISABLED via API');
+			return true;
+		} catch (error) {
+			console.error('❌ Failed to disable automation:', error);
+			return false;
+		}
+	}
+
+	// Toggle automation state
+	async toggleAutomation(): Promise<boolean> {
+		if (!this.config) {
+			await this.loadConfiguration();
+		}
+
+		const newState = !this.config?.automationEnabled;
+
+		if (newState) {
+			return await this.enableAutomation();
+		} else {
+			return await this.disableAutomation();
 		}
 	}
 }
