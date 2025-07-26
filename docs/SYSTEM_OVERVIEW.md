@@ -1,7 +1,7 @@
 # 🌱 AIoT Smart Greenhouse - System Documentation
 
-> **Last Updated**: July 25, 2025  
-> **Version**: 2.0.0  
+> **Last Updated**: July 26, 2025  
+> **Version**: 2.1.0  
 > **Status**: Production Ready ✅
 
 ## 📋 Quick Start

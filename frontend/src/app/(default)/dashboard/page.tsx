@@ -122,42 +122,6 @@ const Dashboard = () => {
 		}
 	}, [toggleAutomation]);
 
-	// Memorize automation logic to prevent unnecessary rerenders
-	const automationLogic = useCallback((sensor: string, value: any, currentSensorValues: any) => {
-		if (!autoMode || userInteraction) return;
-		console.log(`🔄 Automation logic triggered for ${sensor} with value:`, value);
-		if (isNaN(value)) return;
-
-		// Light control based on light sensor
-		if (sensor === 'light') {
-			const shouldTurnOn = value === 0;
-			setSwitchStates((prev) => {
-				const currentState = prev.get('light') || false;
-				if (currentState !== shouldTurnOn) {
-					sendDeviceControl('light', shouldTurnOn ? '1' : '0');
-					return new Map(prev).set('light', shouldTurnOn);
-				}
-				return prev;
-			});
-		}
-
-		// Pump control based on soil moisture (binary: 0=dry, 1=wet)
-		if (sensor === 'soil') {
-			const shouldTurnOn = value === 0; // If soil moisture = 0 (dry), turn on pump
-			setSwitchStates((prev) => {
-				const currentState = prev.get('pump') || false;
-				if (currentState !== shouldTurnOn) {
-					sendDeviceControl('pump', shouldTurnOn ? 'on' : 'off');
-					return new Map(prev).set('pump', shouldTurnOn);
-				}
-				return prev;
-			});
-		}
-
-		// NOTE: Fan control removed as per requirement #4
-		// Temperature-based automation can be added for other devices if needed
-	}, [autoMode, userInteraction, sendDeviceControl]);
-
 	// Helper function to safely parse sensor values
 	const parseSensorValue = useCallback((value: any): number | null => {
 		if (value === null || value === undefined) return null;
@@ -186,14 +150,10 @@ const Dashboard = () => {
 			setSensorValues(newSensorValues);
 			setLastUpdate(new Date());
 
-			// Apply automation logic for each sensor
-			Object.entries(newSensorValues).forEach(([sensor, value]) => {
-				if (value !== null) {
-					automationLogic(sensor, value, newSensorValues);
-				}
-			});
+			// NOTE: Automation logic has been moved to backend
+			// Backend AutomationService handles all automation when MQTT messages are received
 		}
-	}, [sensorData, parseSensorValue, automationLogic]);
+	}, [sensorData, parseSensorValue]);
 
 	// Handle real-time persistent sensor data updates
 	useEffect(() => {

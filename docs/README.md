@@ -15,10 +15,10 @@ This directory contains comprehensive documentation for the AIoT Smart Greenhous
 - Troubleshooting & maintenance
 
 #### 🔧 **Technical References**
-- **[AUTOMATION_MIGRATION_SUMMARY.md](./AUTOMATION_MIGRATION_SUMMARY.md)** - Automation system architecture
-- **[MQTT_CONTROL_MIGRATION.md](./MQTT_CONTROL_MIGRATION.md)** - MQTT protocol standardization  
-- **[ALERT_FIXES_SUMMARY.md](./ALERT_FIXES_SUMMARY.md)** - Alert system improvements
-- **[FIXES_SUMMARY.md](./FIXES_SUMMARY.md)** - Historical bug fixes and solutions
+- All technical details are consolidated in **[SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md)**
+- Complete automation architecture and MQTT standardization  
+- Alert system improvements and historical fixes
+- Development guides and troubleshooting
 
 ### 🎯 Quick Reference
 
