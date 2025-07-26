@@ -96,6 +96,10 @@ router.put('/', asyncHandler(async (req: Request, res: Response) => {
 
 		await settings.save();
 
+		// IMPORTANT: Update the AutomationService with new configuration
+		const { automationService } = await import('../services');
+		await automationService.updateConfiguration(validatedData);
+
 		console.log(`⚙️ Automation configuration updated:`, validatedData);
 
 		const response: APIResponse = {
@@ -166,6 +170,10 @@ router.post('/reset', asyncHandler(async (req: Request, res: Response) => {
 		await AutomationSettings.deleteMany({});
 		const defaultSettings = new AutomationSettings();
 		await defaultSettings.save();
+
+		// IMPORTANT: Reload the AutomationService with new configuration
+		const { automationService } = await import('../services');
+		await automationService.loadConfiguration();
 
 		const response: APIResponse = {
 			success: true,

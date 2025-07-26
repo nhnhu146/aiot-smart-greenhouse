@@ -19,14 +19,14 @@ class AutomationService {
 	async loadConfiguration(): Promise<void> {
 		try {
 			let settings = await AutomationSettings.findOne();
-			
+
 			if (!settings) {
 				// Create default settings if none exist
 				settings = new AutomationSettings();
 				await settings.save();
 				console.log('🔧 Created default automation settings');
 			}
-			
+
 			this.config = settings;
 			console.log('🔧 Automation configuration loaded:', {
 				enabled: settings.automationEnabled,
@@ -172,7 +172,7 @@ class AutomationService {
 			if (this.config!.waterLevelSettings.autoTurnOffPumpOnFlood && this.config!.pumpControlEnabled) {
 				await this.controlDevice('pump', '0', 'Auto: Emergency - Flood detected');
 			}
-			
+
 			if (this.config!.waterLevelSettings.autoOpenDoorOnFlood && this.config!.doorControlEnabled) {
 				await this.controlDevice('door', '1', 'Auto: Emergency - Flood drainage');
 			}
@@ -183,7 +183,7 @@ class AutomationService {
 	private async controlDevice(device: string, action: string, reason: string): Promise<void> {
 		try {
 			mqttService.publishDeviceControl(device, action);
-			
+
 			// Log automation action
 			const deviceHistory = new DeviceHistory({
 				deviceType: device as any,
@@ -192,9 +192,9 @@ class AutomationService {
 				automationReason: reason,
 				triggeredAt: new Date()
 			});
-			
+
 			await deviceHistory.save();
-			
+
 			console.log(`🤖 Automation: ${device} ${action === '1' ? 'ON' : 'OFF'} - ${reason}`);
 		} catch (error) {
 			console.error(`❌ Failed to control ${device}:`, error);
@@ -210,16 +210,17 @@ class AutomationService {
 	async updateConfiguration(newConfig: Partial<IAutomationSettings>): Promise<void> {
 		try {
 			let settings = await AutomationSettings.findOne();
-			
+
 			if (!settings) {
 				settings = new AutomationSettings();
 			}
-			
+
 			Object.assign(settings, newConfig);
 			await settings.save();
-			
-			this.config = settings;
-			console.log('🔧 Automation configuration updated');
+
+			// Reload the complete configuration from database to ensure sync
+			await this.loadConfiguration();
+			console.log('🔧 Automation configuration updated and reloaded');
 		} catch (error) {
 			console.error('❌ Failed to update automation configuration:', error);
 		}
