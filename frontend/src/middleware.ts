@@ -5,7 +5,7 @@ const protectedRoutes = [
 	'/dashboard',
 	'/history',
 	'/settings',
-	'/api-examples',
+	'/examples',
 	'/mqtt-examples'
 ];
 

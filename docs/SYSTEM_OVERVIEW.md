@@ -58,7 +58,7 @@ docker compose ps
 
 ### 2. Route Protection System
 - **Middleware Enhancement**: Simplified and robust auth checking
-- **Protected Routes**: `/dashboard`, `/history`, `/settings`, `/api-examples`
+- **Protected Routes**: `/dashboard`, `/history`, `/settings`, `/examples`
 - **Automatic Redirects**: Unauthenticated users go to signin
 - **Session Management**: Support for multiple token formats
 
