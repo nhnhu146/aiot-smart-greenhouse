@@ -128,19 +128,19 @@ app.use(cors({
 }));
 
 // Rate limiting
-const limiter = rateLimit({
-	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '900000'), // Increased from 100000 to 1000 (reasonable limit)
-	message: {
-		success: false,
-		message: 'Too many requests from this IP, please try again later',
-		timestamp: new Date().toISOString()
-	},
-	standardHeaders: true,
-	legacyHeaders: false
-});
+// const limiter = rateLimit({
+// 	windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '9000000'), // 15 minutes
+// 	max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '9000000'), // Increased from 100000 to 1000 (reasonable limit)
+// 	message: {
+// 		success: false,
+// 		message: 'Too many requests from this IP, please try again later',
+// 		timestamp: new Date().toISOString()
+// 	},
+// 	standardHeaders: true,
+// 	legacyHeaders: false
+// });
 
-app.use(limiter);
+// app.use(limiter);
 
 // Special rate limiter for automation status endpoint (more lenient)
 const automationLimiter = rateLimit({
