@@ -339,6 +339,7 @@ export class DataMergerService {
 			if (!newData.createdAt) {
 				console.warn('⚠️ No createdAt field in newData, using current time');
 				timestamp = new Date();
+				newData.createdAt = timestamp;
 			} else {
 				timestamp = new Date(newData.createdAt);
 
@@ -346,42 +347,83 @@ export class DataMergerService {
 				if (isNaN(timestamp.getTime())) {
 					console.warn(`⚠️ Invalid createdAt value: ${newData.createdAt}, using current time`);
 					timestamp = new Date();
+					newData.createdAt = timestamp;
 				}
 			}
 
-			// Enhanced duplicate detection: check within same minute window
-			const startOfMinute = new Date(timestamp);
-			startOfMinute.setSeconds(0, 0); // Start of minute
+			// Enhanced duplicate detection: check for exact timestamp duplicates first
+			const exactMatch = await SensorDataModel.findOne({
+				createdAt: timestamp
+			});
 
-			const endOfMinute = new Date(startOfMinute);
-			endOfMinute.setSeconds(59, 999); // End of minute
+			if (exactMatch) {
+				console.log(`🔄 Found exact timestamp match, merging data...`);
 
-			const existingDocs = await SensorDataModel.find({
+				// Merge new data into existing document
+				const mergedData = this.mergeDocumentDataComplete([exactMatch.toObject(), newData], exactMatch.toObject());
+
+				// Update existing document
+				await SensorDataModel.findByIdAndUpdate(
+					exactMatch._id,
+					{
+						$set: {
+							...mergedData,
+							updatedAt: new Date()
+						}
+					}
+				);
+
+				console.log(`✅ Merged data with existing record at ${timestamp.toISOString()}`);
+				return true;
+			}
+
+			// If no exact match, check within same second window for near-duplicates
+			const startSecond = new Date(timestamp);
+			startSecond.setMilliseconds(0); // Start of second
+
+			const endSecond = new Date(startSecond);
+			endSecond.setMilliseconds(999); // End of second
+
+			const nearMatches = await SensorDataModel.find({
 				createdAt: {
-					$gte: startOfMinute,
-					$lte: endOfMinute
+					$gte: startSecond,
+					$lte: endSecond
 				}
-			}).lean();
+			});
 
-			if (existingDocs.length === 0) {
-				// No duplicates in this minute, proceed normally
-				return false;
+			if (nearMatches.length > 0) {
+				console.log(`🔄 Found ${nearMatches.length} near-matches within same second, merging...`);
+
+				// Use the first existing document as base, merge all data
+				const baseDoc = nearMatches[0];
+				const allDocs = [baseDoc.toObject(), ...nearMatches.slice(1).map(d => d.toObject()), newData];
+
+				const mergedData = this.mergeDocumentDataComplete(allDocs, baseDoc.toObject());
+
+				// Update the base document
+				await SensorDataModel.findByIdAndUpdate(
+					baseDoc._id,
+					{
+						$set: {
+							...mergedData,
+							updatedAt: new Date()
+						}
+					}
+				);
+
+				// Remove the other duplicates
+				if (nearMatches.length > 1) {
+					const idsToDelete = nearMatches.slice(1).map(d => d._id);
+					await SensorDataModel.deleteMany({ _id: { $in: idsToDelete } });
+					console.log(`🗑️ Deleted ${idsToDelete.length} duplicate records`);
+				}
+
+				console.log(`✅ Merged data with ${nearMatches.length} existing records`);
+				return true;
 			}
 
-			console.log(`🔍 Found ${existingDocs.length} existing records in same minute`);
-
-			// Ensure newData has valid createdAt for merging
-			const newDataForMerge = {
-				...newData,
-				createdAt: timestamp // Use the validated timestamp
-			};
-
-			// Merge with existing data using enhanced logic
-			const allDocs = [...existingDocs, newDataForMerge];
-			await this.mergeDocumentGroupEnhanced(allDocs);
-
-			console.log(`🔄 Auto-merged data for minute: ${timestamp.toLocaleString()}`);
-			return true;
+			// No duplicates found, let the caller save the new data
+			return false;
 
 		} catch (error) {
 			console.error('❌ Error in enhanced auto-merge:', error);
@@ -434,7 +476,7 @@ export class DataMergerService {
 
 			// Merge the new data with existing
 			const mergedData = this.mergeDocumentDataComplete([existingDoc, newData], existingDoc);
-			
+
 			// Update existing document with merged data
 			const updated = await SensorDataModel.findByIdAndUpdate(
 				existingDoc._id,

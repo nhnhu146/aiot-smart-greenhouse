@@ -678,13 +678,14 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 			sensorDoc.dataQuality = filledSensors >= 4 ? 'complete' : 'partial';
 		}
 
-		// Pre-save merge check for duplicate timestamps
+		// Enhanced merge logic for real-time data processing
 		const dataMergerService = DataMergerService.getInstance();
-		const mergedDoc = await dataMergerService.preSaveMergeCheck(newData);
 
-		if (mergedDoc) {
-			// Data was merged with existing record
-			console.log(`💾 Merged ${sensorType} sensor data: ${value} (merged with existing)`);
+		// Try to merge with existing data first
+		const wasMerged = await dataMergerService.autoMergeOnDataReceive(sensorDoc || newData);
+
+		if (wasMerged) {
+			console.log(`� Merged ${sensorType} sensor data: ${value} (merged with existing record)`);
 		} else {
 			// No duplicates found, save new document
 			if (sensorDoc) {
