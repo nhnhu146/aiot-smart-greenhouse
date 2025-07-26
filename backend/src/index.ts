@@ -576,27 +576,27 @@ function setupMQTTHandlers() {
 
 				// Parse command and confidence score
 				let command = messageString;
-				let confidence = 0.95; // Default confidence
-				
+				let confidence: number | null = null; // Start with null for N/A case
+
 				// Check if message contains confidence score (format: commandName;score)
 				if (messageString.includes(';')) {
 					const parts = messageString.split(';');
 					command = parts[0];
 					const scoreStr = parts[1];
-					
+
 					// Try to parse confidence score
 					const parsedScore = parseFloat(scoreStr.replace(',', '.'));
 					if (!isNaN(parsedScore)) {
 						confidence = parsedScore;
 						console.log(`🎯 Parsed confidence score: ${confidence}`);
 					} else {
-						console.log(`⚠️ Invalid confidence score format: ${scoreStr}, using default`);
+						console.log(`⚠️ Invalid confidence score format: ${scoreStr}, keeping as N/A`);
 					}
 				} else {
-					console.log(`ℹ️ No confidence score provided, using N/A display (default: ${confidence})`);
+					console.log(`ℹ️ No confidence score provided, will display as N/A`);
 				}
 
-				// Process voice command with parsed or default confidence
+				// Process voice command with parsed confidence (or null for N/A)
 				await voiceCommandService.processVoiceCommand(command, confidence);
 
 				// Send debug feedback

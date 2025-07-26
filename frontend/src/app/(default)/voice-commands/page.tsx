@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 interface VoiceCommand {
 	id: string;
 	command: string;
-	confidence: number;
+	confidence: number | null;
 	timestamp: string;
 	processed: boolean;
 	response?: string;
@@ -137,9 +137,13 @@ const VoiceCommands = () => {
 		<Container fluid className={styles.voiceCommands}>
 			<Row>
 				<Col>
-					<h1 className={styles.pageTitle}>Voice Received 🎤</h1>
+					<h1 className={styles.pageTitle}>
+						<span className={styles.voiceIcon}>🎤</span>
+						<span className={styles.titleText}>Voice Received</span>
+						<span className={styles.titleAccent}>AI Commands</span>
+					</h1>
 					<p className={styles.pageDescription}>
-						Monitor and test voice commands for your smart greenhouse
+						Monitor and test voice commands for your smart greenhouse with enhanced AI recognition
 					</p>
 				</Col>
 			</Row>

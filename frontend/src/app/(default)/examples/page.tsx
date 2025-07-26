@@ -166,6 +166,38 @@ const Examples = () => {
 		}
 	];
 
+	// Voice Command Examples from embedded.ino
+	const voiceCommandExamples = [
+		{
+			name: "Voice Commands",
+			topic: "greenhouse/command",
+			dataType: "String",
+			description: "Voice commands với confidence score từ ESP32 microphone (format: commandName;score hoặc chỉ commandName)",
+			examples: [
+				{
+					description: "Lệnh có confidence score",
+					value: "mocua;0.95",
+					note: "Format: commandName;confidenceScore"
+				},
+				{
+					description: "Lệnh không có confidence score",
+					value: "dongcua",
+					note: "Chỉ tên lệnh, confidence sẽ hiển thị N/A"
+				},
+				{
+					description: "Lệnh bật đèn",
+					value: "batden;0.87",
+					note: "Voice command để bật đèn"
+				},
+				{
+					description: "Lệnh tắt đèn",
+					value: "tatden;0.92",
+					note: "Voice command để tắt đèn"
+				}
+			]
+		}
+	];
+
 	// API Endpoints for Frontend-Backend communication
 	const apiEndpoints = [
 		{
@@ -236,6 +268,49 @@ const Examples = () => {
 					status: true,
 					timestamp: "2024-01-01T12:00:00Z"
 				}
+			}
+		},
+		{
+			method: 'GET',
+			endpoint: '/api/voice-commands',
+			description: 'Lấy lịch sử voice commands với phân trang',
+			parameters: 'limit',
+			example: '/api/voice-commands?limit=50',
+			response: {
+				success: true,
+				data: {
+					commands: [
+						{
+							id: "voice_id",
+							command: "mocua",
+							confidence: 0.95,
+							timestamp: "2024-01-01T12:00:00Z",
+							processed: true,
+							response: "Door opened"
+						}
+					],
+					count: 1
+				}
+			}
+		},
+		{
+			method: 'POST',
+			endpoint: '/api/voice-commands/process',
+			description: 'Test voice command thủ công (để test)',
+			parameters: 'command, confidence',
+			example: 'POST /api/voice-commands/process',
+			body: {
+				command: "mocua",
+				confidence: 0.95
+			},
+			response: {
+				success: true,
+				message: "Voice command queued for processing",
+				data: {
+					command: "mocua",
+					confidence: 0.95
+				},
+				timestamp: "2024-01-01T12:00:00Z"
 			}
 		}
 	];
@@ -353,9 +428,9 @@ const Examples = () => {
 
 	return (
 		<Container className={styles.container}>
-			<h3 className={styles.heading}>IoT Smart Greenhouse - Examples</h3>
+			<h3 className={styles.heading}>🚀 IoT Smart Greenhouse - Complete Documentation</h3>
 			<p className="text-muted mb-4">
-				Tài liệu tham khảo về MQTT topics, API endpoints và cách tích hợp hệ thống IoT Smart Greenhouse
+				Tài liệu tham khảo đầy đủ về MQTT topics, Voice Commands, API endpoints và cách tích hợp hệ thống IoT Smart Greenhouse với ESP32
 			</p>
 
 			<Tabs defaultActiveKey="mqtt-sensor" className="mb-4">
@@ -389,6 +464,33 @@ const Examples = () => {
 							<Row>
 								{controlTopics.map((topic, index) => renderControlCard(topic, index, 'control'))}
 							</Row>
+						</Card.Body>
+					</Card>
+				</Tab>
+
+				<Tab eventKey="voice-commands" title="🎤 Voice Commands">
+					<Card className="mb-4">
+						<Card.Header>
+							<h5 className="mb-0">🎤 Voice Command Topics</h5>
+						</Card.Header>
+						<Card.Body>
+							<p className="text-muted">
+								Voice commands từ ESP32 microphone. ESP32 gửi lệnh voice qua MQTT đến backend. Format hỗ trợ: <code>commandName;score</code> hoặc chỉ <code>commandName</code>
+							</p>
+
+							<Row>
+								{voiceCommandExamples.map((topic, index) => renderTopicCard(topic, index, 'voice'))}
+							</Row>
+
+							<div className="alert alert-info mt-4">
+								<h6>📝 Lưu ý về Voice Commands:</h6>
+								<ul className="mb-0">
+									<li><strong>Format có confidence:</strong> <code>mocua;0.95</code> - Backend sẽ parse confidence score</li>
+									<li><strong>Format không có confidence:</strong> <code>dongcua</code> - Frontend sẽ hiển thị &quot;N/A&quot;</li>
+									<li><strong>Confidence threshold:</strong> ESP32 chỉ gửi lệnh khi confidence &gt; 0.85</li>
+									<li><strong>Backend processing:</strong> Tự động convert voice command thành device control</li>
+								</ul>
+							</div>
 						</Card.Body>
 					</Card>
 				</Tab>
@@ -456,6 +558,31 @@ const Examples = () => {
 									onClick={() => copyToClipboard('mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/devices/light/control -m "1"', 'test_control')}
 								>
 									{copiedItem === 'test_control' ? '✓ Copied' : 'Copy Light ON Command'}
+								</Button>
+							</div>
+
+							<h6>Test Voice Commands (Publish) - New Format:</h6>
+							<div className="mb-3">
+								<p className="small text-info">🎤 Voice commands với hoặc không có confidence score</p>
+								<code className="d-block p-2 bg-light mb-2">
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/command -m &quot;mocua;0.95&quot;
+								</code>
+								<code className="d-block p-2 bg-light mb-2">
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/command -m &quot;dongcua&quot;
+								</code>
+								<code className="d-block p-2 bg-light mb-2">
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/command -m &quot;batden;0.87&quot;
+								</code>
+								<code className="d-block p-2 bg-light mb-2">
+									mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/command -m &quot;tatden;0.92&quot;
+								</code>
+								<Button
+									size="sm"
+									variant="outline-secondary"
+									className="mt-2"
+									onClick={() => copyToClipboard('mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -u vision -P vision -t greenhouse/command -m "mocua;0.95"', 'test_voice')}
+								>
+									{copiedItem === 'test_voice' ? '✓ Copied' : 'Copy Voice Command'}
 								</Button>
 							</div>
 

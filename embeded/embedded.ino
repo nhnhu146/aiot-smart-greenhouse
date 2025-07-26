@@ -297,9 +297,14 @@ void loop() {
   if (max_score > CONFIDENCE_THRESHOLD){
     const char* best_label = result.classification[best_idx].label;
     ei_printf("Voice command detected: %s (%.2f)\n", best_label, max_score);
-    client.publish("greenhouse/command", best_label);
-    Serial.print("Sent voice command: ");
-    Serial.println(best_label);
+    
+    // Format: commandName;score (using semicolon as separator)
+    char command_with_score[100];
+    snprintf(command_with_score, sizeof(command_with_score), "%s;%.2f", best_label, max_score);
+    
+    client.publish("greenhouse/command", command_with_score);
+    Serial.print("Sent voice command with confidence: ");
+    Serial.println(command_with_score);
   }
 
 }

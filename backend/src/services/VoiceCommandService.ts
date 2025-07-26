@@ -4,9 +4,9 @@ import { mqttService } from './MQTTService';
 
 export class VoiceCommandService {
 
-	async processVoiceCommand(command: string, confidence: number): Promise<void> {
+	async processVoiceCommand(command: string, confidence: number | null): Promise<void> {
 		try {
-			console.log(`🎤 Processing voice command: "${command}" (confidence: ${confidence})`);
+			console.log(`🎤 Processing voice command: "${command}" (confidence: ${confidence !== null ? confidence : 'N/A'})`);
 
 			// Save to database
 			const voiceCommand = new VoiceCommand({

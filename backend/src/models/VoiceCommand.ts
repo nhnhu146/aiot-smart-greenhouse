@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IVoiceCommand extends Document {
 	command: string;
-	confidence: number;
+	confidence: number | null;
 	timestamp: Date;
 	processed: boolean;
 	response?: string;
@@ -17,9 +17,10 @@ const VoiceCommandSchema = new Schema<IVoiceCommand>({
 	},
 	confidence: {
 		type: Number,
-		required: true,
+		required: false,
 		min: 0,
-		max: 1
+		max: 1,
+		default: null
 	},
 	timestamp: {
 		type: Date,

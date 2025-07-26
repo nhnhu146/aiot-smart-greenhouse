@@ -171,7 +171,7 @@ class WebSocketService {
 	broadcastVoiceCommand(voiceCommandData: {
 		id: string;
 		command: string;
-		confidence: number;
+		confidence: number | null;
 		timestamp: string;
 		processed: boolean;
 		response?: string;
@@ -182,7 +182,7 @@ class WebSocketService {
 			return;
 		}
 
-		console.log(`🎤 Broadcasting voice command: "${voiceCommandData.command}" (${voiceCommandData.confidence})`);
+		console.log(`🎤 Broadcasting voice command: "${voiceCommandData.command}" (${voiceCommandData.confidence !== null ? voiceCommandData.confidence : 'N/A'})`);
 
 		// Emit to all clients
 		this.io.emit('voice-command', voiceCommandData);
