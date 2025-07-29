@@ -83,8 +83,48 @@ export const useAutomation = () => {
 	const toggleAutomation = useCallback(async () => {
 		if (!config || updating) return false;
 
-		return await updateConfig({ enabled: !config.enabled });
-	}, [config, updateConfig, updating]);
+		try {
+			setUpdating(true);
+			setError(null);
+			const success = await automationService.toggleAutomation();
+			if (success) {
+				await loadConfig(); // Reload to get updated config
+				await loadStatus(); // Reload status
+				return true;
+			}
+			return false;
+		} catch (err) {
+			setError('Failed to toggle automation');
+			console.error('Error toggling automation:', err);
+			return false;
+		} finally {
+			setUpdating(false);
+		}
+	}, [config, loadConfig, loadStatus, updating]);
+
+	// Trigger immediate automation check
+	const triggerImmediateCheck = useCallback(async () => {
+		try {
+			const success = await automationService.triggerImmediateCheck();
+			if (success) {
+				await loadStatus(); // Reload status after trigger
+			}
+			return success;
+		} catch (err) {
+			console.error('Error triggering immediate check:', err);
+			return false;
+		}
+	}, [loadStatus]);
+
+	// Trigger automation for specific sensor
+	const triggerSensorAutomation = useCallback(async (sensorType: string, value: number) => {
+		try {
+			return await automationService.triggerSensorAutomation(sensorType, value);
+		} catch (err) {
+			console.error(`Error triggering automation for ${sensorType}:`, err);
+			return false;
+		}
+	}, []);
 
 	// Toggle specific device automation
 	const toggleDeviceAutomation = useCallback(async (deviceType: keyof Omit<AutomationConfig, 'enabled'>) => {
@@ -118,6 +158,8 @@ export const useAutomation = () => {
 		loadStatus,
 		updateConfig,
 		toggleAutomation,
-		toggleDeviceAutomation
+		toggleDeviceAutomation,
+		triggerImmediateCheck,
+		triggerSensorAutomation
 	};
 };

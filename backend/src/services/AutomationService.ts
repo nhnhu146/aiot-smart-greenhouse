@@ -2,6 +2,7 @@ import { AutomationSettings, SensorData } from '../models';
 import { IAutomationSettings } from '../models/AutomationSettings';
 import { mqttService } from './index';
 import { DeviceHistory } from '../models';
+import logger from '../utils/logger';
 
 class AutomationService {
 	private config: IAutomationSettings | null = null;
@@ -9,7 +10,7 @@ class AutomationService {
 	private lastPumpAutomation = 0;
 	private lastDoorAutomation = 0;
 	private lastWindowAutomation = 0;
-	private readonly AUTOMATION_COOLDOWN = 30000; // 30 seconds cooldown between automations
+	private readonly AUTOMATION_COOLDOWN = 15000; // 15 seconds cooldown between automations (reduced from 30s)
 	private isDataProcessing = false; // Flag to prevent automation during data merge
 
 	constructor() {
@@ -58,6 +59,11 @@ class AutomationService {
 	// Set data processing flag to prevent automation during data merge
 	setDataProcessing(processing: boolean): void {
 		this.isDataProcessing = processing;
+		if (processing) {
+			console.log('🔄 Data processing started - automation temporarily paused');
+		} else {
+			console.log('✅ Data processing completed - automation resumed');
+		}
 	}
 
 	// Check if automation is enabled and ready
@@ -87,33 +93,41 @@ class AutomationService {
 	async processSensorData(sensorType: string, value: number): Promise<void> {
 		// Ensure automation is enabled and not during data processing
 		if (!this.isAutomationReady()) {
+			console.log(`🛑 Automation skipped for ${sensorType}: automation not ready (enabled: ${this.config?.automationEnabled}, processing: ${this.isDataProcessing})`);
 			return;
 		}
 
 		const now = Date.now();
 
 		try {
+			console.log(`🔧 Processing automation for ${sensorType}: ${value}`);
+
 			switch (sensorType) {
 				case 'lightLevel':
+				case 'light':
 					await this.handleLightAutomation(value, now);
 					break;
 				case 'soilMoisture':
+				case 'soil':
 					await this.handlePumpAutomation(value, now);
 					break;
 				case 'temperature':
 					await this.handleTemperatureAutomation(value, now);
 					break;
 				case 'motion':
+				case 'motionDetected':
 					await this.handleMotionAutomation(value, now);
 					break;
 				case 'rainStatus':
+				case 'rain':
 					await this.handleRainAutomation(value, now);
 					break;
 				case 'waterLevel':
+				case 'water':
 					await this.handleWaterLevelAutomation(value, now);
 					break;
 				default:
-					// Sensor type not handled by automation
+					console.log(`ℹ️ Sensor type '${sensorType}' not handled by automation`);
 					break;
 			}
 		} catch (error) {
@@ -123,18 +137,33 @@ class AutomationService {
 
 	// Handle light automation based on light level sensor
 	private async handleLightAutomation(lightLevel: number, now: number): Promise<void> {
-		if (!this.config!.lightControlEnabled || (now - this.lastLightAutomation) < this.AUTOMATION_COOLDOWN) {
+		const timeSinceLastAutomation = now - this.lastLightAutomation;
+
+		console.log(`🔧 Light automation check: level=${lightLevel}, enabled=${this.config!.lightControlEnabled}, timeSince=${timeSinceLastAutomation}ms, cooldown=${this.AUTOMATION_COOLDOWN}ms`);
+
+		if (!this.config!.lightControlEnabled) {
+			console.log(`🛑 Light automation skipped: light control disabled`);
+			return;
+		}
+
+		if (timeSinceLastAutomation < this.AUTOMATION_COOLDOWN) {
+			console.log(`🛑 Light automation skipped: cooldown active (${timeSinceLastAutomation}ms < ${this.AUTOMATION_COOLDOWN}ms)`);
 			return;
 		}
 
 		const { turnOnWhenDark, turnOffWhenBright } = this.config!.lightThresholds;
+		console.log(`🔧 Light thresholds: turnOnWhenDark=${turnOnWhenDark}, turnOffWhenBright=${turnOffWhenBright}`);
 
 		if (lightLevel === turnOnWhenDark) { // Dark - turn on light
+			console.log(`💡 Light automation trigger: TURN ON (level=${lightLevel} === turnOnWhenDark=${turnOnWhenDark})`);
 			await this.controlDevice('light', '1', 'Auto: Light level dark');
 			this.lastLightAutomation = now;
 		} else if (lightLevel === turnOffWhenBright) { // Bright - turn off light
+			console.log(`💡 Light automation trigger: TURN OFF (level=${lightLevel} === turnOffWhenBright=${turnOffWhenBright})`);
 			await this.controlDevice('light', '0', 'Auto: Light level bright');
 			this.lastLightAutomation = now;
+		} else {
+			console.log(`ℹ️ Light automation: no action needed (level=${lightLevel}, thresholds: dark=${turnOnWhenDark}, bright=${turnOffWhenBright})`);
 		}
 	}
 
@@ -227,20 +256,37 @@ class AutomationService {
 		try {
 			mqttService.publishDeviceControl(device, action);
 
-			// Log automation action
-			const deviceHistory = new DeviceHistory({
-				deviceType: device as any,
-				action: action === '1' ? 'on' : 'off',
-				automated: true,
-				automationReason: reason,
-				triggeredAt: new Date()
-			});
+			// Convert action to status and determine action name
+			const status = action === '1';
+			const actionName = ['light', 'pump'].includes(device)
+				? (action === '1' ? 'on' : 'off')
+				: (action === '1' ? 'open' : 'close');
 
-			await deviceHistory.save();
+			// Save device action to history with proper validation
+			try {
+				const deviceHistoryData = {
+					deviceId: `greenhouse_${device}`,
+					deviceType: device as 'light' | 'pump' | 'door' | 'window',
+					action: actionName as 'on' | 'off' | 'open' | 'close',
+					status: status,
+					controlType: 'auto' as const,
+					triggeredBy: reason,
+					timestamp: new Date(),
+					success: true
+				};
 
-			console.log(`🤖 Automation: ${device} ${action === '1' ? 'ON' : 'OFF'} - ${reason}`);
+				const deviceHistory = new DeviceHistory(deviceHistoryData);
+				await deviceHistory.save();
+
+				logger.info(`Device history saved: ${device} ${actionName}`);
+			} catch (historyError) {
+				logger.error(`Failed to save device history for ${device}:`, historyError);
+				// Don't fail the automation if history save fails
+			}
+
+			logger.info(`Automation: ${device} ${action === '1' ? 'ON' : 'OFF'} - ${reason}`);
 		} catch (error) {
-			console.error(`❌ Failed to control ${device}:`, error);
+			logger.error(`Failed to control ${device}:`, error);
 		}
 	}
 
@@ -352,7 +398,14 @@ class AutomationService {
 	async disableAutomation(): Promise<boolean> {
 		try {
 			await this.updateConfiguration({ automationEnabled: false });
-			console.log('🛑 Automation DISABLED via API');
+
+			// Clear all cooldowns to stop any pending automation
+			this.lastLightAutomation = 0;
+			this.lastPumpAutomation = 0;
+			this.lastDoorAutomation = 0;
+			this.lastWindowAutomation = 0;
+
+			console.log('🛑 Automation DISABLED via API - all automation stopped');
 			return true;
 		} catch (error) {
 			console.error('❌ Failed to disable automation:', error);

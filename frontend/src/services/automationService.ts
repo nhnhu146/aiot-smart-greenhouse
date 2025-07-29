@@ -129,6 +129,82 @@ class FrontendAutomationService {
 			return null;
 		}
 	}
+
+	// Toggle automation enabled/disabled with immediate check
+	async toggleAutomation(): Promise<boolean> {
+		try {
+			const currentConfig = this.config;
+			if (!currentConfig) {
+				console.error('No automation config available');
+				return false;
+			}
+
+			const newEnabled = !currentConfig.enabled;
+			const success = await this.updateConfiguration({ enabled: newEnabled });
+
+			if (success && newEnabled) {
+				// Trigger immediate automation check when enabled
+				await this.triggerImmediateCheck();
+			}
+
+			return success;
+		} catch (error) {
+			console.error('Error toggling automation:', error);
+			return false;
+		}
+	}
+
+	// Trigger immediate automation check
+	async triggerImmediateCheck(): Promise<boolean> {
+		try {
+			const response = await fetch(`${this.getApiBaseUrl()}/api/automation/trigger`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
+
+			const result = await response.json();
+			console.log('✅ Immediate automation check triggered:', result);
+			return true;
+		} catch (error) {
+			console.error('Error triggering immediate automation check:', error);
+			return false;
+		}
+	}
+
+	// Trigger automation for specific sensor value (called from frontend)
+	async triggerSensorAutomation(sensorType: string, value: number): Promise<boolean> {
+		try {
+			const response = await fetch(`${this.getApiBaseUrl()}/api/automation/sensor-trigger`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ sensorType, value })
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
+
+			const result = await response.json();
+			console.log(`✅ Automation triggered for ${sensorType}:`, result);
+			return true;
+		} catch (error) {
+			console.error(`Error triggering automation for ${sensorType}:`, error);
+			return false;
+		}
+	}
+
+	// Get API base URL
+	private getApiBaseUrl(): string {
+		return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+	}
 }
 
 const frontendAutomationService = new FrontendAutomationService();

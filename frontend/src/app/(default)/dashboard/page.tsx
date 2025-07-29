@@ -43,7 +43,13 @@ const formatTimeVN = (timestamp?: string | Date) => {
 
 const Dashboard = () => {
 	const { persistentSensorData, sensorData, sendDeviceControl, isConnected } = useWebSocketContext();
-	const { config: automationConfig, toggleAutomation, updating: automationUpdating } = useAutomation();
+	const {
+		config: automationConfig,
+		toggleAutomation,
+		updating: automationUpdating,
+		triggerImmediateCheck,
+		triggerSensorAutomation
+	} = useAutomation();
 	const [data, setData] = useState<SensorData | null>(null);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
@@ -119,8 +125,13 @@ const Dashboard = () => {
 		const success = await toggleAutomation();
 		if (success) {
 			setUserInteraction(false); // Enable auto control when turning on auto mode
+
+			// Trigger immediate check when automation is enabled
+			if (automationConfig?.enabled) {
+				await triggerImmediateCheck();
+			}
 		}
-	}, [toggleAutomation]);
+	}, [toggleAutomation, automationConfig?.enabled, triggerImmediateCheck]);
 
 	// Helper function to safely parse sensor values
 	const parseSensorValue = useCallback((value: any): number | null => {
@@ -149,6 +160,35 @@ const Dashboard = () => {
 
 			setSensorValues(newSensorValues);
 			setLastUpdate(new Date());
+
+			// ✅ IMPROVEMENT: Trigger automation when sensor values change from MQTT
+			if (autoMode && triggerSensorAutomation) {
+				// Process each sensor that has a value
+				Object.entries(newSensorValues).forEach(async ([key, value]) => {
+					if (value !== null && value !== undefined) {
+						// Map frontend sensor names to backend sensor types
+						const sensorTypeMap: Record<string, string> = {
+							'temperature': 'temperature',
+							'humidity': 'humidity',
+							'soil': 'soilMoisture',
+							'light': 'lightLevel',
+							'waterlevel': 'waterLevel',
+							'rain': 'rainStatus',
+							'height': 'plantHeight'
+						};
+
+						const backendSensorType = sensorTypeMap[key];
+						if (backendSensorType) {
+							try {
+								await triggerSensorAutomation(backendSensorType, value);
+								console.log(`✅ Triggered automation for ${backendSensorType}: ${value}`);
+							} catch (error) {
+								console.error(`❌ Failed to trigger automation for ${backendSensorType}:`, error);
+							}
+						}
+					}
+				});
+			}
 
 			// NOTE: Automation logic has been moved to backend
 			// Backend AutomationService handles all automation when MQTT messages are received

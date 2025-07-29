@@ -677,23 +677,30 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 		// Enhanced merge logic for real-time data processing
 		const dataMergerService = DataMergerService.getInstance();
 
-		// Try to merge with existing data first
-		const wasMerged = await dataMergerService.autoMergeOnDataReceive(sensorDoc || newData);
+		// Set processing flag to prevent automation conflicts
+		const { automationService } = await import('./services');
+		automationService.setDataProcessing(true);
 
-		if (wasMerged) {
-			console.log(`🔄 Merged ${sensorType} sensor data: ${value} (merged with existing record)`);
-		} else {
-			// No duplicates found, save new document
-			if (sensorDoc) {
-				await sensorDoc.save();
-				console.log(`💾 Saved ${sensorType} sensor data: ${value} (new record)`);
+		try {
+			// Try to merge with existing data first
+			const wasMerged = await dataMergerService.autoMergeOnDataReceive(sensorDoc || newData);
+
+			if (wasMerged) {
+				console.log(`🔄 Merged ${sensorType} sensor data: ${value} (merged with existing record)`);
+			} else {
+				// No duplicates found, save new document
+				if (sensorDoc) {
+					await sensorDoc.save();
+					console.log(`💾 Saved ${sensorType} sensor data: ${value} (new record)`);
+				}
 			}
+		} finally {
+			// Always clear processing flag FIRST
+			automationService.setDataProcessing(false);
 		}
 
-		// ✅ IMPORTANT: Process automation ONLY AFTER data merge is complete
-		// This ensures automation works with the latest merged data
+		// ✅ IMPORTANT: Process automation AFTER data processing is complete
 		try {
-			const { automationService } = await import('./services');
 			await automationService.processSensorData(sensorType, value);
 			console.log(`🤖 Automation processed for ${sensorType}: ${value}`);
 		} catch (automationError) {

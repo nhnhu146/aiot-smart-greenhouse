@@ -48,7 +48,9 @@ class MQTTService {
 			this.client.on('error', (error) => {
 				console.error('[MQTT] Connection error:', error);
 				this.isConnected = false;
-				reject(error);
+				// Don't reject - just log warning and continue
+				console.warn('[MQTT] ⚠️ MQTT unavailable, continuing without real-time sensor data');
+				resolve(); // Resolve anyway to prevent server crash
 			});
 
 			this.client.on('close', () => {

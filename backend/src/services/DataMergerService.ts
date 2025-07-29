@@ -1,5 +1,6 @@
 import SensorDataModel, { ISensorData } from '../models/SensorData';
 import { DatabaseService } from './DatabaseService';
+import automationService from './AutomationService';
 
 export interface MergeStatistics {
 	totalDuplicates: number;
@@ -374,6 +375,7 @@ export class DataMergerService {
 				);
 
 				console.log(`✅ Merged data with existing record at ${timestamp.toISOString()}`);
+
 				return true;
 			}
 
@@ -419,6 +421,7 @@ export class DataMergerService {
 				}
 
 				console.log(`✅ Merged data with ${nearMatches.length} existing records`);
+
 				return true;
 			}
 
@@ -489,6 +492,56 @@ export class DataMergerService {
 		} catch (error) {
 			console.error('❌ Error in pre-save merge check:', error);
 			return null;
+		}
+	}
+
+	/**
+	 * Trigger automation after successful data merge
+	 * This ensures automation runs with the latest merged data
+	 * NOTE: This should be called AFTER setDataProcessing(false)
+	 */
+	public async triggerAutomationAfterMerge(mergedDoc: any, newData: any): Promise<void> {
+		try {
+			// Determine which sensor types were affected by the merge
+			const affectedSensors: Array<{ type: string; value: number }> = [];
+
+			// Check what sensor data was in the new data
+			if (newData.temperature !== undefined) {
+				affectedSensors.push({ type: 'temperature', value: newData.temperature });
+			}
+			if (newData.humidity !== undefined) {
+				affectedSensors.push({ type: 'humidity', value: newData.humidity });
+			}
+			if (newData.soilMoisture !== undefined) {
+				affectedSensors.push({ type: 'soilMoisture', value: newData.soilMoisture });
+			}
+			if (newData.lightLevel !== undefined) {
+				affectedSensors.push({ type: 'lightLevel', value: newData.lightLevel });
+			}
+			if (newData.waterLevel !== undefined) {
+				affectedSensors.push({ type: 'waterLevel', value: newData.waterLevel });
+			}
+			if (newData.rainStatus !== undefined) {
+				affectedSensors.push({ type: 'rainStatus', value: newData.rainStatus });
+			}
+			if (newData.motionDetected !== undefined) {
+				affectedSensors.push({ type: 'motion', value: newData.motionDetected });
+			}
+
+			console.log(`🤖 Triggering automation for ${affectedSensors.length} sensor(s) after merge...`);
+
+			// Process automation for each affected sensor
+			for (const sensor of affectedSensors) {
+				try {
+					await automationService.processSensorData(sensor.type, sensor.value);
+					console.log(`✅ Automation processed for merged ${sensor.type}: ${sensor.value}`);
+				} catch (automationError) {
+					console.error(`❌ Automation error for merged ${sensor.type}:`, automationError);
+				}
+			}
+
+		} catch (error) {
+			console.error('❌ Error triggering automation after merge:', error);
 		}
 	}
 }
