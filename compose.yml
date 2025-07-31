@@ -10,6 +10,8 @@ services:
       MONGO_INITDB_DATABASE: aiot_greenhouse
     expose:
       - "27017"
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
       - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
