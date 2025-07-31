@@ -1,4 +1,4 @@
-// Mock data service for development and testing
+// Mock data service for development and testing - DISPLAY ONLY
 interface SensorData {
 	humidity: number;
 	moisture: number;
@@ -34,29 +34,27 @@ class MockDataService {
 	private useMockData: boolean;
 
 	constructor() {
-		// For production stability: always start with real data (false)
-		// Users must manually enable mock data if needed
+		// Frontend should prioritize real data - mock data only for testing
 		const savedPreference = typeof localStorage !== 'undefined'
 			? localStorage.getItem('useMockData')
 			: null;
 
-		// FORCE DEFAULT TO FALSE - mock data must be explicitly enabled
+		// Default to false - real data first
 		this.useMockData = false;
 
-		// If there was a saved preference and it was true, log but still default to false
+		// Only enable mock data if explicitly saved as true
 		if (savedPreference === 'true') {
-			console.log('⚠️ Previous mock data preference found but resetting to false for stability');
-			// Clear the old preference
-			if (typeof localStorage !== 'undefined') {
-				localStorage.setItem('useMockData', 'false');
-			}
+			console.log('📊 Mock data mode enabled for testing');
+			this.useMockData = true;
+		} else {
+			console.log('📊 Real data mode - frontend will display backend-merged data');
 		}
 
 		// Debug log
-		console.log('🔧 MockDataService initialized (FORCED DEFAULT):', {
+		console.log('🔧 MockDataService initialized:', {
 			savedPreference,
 			useMockData: this.useMockData,
-			note: 'Always starts with real data for production stability'
+			note: 'Frontend displays data only - no merge logic'
 		});
 	}
 
@@ -75,35 +73,30 @@ class MockDataService {
 		const data: ChartDataPoint[] = [];
 		const now = new Date();
 
-		// Generate data for last 24 hours with realistic greenhouse variations
-		// Generate from oldest to newest (left to right on x-axis)
 		for (let i = 23; i >= 0; i--) {
-			const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+			const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
 			data.push({
-				time: time.toLocaleTimeString('en-US', {
+				time: timestamp.toLocaleString('vi-VN', {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
 					hour: '2-digit',
 					minute: '2-digit',
 					second: '2-digit',
-					hour12: false
+					hour12: false,
+					timeZone: 'Asia/Ho_Chi_Minh'
 				}),
-				temperature: 20 + Math.random() * 15, // 20-35°C
-				humidity: 40 + Math.random() * 40,    // 40-80%
-				soilMoisture: Math.random() > 0.3 ? 1 : 0, // Binary: 70% wet (1), 30% dry (0)
-				waterLevel: Math.random() > 0.9 ? 1 : 0,   // Binary: 10% chance of flooding (1), 90% normal (0)
-				lightLevel: Math.random() > 0.5 ? 1 : 0,   // Binary: 50% chance of bright (1), 50% dark (0)
-				rainStatus: Math.random() > 0.7 ? 1 : 0,     // 30% chance of rain (1), 70% no rain (0)
-				plantHeight: 10 + Math.random() * 20   // 10-30cm
+				temperature: 20 + Math.random() * 15,
+				humidity: 40 + Math.random() * 40,
+				soilMoisture: Math.random() > 0.7 ? 0 : 1, // Binary: 30% dry, 70% wet
+				waterLevel: Math.random() > 0.9 ? 1 : 0, // Binary: 10% flooded, 90% normal
+				lightLevel: Math.random() > 0.5 ? 1 : 0, // Binary: random day/night
+				plantHeight: 15 + Math.random() * 10,
+				rainStatus: Math.random() > 0.8 ? 1 : 0 // Binary: 20% rain, 80% clear
 			});
 		}
 
-		// Sort by time to ensure proper chronological order (oldest to newest)
-		return data.sort((a, b) => {
-			// Convert time strings back to full date for proper comparison
-			const baseDate = new Date().toDateString();
-			const dateA = new Date(`${baseDate} ${a.time}`);
-			const dateB = new Date(`${baseDate} ${b.time}`);
-			return dateA.getTime() - dateB.getTime();
-		});
+		return data;
 	}
 
 	// Configuration methods
@@ -111,13 +104,12 @@ class MockDataService {
 		this.useMockData = enabled;
 		console.log(`🔧 Mock data ${enabled ? 'ENABLED' : 'DISABLED'} by user`);
 
-		// Save preference to localStorage
+		// Save to localStorage
 		if (typeof localStorage !== 'undefined') {
 			localStorage.setItem('useMockData', enabled.toString());
-			console.log(`💾 Preference saved to localStorage: ${enabled}`);
 		}
 
-		// Trigger custom event for components to react
+		// Emit event for components that need to react
 		if (typeof window !== 'undefined') {
 			window.dispatchEvent(new CustomEvent('mockDataChanged', {
 				detail: { enabled }
@@ -129,7 +121,7 @@ class MockDataService {
 		return this.useMockData;
 	}
 
-	// Get sensor data with API fallback
+	// Get sensor data with API fallback (DISPLAY ONLY - no processing/merge)
 	public async getSensorData(): Promise<{ data: SensorData | null; isMock: boolean }> {
 		if (this.useMockData) {
 			// Add realistic variations to mock data
@@ -146,36 +138,37 @@ class MockDataService {
 			};
 		}
 
-		// Try to fetch real data from API
+		// Fetch real merged data from backend API (backend handles all merge logic)
 		try {
 			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 			const response = await fetch(`${API_BASE_URL}/api/sensors/latest`);
-			if (response.ok) {
-				const apiResponse = await response.json();
 
-				// Map API response to expected format
-				const data: SensorData = {
-					humidity: apiResponse.data?.humidity || 0,
-					moisture: apiResponse.data?.soilMoisture || 0,
-					temperature: apiResponse.data?.temperature || 0,
-					timestamp: apiResponse.data?.createdAt || new Date().toISOString()
+			if (!response.ok) {
+				console.error('Failed to fetch sensor data from API:', response.status);
+				return { data: null, isMock: false };
+			}
+
+			const result = await response.json();
+			if (result.success && result.data) {
+				// Transform backend data to frontend format
+				const transformedData: SensorData = {
+					humidity: result.data.humidity || 0,
+					moisture: result.data.soilMoisture || 0,
+					temperature: result.data.temperature || 0,
+					timestamp: result.data.createdAt || new Date().toISOString()
 				};
 
-				return { data, isMock: false };
-			} else {
-				throw new Error(`API responded with status: ${response.status}`);
+				return { data: transformedData, isMock: false };
 			}
+
+			return { data: null, isMock: false };
 		} catch (error) {
-			console.warn('Failed to fetch real sensor data, falling back to mock:', error);
-			// When API fails and mock is disabled, still return mock but mark as such
-			return {
-				data: this.mockSensorData,
-				isMock: true
-			};
+			console.error('Error fetching sensor data:', error);
+			return { data: null, isMock: false };
 		}
 	}
 
-	// Get chart data with API fallback
+	// Get chart data with API fallback (DISPLAY ONLY - no processing/merge)
 	public async getChartData(): Promise<{ data: ChartDataPoint[]; isMock: boolean }> {
 		if (this.useMockData) {
 			return {
@@ -184,61 +177,87 @@ class MockDataService {
 			};
 		}
 
-		// Try to fetch real chart data
+		// Fetch real merged data from backend API (backend handles all merge logic)
 		try {
 			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-			const response = await fetch(`${API_BASE_URL}/api/history/sensors`);
-			if (response.ok) {
-				const apiResponse = await response.json();
+			const response = await fetch(`${API_BASE_URL}/api/history`);
 
-				// Map API response to ChartDataPoint format
-				const mappedData: ChartDataPoint[] = apiResponse.data.sensors.map((sensor: any) => ({
-					time: sensor.createdAt, // Fix: use createdAt instead of timestamp
-					temperature: sensor.temperature,
-					humidity: sensor.humidity,
-					soilMoisture: sensor.soilMoisture,
-					waterLevel: sensor.waterLevel,
-					lightLevel: sensor.lightLevel,
-					plantHeight: sensor.plantHeight,
-					rainStatus: sensor.rainStatus
+			if (!response.ok) {
+				console.error('Failed to fetch chart data from API:', response.status);
+				return { data: [], isMock: false };
+			}
+
+			const result = await response.json();
+			if (result.success && result.data && result.data.sensorHistory) {
+				// Transform backend data to chart format
+				const chartData: ChartDataPoint[] = result.data.sensorHistory.map((item: any) => ({
+					time: new Date(item.createdAt || item.timestamp).toLocaleString('vi-VN', {
+						year: 'numeric',
+						month: '2-digit',
+						day: '2-digit',
+						hour: '2-digit',
+						minute: '2-digit',
+						second: '2-digit',
+						hour12: false,
+						timeZone: 'Asia/Ho_Chi_Minh'
+					}),
+					temperature: item.temperature || 0,
+					humidity: item.humidity || 0,
+					soilMoisture: item.soilMoisture || 0,
+					waterLevel: item.waterLevel || 0,
+					lightLevel: item.lightLevel || 0,
+					plantHeight: item.plantHeight || 0,
+					rainStatus: item.rainStatus || 0
 				}));
 
-				return { data: mappedData, isMock: false };
-			} else {
-				throw new Error(`API responded with status: ${response.status}`);
+				return { data: chartData, isMock: false };
 			}
+
+			return { data: [], isMock: false };
 		} catch (error) {
-			console.warn('Failed to fetch real chart data, falling back to mock:', error);
-			return {
-				data: this.mockChartData,
-				isMock: true
-			};
+			console.error('Error fetching chart data:', error);
+			return { data: [], isMock: false };
 		}
 	}
 
 	// Update mock data for testing scenarios
 	public updateMockSensorData(data: Partial<SensorData>): void {
 		this.mockSensorData = { ...this.mockSensorData, ...data };
+		console.log('🔧 Mock sensor data updated:', this.mockSensorData);
 	}
 
 	// Start mock data real-time updates
 	public startMockDataUpdates(intervalMs: number = 5000): () => void {
-		const interval = setInterval(() => {
-			if (this.useMockData) {
-				// Simulate realistic sensor fluctuations
-				const variance = () => (Math.random() - 0.5) * 2;
+		if (!this.useMockData) {
+			console.log('🔧 Not starting mock updates - using real data');
+			return () => { };
+		}
 
-				this.mockSensorData = {
-					...this.mockSensorData,
-					humidity: Math.max(0, Math.min(100, this.mockSensorData.humidity + variance())),
-					moisture: Math.max(0, Math.min(100, this.mockSensorData.moisture + variance())),
-					temperature: Math.max(0, Math.min(50, this.mockSensorData.temperature + variance())),
-					timestamp: new Date().toISOString()
-				};
+		console.log(`🔧 Starting mock data updates every ${intervalMs}ms`);
+
+		const interval = setInterval(() => {
+			// Update mock data with small variations
+			this.mockSensorData = {
+				...this.mockSensorData,
+				humidity: Math.max(30, Math.min(90, this.mockSensorData.humidity + (Math.random() - 0.5) * 5)),
+				temperature: Math.max(15, Math.min(35, this.mockSensorData.temperature + (Math.random() - 0.5) * 2)),
+				moisture: Math.random() > 0.7 ? 0 : 1, // Keep binary nature
+				timestamp: new Date().toISOString()
+			};
+
+			// Emit update event
+			if (typeof window !== 'undefined') {
+				window.dispatchEvent(new CustomEvent('mockDataUpdate', {
+					detail: { data: this.mockSensorData }
+				}));
 			}
 		}, intervalMs);
 
-		return () => clearInterval(interval);
+		// Return cleanup function
+		return () => {
+			clearInterval(interval);
+			console.log('🔧 Mock data updates stopped');
+		};
 	}
 }
 

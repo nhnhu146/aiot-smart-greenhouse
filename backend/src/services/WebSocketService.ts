@@ -1,5 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
+import { DataMergerService } from './DataMergerService';
+import { SensorData } from '../models';
 
 interface SensorData {
 	type: string;
@@ -70,35 +72,103 @@ class WebSocketService {
 		console.log('✅ WebSocket service initialized');
 	}
 
-	// Broadcast sensor data to all connected clients
-	broadcastSensorData(topic: string, data: SensorData) {
+	// Broadcast sensor data to all connected clients (only merged data)
+	async broadcastSensorData(topic: string, data: SensorData) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
 			return;
 		}
 
-		const sensorUpdate = {
-			topic,
-			sensor: data.type,
-			data: {
-				value: data.value,
-				timestamp: data.timestamp,
-				quality: data.quality || 'good'
-			},
-			timestamp: data.timestamp
-		};
+		try {
+			// Ensure data is merged before broadcasting
+			const dataMergerService = DataMergerService.getInstance();
 
-		console.log(`📡 Broadcasting sensor data: ${data.type} = ${data.value}`);
+			// Get the latest merged sensor data from database
+			const latestData = await SensorData.findOne()
+				.sort({ createdAt: -1 })
+				.lean();
 
-		// Emit to general sensor data channel
-		this.io.emit('sensor:data', sensorUpdate);
+			if (!latestData) {
+				console.warn('⚠️ No sensor data found in database');
+				return;
+			}
 
-		// Also emit to specific sensor channel for targeted listening
-		this.io.emit(`sensor:${data.type}`, sensorUpdate);
+			// Extract the relevant sensor value from merged data
+			let mergedValue = data.value;
+			const sensorType = data.type;
 
-		// Legacy format for backward compatibility
-		this.io.emit('sensor-data', sensorUpdate);
-		this.io.emit(`sensor-${data.type}`, sensorUpdate);
+			// Use the merged value from database if available
+			switch (sensorType) {
+				case 'temperature':
+					mergedValue = latestData.temperature ?? data.value;
+					break;
+				case 'humidity':
+					mergedValue = latestData.humidity ?? data.value;
+					break;
+				case 'soil':
+					mergedValue = latestData.soilMoisture ?? data.value;
+					break;
+				case 'water':
+					mergedValue = latestData.waterLevel ?? data.value;
+					break;
+				case 'light':
+					mergedValue = latestData.lightLevel ?? data.value;
+					break;
+				case 'height':
+					mergedValue = latestData.plantHeight ?? data.value;
+					break;
+				case 'rain':
+					mergedValue = latestData.rainStatus ?? data.value;
+					break;
+				case 'motion':
+					mergedValue = latestData.motionDetected ?? data.value;
+					break;
+			}
+
+			const sensorUpdate = {
+				topic,
+				sensor: data.type,
+				data: {
+					value: mergedValue,
+					timestamp: data.timestamp,
+					quality: latestData.dataQuality || 'merged',
+					merged: true
+				},
+				timestamp: data.timestamp
+			};
+
+			console.log(`📡 Broadcasting merged sensor data: ${data.type} = ${mergedValue}`);
+
+			// Emit to general sensor data channel
+			this.io.emit('sensor:data', sensorUpdate);
+
+			// Also emit to specific sensor channel for targeted listening
+			this.io.emit(`sensor:${data.type}`, sensorUpdate);
+
+			// Legacy format for backward compatibility
+			this.io.emit('sensor-data', sensorUpdate);
+			this.io.emit(`sensor-${data.type}`, sensorUpdate);
+
+		} catch (error) {
+			console.error('❌ Error broadcasting merged sensor data:', error);
+
+			// Fallback to original data if merge fails
+			const sensorUpdate = {
+				topic,
+				sensor: data.type,
+				data: {
+					value: data.value,
+					timestamp: data.timestamp,
+					quality: data.quality || 'fallback'
+				},
+				timestamp: data.timestamp
+			};
+
+			this.io.emit('sensor:data', sensorUpdate);
+			this.io.emit(`sensor:${data.type}`, sensorUpdate);
+			this.io.emit('sensor-data', sensorUpdate);
+			this.io.emit(`sensor-${data.type}`, sensorUpdate);
+		}
 	}
 
 	// Broadcast device status to all connected clients

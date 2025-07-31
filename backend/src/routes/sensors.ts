@@ -4,10 +4,11 @@ import { validateQuery, asyncHandler } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
 import { formatVietnamTimestamp } from '../utils/timezone';
+import { DataMergerService } from '../services/DataMergerService';
 
 const router = Router();
 
-// GET /api/sensors - Lấy dữ liệu cảm biến
+// GET /api/sensors - Lấy dữ liệu cảm biến (đã merge)
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
 	const { page = 1, limit = 20, from, to } = req.query as any;
 
@@ -21,6 +22,30 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	}
 
 	const skip = (page - 1) * limit;
+
+	// Ensure data is merged before returning
+	const dataMergerService = DataMergerService.getInstance();
+	try {
+		// Quick check for duplicates and merge if needed
+		const quickDuplicateCheck = await SensorData.aggregate([
+			{ $match: query },
+			{
+				$group: {
+					_id: '$createdAt',
+					count: { $sum: 1 }
+				}
+			},
+			{ $match: { count: { $gt: 1 } } },
+			{ $limit: 1 }
+		]);
+
+		if (quickDuplicateCheck.length > 0) {
+			console.log('🔄 Found duplicates in sensor data, triggering merge...');
+			await dataMergerService.mergeSameTimestampData();
+		}
+	} catch (mergeError) {
+		console.warn('⚠️ Merge check failed, continuing with raw data:', mergeError);
+	}
 
 	const [data, total] = await Promise.all([
 		SensorData.find(query)
@@ -51,8 +76,38 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	res.json(response);
 }));
 
-// GET /api/sensors/latest - Lấy dữ liệu cảm biến mới nhất
+// GET /api/sensors/latest - Lấy dữ liệu cảm biến mới nhất (đã merge)
 router.get('/latest', asyncHandler(async (req: Request, res: Response) => {
+	// Ensure latest data is merged before returning
+	const dataMergerService = DataMergerService.getInstance();
+	try {
+		// Quick check for recent duplicates and merge if needed
+		const recentDuplicatesCheck = await SensorData.aggregate([
+			{
+				$match: {
+					createdAt: {
+						$gte: new Date(Date.now() - 60000) // Last minute
+					}
+				}
+			},
+			{
+				$group: {
+					_id: '$createdAt',
+					count: { $sum: 1 }
+				}
+			},
+			{ $match: { count: { $gt: 1 } } },
+			{ $limit: 1 }
+		]);
+
+		if (recentDuplicatesCheck.length > 0) {
+			console.log('🔄 Found recent duplicates, triggering merge...');
+			await dataMergerService.mergeSameTimestampData();
+		}
+	} catch (mergeError) {
+		console.warn('⚠️ Recent merge check failed, continuing with raw data:', mergeError);
+	}
+
 	const latestData = await SensorData.findOne()
 		.sort({ createdAt: -1 })
 		.lean();

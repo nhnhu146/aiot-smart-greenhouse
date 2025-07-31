@@ -544,8 +544,8 @@ function setupMQTTHandlers() {
 				// Save to database using correct model structure
 				await saveSensorDataToDatabase(sensorType, sensorValue);
 
-				// Broadcast sensor data to WebSocket clients with complete data
-				webSocketService.broadcastSensorData(topic, {
+				// Broadcast sensor data to WebSocket clients with merged data
+				await webSocketService.broadcastSensorData(topic, {
 					type: sensorType,
 					value: sensorValue,
 					timestamp: new Date().toISOString(),
@@ -607,20 +607,16 @@ function setupMQTTHandlers() {
 	});
 }
 
-// Helper function to save sensor data to database
+// Helper function to save sensor data to database with pre-merge check
 async function saveSensorDataToDatabase(sensorType: string, value: number) {
 	try {
-		// Get the latest sensor document or create a new one
-		let sensorDoc = await SensorData.findOne().sort({ createdAt: -1 });
-
-		// If no document exists or the latest is older than 30 seconds, create new
 		const now = new Date();
-		const shouldCreateNew = !sensorDoc ||
-			(sensorDoc.createdAt && now.getTime() - sensorDoc.createdAt.getTime() > 30000);
 
+		// Prepare new sensor data
 		const newData: any = {
 			deviceId: 'esp32-greenhouse-01',
-			dataQuality: 'partial'
+			dataQuality: 'partial',
+			createdAt: now
 		};
 
 		// Map sensor type to database field
@@ -632,79 +628,64 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 				newData.humidity = value;
 				break;
 			case 'soil':
-				// For soil moisture: 0 = dry, 1 = wet (raw binary values)
-				newData.soilMoisture = value; // Keep raw 0/1 value
+				newData.soilMoisture = value;
 				break;
 			case 'water':
-				// For water level: 0 = normal, 1 = flooded (binary values)
-				newData.waterLevel = value; // Keep raw 0/1 value
+				newData.waterLevel = value;
 				break;
 			case 'light':
-				// For light sensor: 0 = dark, 1 = bright (binary values)
-				newData.lightLevel = value; // Keep raw 0/1 value
+				newData.lightLevel = value;
 				break;
 			case 'height':
 				newData.plantHeight = value;
 				break;
 			case 'rain':
-				// For rain sensor: 0 = no rain, 1 = raining (binary values)
-				newData.rainStatus = value; // Keep raw 0/1 value
+				newData.rainStatus = value;
 				break;
 			case 'motion':
-				// For motion sensor: 0 = no motion, 1 = motion detected (binary values)
-				newData.motionDetected = value; // Keep raw 0/1 value
+				newData.motionDetected = value;
 				break;
 			default:
 				console.warn(`🔍 Unknown sensor type: ${sensorType}`);
 				return;
 		}
 
-		if (shouldCreateNew) {
-			// Create new document with the sensor value
-			sensorDoc = new SensorData(newData);
-		} else if (sensorDoc) {
-			// Update existing document with new sensor data
-			Object.assign(sensorDoc, newData);
-
-			// Update quality based on how many sensors have data
-			const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'lightLevel'];
-			const filledSensors = sensorFields.filter(field =>
-				(sensorDoc as any)[field] != null
-			).length;
-			sensorDoc.dataQuality = filledSensors >= 4 ? 'complete' : 'partial';
-		}
-
-		// Enhanced merge logic for real-time data processing
-		const dataMergerService = DataMergerService.getInstance();
-
 		// Set processing flag to prevent automation conflicts
 		const { automationService } = await import('./services');
 		automationService.setDataProcessing(true);
 
-		try {
-			// Try to merge with existing data first
-			const wasMerged = await dataMergerService.autoMergeOnDataReceive(sensorDoc || newData);
+		let finalDoc: any = null;
 
-			if (wasMerged) {
+		try {
+			// Use DataMergerService for pre-save merge check
+			const dataMergerService = DataMergerService.getInstance();
+
+			// Check if there are duplicates and merge if needed
+			const mergedDoc = await dataMergerService.preSaveMergeCheck(newData);
+
+			if (mergedDoc) {
+				// Data was merged with existing document
+				finalDoc = mergedDoc;
 				console.log(`🔄 Merged ${sensorType} sensor data: ${value} (merged with existing record)`);
 			} else {
 				// No duplicates found, save new document
-				if (sensorDoc) {
-					await sensorDoc.save();
-					console.log(`💾 Saved ${sensorType} sensor data: ${value} (new record)`);
-				}
+				const sensorDoc = new SensorData(newData);
+				finalDoc = await sensorDoc.save();
+				console.log(`💾 Saved ${sensorType} sensor data: ${value} (new record)`);
 			}
 		} finally {
 			// Always clear processing flag FIRST
 			automationService.setDataProcessing(false);
 		}
 
-		// ✅ IMPORTANT: Process automation AFTER data processing is complete
-		try {
-			await automationService.processSensorData(sensorType, value);
-			console.log(`🤖 Automation processed for ${sensorType}: ${value}`);
-		} catch (automationError) {
-			console.error(`❌ Automation processing error for ${sensorType}:`, automationError);
+		// Process automation AFTER data processing is complete
+		if (finalDoc) {
+			try {
+				await automationService.processSensorData(sensorType, value);
+				console.log(`🤖 Automation processed for ${sensorType}: ${value}`);
+			} catch (automationError) {
+				console.error(`❌ Automation processing error for ${sensorType}:`, automationError);
+			}
 		}
 
 	} catch (error) {
