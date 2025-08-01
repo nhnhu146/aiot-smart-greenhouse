@@ -30,22 +30,17 @@ const SignIn = () => {
 		setLoading(true);
 
 		try {
-			console.log('🔐 Starting sign-in process...');
 			const response = await authService.signIn(email, password);
 
 			if (response.success && response.user) {
-				console.log('✅ Sign-in successful, redirecting to dashboard...');
 				setEmail('');
 				setPassword('');
-
-				// Use window.location for immediate redirect without refresh issues
-				window.location.href = '/dashboard';
+				router.push('/dashboard');
 			} else {
-				console.log('❌ Sign-in failed:', response.message);
 				setError(response.message || 'Sign in failed');
 			}
 		} catch (e) {
-			console.error('❌ Sign in error:', e);
+			console.error('Sign in error:', e);
 			setError('An unexpected error occurred');
 		} finally {
 			setLoading(false);

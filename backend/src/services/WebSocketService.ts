@@ -72,7 +72,7 @@ class WebSocketService {
 		console.log('✅ WebSocket service initialized');
 	}
 
-	// Broadcast sensor data to all connected clients (signal only - optimized for API fetch)
+	// Broadcast sensor data to all connected clients (only merged data)
 	async broadcastSensorData(topic: string, data: SensorData) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -80,58 +80,94 @@ class WebSocketService {
 		}
 
 		try {
-			// Get latest merged data from database for accuracy check
-			const latestData = await SensorData.findOne().sort({ createdAt: -1 }).lean();
+			// Ensure data is merged before broadcasting
+			const dataMergerService = DataMergerService.getInstance();
+
+			// Get the latest merged sensor data from database
+			const latestData = await SensorData.findOne()
+				.sort({ createdAt: -1 })
+				.lean();
 
 			if (!latestData) {
 				console.warn('⚠️ No sensor data found in database');
+				return;
 			}
 
-			// Create notification object with minimal data for signaling
-			const sensorSignal = {
-				type: 'sensor_data_updated',
+			// Extract the relevant sensor value from merged data
+			let mergedValue = data.value;
+			const sensorType = data.type;
+
+			// Use the merged value from database if available
+			switch (sensorType) {
+				case 'temperature':
+					mergedValue = latestData.temperature ?? data.value;
+					break;
+				case 'humidity':
+					mergedValue = latestData.humidity ?? data.value;
+					break;
+				case 'soil':
+					mergedValue = latestData.soilMoisture ?? data.value;
+					break;
+				case 'water':
+					mergedValue = latestData.waterLevel ?? data.value;
+					break;
+				case 'light':
+					mergedValue = latestData.lightLevel ?? data.value;
+					break;
+				case 'height':
+					mergedValue = latestData.plantHeight ?? data.value;
+					break;
+				case 'rain':
+					mergedValue = latestData.rainStatus ?? data.value;
+					break;
+				case 'motion':
+					mergedValue = latestData.motionDetected ?? data.value;
+					break;
+			}
+
+			const sensorUpdate = {
+				topic,
 				sensor: data.type,
-				timestamp: new Date().toISOString(),
-				hasNewData: true,
-				// Don't include actual values - frontend will fetch via API
-				dataAvailable: latestData ? {
-					temperature: latestData.temperature !== null,
-					humidity: latestData.humidity !== null,
-					soilMoisture: latestData.soilMoisture !== null,
-					waterLevel: latestData.waterLevel !== null,
-					lightLevel: latestData.lightLevel !== null,
-					plantHeight: latestData.plantHeight !== null,
-					rainStatus: latestData.rainStatus !== null,
-					motionDetected: latestData.motionDetected !== null
-				} : {}
+				data: {
+					value: mergedValue,
+					timestamp: data.timestamp,
+					quality: latestData.dataQuality || 'merged',
+					merged: true
+				},
+				timestamp: data.timestamp
 			};
 
-			console.log(`📡 Broadcasting sensor update signal: ${data.type} - Frontend should fetch latest data via API`);
+			console.log(`📡 Broadcasting merged sensor data: ${data.type} = ${mergedValue}`);
 
-			// Emit signal to all clients to refresh data from API
-			this.io.emit('sensor:update-signal', sensorSignal);
+			// Emit to general sensor data channel
+			this.io.emit('sensor:data', sensorUpdate);
 
-			// Also emit specific sensor signal for targeted listening
-			this.io.emit(`sensor:${data.type}:updated`, {
-				type: data.type,
-				timestamp: sensorSignal.timestamp,
-				fetchRequired: true
-			});
+			// Also emit to specific sensor channel for targeted listening
+			this.io.emit(`sensor:${data.type}`, sensorUpdate);
 
-			// Legacy compatibility - signal only
-			this.io.emit('sensor-data-signal', sensorSignal);
+			// Legacy format for backward compatibility
+			this.io.emit('sensor-data', sensorUpdate);
+			this.io.emit(`sensor-${data.type}`, sensorUpdate);
 
 		} catch (error) {
-			console.error('❌ Error broadcasting sensor update signal:', error);
+			console.error('❌ Error broadcasting merged sensor data:', error);
 
-			// Fallback minimal signal
-			this.io.emit('sensor:update-signal', {
-				type: 'sensor_data_updated',
+			// Fallback to original data if merge fails
+			const sensorUpdate = {
+				topic,
 				sensor: data.type,
-				timestamp: new Date().toISOString(),
-				hasNewData: true,
-				error: true
-			});
+				data: {
+					value: data.value,
+					timestamp: data.timestamp,
+					quality: data.quality || 'fallback'
+				},
+				timestamp: data.timestamp
+			};
+
+			this.io.emit('sensor:data', sensorUpdate);
+			this.io.emit(`sensor:${data.type}`, sensorUpdate);
+			this.io.emit('sensor-data', sensorUpdate);
+			this.io.emit(`sensor-${data.type}`, sensorUpdate);
 		}
 	}
 

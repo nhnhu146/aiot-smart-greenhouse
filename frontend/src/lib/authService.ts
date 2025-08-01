@@ -48,30 +48,16 @@ class AuthService {
 			console.log('🔐 Signin response:', { success: data.success, hasToken: !!data.token, hasUser: !!data.user });
 
 			if (data.success && data.user && data.token) {
-				// Update current user state
 				this.currentUser = { ...data.user, token: data.token };
-
-				// Save to storage immediately and synchronously
 				this.saveToStorage(data.user, data.token);
-
-				// Verify storage was successful
-				const storedToken = localStorage.getItem('token');
-				const storedUser = localStorage.getItem('user');
-
-				console.log('✅ User authenticated and stored:', {
-					hasStoredToken: !!storedToken,
-					hasStoredUser: !!storedUser,
-					currentUserValid: !!this.currentUser,
-					isAuthenticated: this.isAuthenticated()
-				});
-
-				return data;
+				console.log('✅ User authenticated and stored');
 			} else {
 				console.log('❌ Signin failed:', data.message);
-				return data;
 			}
+
+			return data;
 		} catch (error) {
-			console.error('❌ Sign in error:', error);
+			console.error('Sign in error:', error);
 			return { success: false, message: 'Network error occurred' };
 		}
 	}

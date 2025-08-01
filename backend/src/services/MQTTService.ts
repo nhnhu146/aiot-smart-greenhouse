@@ -140,19 +140,11 @@ class MQTTService {
 		}
 
 		const topic = `greenhouse/devices/${device}/control`;
-
-		// Enhanced console log for MQTT device control
-		console.log(`🎮 [MQTT-CONTROL] Sending device control command:`);
-		console.log(`   📍 Topic: ${topic}`);
-		console.log(`   🔧 Action: ${action} (${action === '1' ? 'ON/OPEN' : 'OFF/CLOSE'})`);
-		console.log(`   📱 Device: ${device}`);
-		console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
-
 		this.client.publish(topic, action, { qos: 1 }, (err) => {
 			if (err) {
-				console.error(`❌ [MQTT-CONTROL-ERROR] Failed to publish to ${topic}:`, err);
+				console.error(`[MQTT] Failed to publish to ${topic}:`, err);
 			} else {
-				console.log(`✅ [MQTT-CONTROL-SUCCESS] Command sent successfully to ${device} (${action})`);
+				console.log(`[MQTT] Published ${action} to ${topic}`);
 			}
 		});
 	}
