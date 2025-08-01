@@ -24,7 +24,7 @@ class DeviceControlService {
 	}
 
 	/**
-	 * Gửi lệnh điều khiển thiết bị qua API đơn giản
+	 * Send device control command via simple API
 	 */
 	async sendDeviceControl(request: DeviceControlRequest): Promise<DeviceControlResponse> {
 		try {

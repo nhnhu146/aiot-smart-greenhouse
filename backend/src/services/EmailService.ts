@@ -218,9 +218,9 @@ export class EmailService {
 			}
 
 			const replacements = new Map([
-				['timestamp', new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })],
+				['timestamp', new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })],
 				['currentYear', new Date().getFullYear().toString()],
-				['testMessage', 'Hệ thống email Smart Greenhouse hoạt động bình thường! Email test đã được gửi thành công.']
+				['testMessage', 'Smart Greenhouse email system is working properly! Test email sent successfully.']
 			]);
 
 			console.log(`📧 [DEBUG] Processing template with replacements:`, Object.fromEntries(replacements));

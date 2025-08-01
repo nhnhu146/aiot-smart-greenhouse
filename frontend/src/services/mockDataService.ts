@@ -76,7 +76,7 @@ class MockDataService {
 		for (let i = 23; i >= 0; i--) {
 			const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
 			data.push({
-				time: timestamp.toLocaleString('vi-VN', {
+				time: timestamp.toLocaleString('en-US', {
 					year: 'numeric',
 					month: '2-digit',
 					day: '2-digit',
@@ -191,7 +191,7 @@ class MockDataService {
 			if (result.success && result.data && result.data.sensorHistory) {
 				// Transform backend data to chart format
 				const chartData: ChartDataPoint[] = result.data.sensorHistory.map((item: any) => ({
-					time: new Date(item.createdAt || item.timestamp).toLocaleString('vi-VN', {
+					time: new Date(item.createdAt || item.timestamp).toLocaleString('en-US', {
 						year: 'numeric',
 						month: '2-digit',
 						day: '2-digit',

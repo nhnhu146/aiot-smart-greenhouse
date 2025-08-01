@@ -21,7 +21,6 @@ import DashboardPage from './pages/DashboardPage'
 import HistoryPage from './pages/HistoryPage'
 import AutoModePage from './pages/AutoModePage'
 import SettingsPage from './pages/default/SettingsPage'
-import VoiceCommandsPage from './pages/default/VoiceCommandsPage'
 import ExamplesPage from './pages/default/ExamplesPage'
 
 // Root redirect component
@@ -55,7 +54,6 @@ function App() {
 					<Route path="/history" element={<DefaultLayout><HistoryPage /></DefaultLayout>} />
 					<Route path="/automode" element={<DefaultLayout><AutoModePage /></DefaultLayout>} />
 					<Route path="/settings" element={<DefaultLayout><SettingsPage /></DefaultLayout>} />
-					<Route path="/voice-commands" element={<DefaultLayout><VoiceCommandsPage /></DefaultLayout>} />
 					<Route path="/examples" element={<DefaultLayout><ExamplesPage /></DefaultLayout>} />
 
 					{/* Catch all - redirect to home */}

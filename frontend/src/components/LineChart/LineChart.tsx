@@ -16,10 +16,10 @@ import mockDataService, { type ChartDataPoint } from '@/services/mockDataService
 // Register the components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Format time to UTC+7 (Vietnam timezone) - showing date and time for proper comparison
-const formatTimeVN = (timestamp: string | Date) => {
+// Format time to English format
+const formatTimeEN = (timestamp: string | Date) => {
 	const date = new Date(timestamp);
-	return date.toLocaleString('vi-VN', {
+	return date.toLocaleString('en-US', {
 		year: 'numeric',
 		month: '2-digit',
 		day: '2-digit',
@@ -43,7 +43,7 @@ const AppLineChart: React.FC = () => {
 
 			// Only create data point if we have at least one sensor value
 			if (temperature || humidity || soil) {
-				const currentTime = formatTimeVN(new Date());
+				const currentTime = formatTimeEN(new Date());
 
 				const newDataPoint: ChartDataPoint = {
 					time: currentTime,
@@ -59,9 +59,9 @@ const AppLineChart: React.FC = () => {
 
 					// Sort by actual datetime to ensure chronological order (newest first for display)
 					const sortedData = latest24.sort((a, b) => {
-						// Parse the Vietnam time string back to Date for proper comparison
-						const timeA = new Date(a.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6')).getTime();
-						const timeB = new Date(b.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6')).getTime();
+						// Parse the US time string back to Date for proper comparison
+						const timeA = new Date(a.time).getTime();
+						const timeB = new Date(b.time).getTime();
 
 						return timeB - timeA;
 					});
@@ -81,10 +81,10 @@ const AppLineChart: React.FC = () => {
 			try {
 				const result = await mockDataService.getChartData();
 
-				// Format timestamps to UTC+7 with HH:MM:SS format
+				// Format timestamps to English format
 				const formattedData = result.data.map(point => ({
 					...point,
-					time: formatTimeVN(point.time)
+					time: formatTimeEN(point.time)
 				}));
 
 				// Only set if we don't have persistent data yet
@@ -136,23 +136,25 @@ const AppLineChart: React.FC = () => {
 		labels: [...chartData].reverse().map(point => {
 			// Extract only time part for display on x-axis
 			if (!point || !point.time) return 'Unknown';
-			const timePart = point.time.split(', ')[1] || point.time;
+			const timePart = point.time.split(', ')[1] || point.time.split(' ')[1] || point.time;
 			return timePart;
 		}),
 		datasets: [
 			{
 				label: 'Temperature (°C)',
-				data: [...chartData].reverse().map(point => point ? Math.round((point.temperature || 0) * 10) / 10 : 0),
+				data: [...chartData].reverse().map(point => point ? parseFloat((point.temperature || 0).toFixed(1)) : 0),
 				borderColor: 'rgb(255, 99, 132)',
 				backgroundColor: 'rgba(255, 99, 132, 0.2)',
 				tension: 0.1,
+				fill: false,
 			},
 			{
 				label: 'Humidity (%)',
-				data: [...chartData].reverse().map(point => point ? Math.round((point.humidity || 0) * 10) / 10 : 0),
+				data: [...chartData].reverse().map(point => point ? parseFloat((point.humidity || 0).toFixed(1)) : 0),
 				borderColor: 'rgb(54, 162, 235)',
 				backgroundColor: 'rgba(54, 162, 235, 0.2)',
 				tension: 0.1,
+				fill: false,
 			},
 			{
 				label: 'Soil Moisture (Binary)',
@@ -160,12 +162,14 @@ const AppLineChart: React.FC = () => {
 				borderColor: 'rgb(75, 192, 192)',
 				backgroundColor: 'rgba(75, 192, 192, 0.2)',
 				tension: 0.1,
+				fill: false,
 			}
 		],
 	};
 
 	const options = {
 		responsive: true,
+		maintainAspectRatio: false,
 		plugins: {
 			legend: {
 				position: 'top' as const,
@@ -176,34 +180,61 @@ const AppLineChart: React.FC = () => {
 			},
 			tooltip: {
 				enabled: true,
+				mode: 'index' as const,
+				intersect: false,
 			},
 		},
 		elements: {
 			point: {
-				pointStyle: false as const, // Remove point markers
+				radius: 3,
+				hoverRadius: 6,
 			},
 		},
 		scales: {
 			y: {
-				beginAtZero: true,
-				suggestedMax: 100,
+				beginAtZero: false,
+				// Dynamic scaling based on actual data
+				suggestedMin: Math.min(...chartData.map(point =>
+					Math.min(point.temperature || 0, point.humidity || 0)
+				)) - 5,
+				suggestedMax: Math.max(...chartData.map(point =>
+					Math.max(point.temperature || 0, point.humidity || 0)
+				)) + 5,
 				ticks: {
-					display: true, // Show y-axis tick labels
+					display: true,
+					// Dynamic step size based on data range
+					stepSize: Math.max(5, Math.round((Math.max(...chartData.map(point =>
+						Math.max(point.temperature || 0, point.humidity || 0)
+					)) - Math.min(...chartData.map(point =>
+						Math.min(point.temperature || 0, point.humidity || 0)
+					))) / 10)),
 				},
 				title: {
 					display: true,
 					text: 'Value',
 				},
+				grid: {
+					display: true,
+				},
 			},
 			x: {
 				ticks: {
-					display: true, // Show x-axis tick labels (time)
+					display: true,
+					maxTicksLimit: 12,
 				},
 				title: {
 					display: true,
 					text: 'Time',
 				},
+				grid: {
+					display: true,
+				},
 			},
+		},
+		interaction: {
+			mode: 'nearest' as const,
+			axis: 'x' as const,
+			intersect: false,
 		},
 	};
 

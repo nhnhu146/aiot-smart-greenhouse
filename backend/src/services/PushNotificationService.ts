@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Thêm một bộ nhớ đệm đơn giản để tránh gửi trùng lặp
+// Simple cache to avoid sending duplicate notifications
 const sentMessages = new Map<string, number>();
 const PUSH_COOLDOWN = 5 * 60 * 1000; // 5 phút
 

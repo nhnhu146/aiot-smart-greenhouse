@@ -129,7 +129,8 @@
 }
 
 .sensor-data-section,
-.device-controls-section {
+.device-controls-section,
+.voice-commands-section {
 	background: white;
 	padding: 1.5rem;
 	border-radius: 8px;
@@ -137,7 +138,8 @@
 }
 
 .sensor-data-section h3,
-.device-controls-section h3 {
+.device-controls-section h3,
+.voice-commands-section h3 {
 	color: #2b512b;
 	margin-bottom: 1rem;
 }
@@ -227,6 +229,33 @@
 
 .success-badge.failed {
 	color: #dc3545;
+}
+
+.timeCell {
+	font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+	font-size: 0.8rem;
+	color: #6c757d;
+	white-space: nowrap;
+	min-width: 140px;
+}
+
+.commandCell {
+	max-width: 250px;
+	word-break: break-word;
+}
+
+.commandCell code {
+	background-color: #f8f9fa;
+	padding: 0.2rem 0.4rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	color: #2b512b;
+}
+
+.responseCell {
+	max-width: 200px;
+	word-wrap: break-word;
+	font-size: 0.85rem;
 }
 
 @media (max-width: 768px) {

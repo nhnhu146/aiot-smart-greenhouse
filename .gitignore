@@ -110,3 +110,4 @@ temp/
 **/package-lock.json
 **/yarn.lock
 /.copilot_temp
+*.production

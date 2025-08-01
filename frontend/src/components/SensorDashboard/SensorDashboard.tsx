@@ -6,9 +6,9 @@ import React from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import './SensorDashboard.css';
 
-// Format time to UTC+7 (Vietnam timezone)
-const formatTimeVN = (timestamp?: string | Date) => {
-	if (!timestamp) return new Date().toLocaleString('vi-VN', {
+// Format time to English format with Vietnam timezone
+const formatTimeEN = (timestamp?: string | Date) => {
+	if (!timestamp) return new Date().toLocaleString('en-US', {
 		year: 'numeric',
 		month: '2-digit',
 		day: '2-digit',
@@ -20,7 +20,7 @@ const formatTimeVN = (timestamp?: string | Date) => {
 	});
 
 	const date = new Date(timestamp);
-	return date.toLocaleString('vi-VN', {
+	return date.toLocaleString('en-US', {
 		year: 'numeric',
 		month: '2-digit',
 		day: '2-digit',
@@ -144,15 +144,15 @@ const SensorDashboard: React.FC = () => {
 						if (['soil', 'water', 'light', 'rain', 'motion'].includes(sensorType)) {
 							// For binary sensors, show status text instead of numbers
 							if (sensorType === 'soil') {
-								formattedValue = numericValue === 1 ? 'Ẩm' : 'Khô';
+								formattedValue = numericValue === 1 ? 'Wet' : 'Dry';
 							} else if (sensorType === 'water') {
-								formattedValue = numericValue === 1 ? 'Đủ' : 'Thấp';
+								formattedValue = numericValue === 1 ? 'Full' : 'Low';
 							} else if (sensorType === 'light') {
-								formattedValue = numericValue === 1 ? 'Sáng' : 'Tối';
+								formattedValue = numericValue === 1 ? 'Bright' : 'Dark';
 							} else if (sensorType === 'rain') {
-								formattedValue = numericValue === 1 ? 'Mưa' : 'Khô ráo';
+								formattedValue = numericValue === 1 ? 'Raining' : 'Clear';
 							} else if (sensorType === 'motion') {
-								formattedValue = numericValue === 1 ? 'Có' : 'Không';
+								formattedValue = numericValue === 1 ? 'Detected' : 'None';
 							} else {
 								formattedValue = numericValue.toString();
 							}
@@ -175,7 +175,7 @@ const SensorDashboard: React.FC = () => {
 
 			setSensors(updatedSensors);
 			if (latestTimestamp) {
-				setLastUpdateTime(formatTimeVN(latestTimestamp));
+				setLastUpdateTime(formatTimeEN(latestTimestamp));
 			}
 
 			console.log('📊 SensorDashboard updated with persistent data');

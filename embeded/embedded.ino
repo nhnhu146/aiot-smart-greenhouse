@@ -115,7 +115,7 @@ unsigned long lastSendTime2 = 0;
 unsigned long lastSendTime3 = 0;
 unsigned long lastMotionCheck = 0;
 unsigned long lastWaterCheck = 0;
-int i = 0; // Biến đếm
+int i = 0; // Counter variable
 int lastPIRState = LOW; // Track PIR state changes
 
 // Error counting for system recovery
@@ -661,7 +661,7 @@ void updateWindowServoMovement() {
       } else if (currentWindowServoPos > targetWindowServoPos) {
         currentWindowServoPos-=10;
       } else {
-        isWindowServoMoving = false; // Đã đến vị trí đích
+        isWindowServoMoving = false; // Reached target position
         break;
       }
 
@@ -720,7 +720,7 @@ void updateDoorServoMovement() {
       } else if (currentDoorServoPos > targetDoorServoPos) {
         currentDoorServoPos-=10;
       } else {
-        isDoorServoMoving = false; // Đã đến vị trí đích
+        isDoorServoMoving = false; // Reached target position
         break;
       }
 

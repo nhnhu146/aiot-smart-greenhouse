@@ -3,8 +3,18 @@ import mockDataService, {
 	type ChartDataPoint,
 	type DeviceControl,
 } from "@/services/mockDataService";
-// import useWebSocket from "@/hooks/useWebSocket"; // Currently not used
+import useWebSocket from "@/hooks/useWebSocket";
 import "./HistoryPage.css";
+
+interface VoiceCommand {
+	id: string;
+	command: string;
+	confidence: number | null;
+	timestamp: string;
+	processed: boolean;
+	response?: string;
+	errorMessage?: string;
+}
 
 const HistoryPage = () => {
 	const [data, setData] = useState<ChartDataPoint[]>([]);
@@ -13,16 +23,18 @@ const HistoryPage = () => {
 	const [filteredDeviceControls, setFilteredDeviceControls] = useState<
 		DeviceControl[]
 	>([]);
+	const [voiceCommands, setVoiceCommands] = useState<VoiceCommand[]>([]);
+	const [filteredVoiceCommands, setFilteredVoiceCommands] = useState<VoiceCommand[]>([]);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
-	const [activeTab, setActiveTab] = useState<"sensors" | "controls">("sensors");
+	const [activeTab, setActiveTab] = useState<"sensors" | "controls" | "voice">("sensors");
 	const [dateFilter, setDateFilter] = useState("");
 	const [monthFilter, setMonthFilter] = useState("");
 	const [yearFilter, setYearFilter] = useState("");
 	const [isExporting, setIsExporting] = useState(false);
 
 	// WebSocket integration for real-time updates
-	// const { socket } = useWebSocket(); // Currently not used, can be uncommented if needed
+	const { socket } = useWebSocket();
 
 	// Format timestamp to display date-time consistently
 	const formatDateTime = (timestamp: string): string => {
@@ -44,6 +56,19 @@ const HistoryPage = () => {
 			second: "2-digit",
 			hour12: false,
 		});
+	};
+
+	const getConfidenceBadge = (confidence: number | null | undefined) => {
+		if (confidence == null) return "secondary"; // N/A case
+		if (confidence >= 0.9) return "success";
+		if (confidence >= 0.7) return "warning";
+		return "danger";
+	};
+
+	const getVoiceStatusBadge = (command: VoiceCommand) => {
+		if (command.errorMessage) return "danger";
+		if (command.processed) return "success";
+		return "secondary";
 	};
 
 	// Fetch device control history
@@ -92,6 +117,24 @@ const HistoryPage = () => {
 					success: true,
 				},
 			]);
+		}
+	};
+
+	// Fetch voice commands history
+	const fetchVoiceCommands = async () => {
+		try {
+			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+			const response = await fetch(`${API_BASE_URL}/api/voice-commands`);
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success) {
+					setVoiceCommands(result.data.commands || []);
+				}
+			} else {
+				console.warn("Voice commands API response not ok:", response.status);
+			}
+		} catch (error) {
+			console.error("Failed to fetch voice commands:", error);
 		}
 	};
 
@@ -162,6 +205,9 @@ const HistoryPage = () => {
 				// Fetch device controls
 				await fetchDeviceControls();
 
+				// Fetch voice commands
+				await fetchVoiceCommands();
+
 				setIsLoading(false);
 			} catch (error) {
 				console.error("Failed to fetch history data:", error);
@@ -227,6 +273,51 @@ const HistoryPage = () => {
 		setFilteredDeviceControls(filtered);
 	}, [deviceControls, dateFilter, monthFilter, yearFilter]);
 
+	// Apply filters to voice commands
+	useEffect(() => {
+		let filtered = [...voiceCommands];
+
+		if (dateFilter) {
+			filtered = filtered.filter((item) => {
+				const itemDate = new Date(item.timestamp).toISOString().split("T")[0];
+				return itemDate === dateFilter;
+			});
+		}
+
+		if (monthFilter) {
+			filtered = filtered.filter((item) => {
+				const itemMonth = new Date(item.timestamp).toISOString().slice(0, 7);
+				return itemMonth === monthFilter;
+			});
+		}
+
+		if (yearFilter) {
+			filtered = filtered.filter((item) => {
+				const itemYear = new Date(item.timestamp).getFullYear().toString();
+				return itemYear === yearFilter;
+			});
+		}
+
+		setFilteredVoiceCommands(filtered);
+	}, [voiceCommands, dateFilter, monthFilter, yearFilter]);
+
+	// WebSocket listener for real-time voice command updates
+	useEffect(() => {
+		if (socket) {
+			const handleVoiceCommand = (data: VoiceCommand) => {
+				setVoiceCommands(prev => [data, ...prev.filter(cmd => cmd.id !== data.id)]);
+			};
+
+			socket.on("voice-command", handleVoiceCommand);
+			socket.on("voice-command-history", handleVoiceCommand);
+
+			return () => {
+				socket.off("voice-command", handleVoiceCommand);
+				socket.off("voice-command-history", handleVoiceCommand);
+			};
+		}
+	}, [socket]);
+
 	const exportToCSV = () => {
 		setIsExporting(true);
 
@@ -256,7 +347,7 @@ const HistoryPage = () => {
 				document.body.appendChild(a);
 				a.click();
 				window.URL.revokeObjectURL(url);
-			} else {
+			} else if (activeTab === "controls") {
 				const csvData = filteredDeviceControls.map(item => ({
 					Time: formatDateTime(item.timestamp),
 					DeviceType: item.deviceType,
@@ -277,6 +368,30 @@ const HistoryPage = () => {
 				a.style.display = 'none';
 				a.href = url;
 				a.download = `device-controls-history-${new Date().toISOString().split('T')[0]}.csv`;
+				document.body.appendChild(a);
+				a.click();
+				window.URL.revokeObjectURL(url);
+			} else {
+				// Voice commands export
+				const csvData = filteredVoiceCommands.map(item => ({
+					Time: formatDateTime(item.timestamp),
+					Command: item.command,
+					Confidence: item.confidence != null ? (item.confidence * 100).toFixed(0) + '%' : 'N/A',
+					Processed: item.processed ? 'Yes' : 'No',
+					Response: item.response || 'N/A',
+					Error: item.errorMessage || 'N/A'
+				}));
+
+				const headers = Object.keys(csvData[0] || {}).join(',');
+				const rows = csvData.map(row => Object.values(row).join(','));
+				const csvContent = [headers, ...rows].join('\n');
+
+				const blob = new Blob([csvContent], { type: 'text/csv' });
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.style.display = 'none';
+				a.href = url;
+				a.download = `voice-commands-history-${new Date().toISOString().split('T')[0]}.csv`;
 				document.body.appendChild(a);
 				a.click();
 				window.URL.revokeObjectURL(url);
@@ -320,6 +435,12 @@ const HistoryPage = () => {
 					onClick={() => setActiveTab("controls")}
 				>
 					🎛️ Device Controls
+				</button>
+				<button
+					className={`tab-button ${activeTab === "voice" ? "active" : ""}`}
+					onClick={() => setActiveTab("voice")}
+				>
+					🎤 Voice Commands
 				</button>
 			</div>
 
@@ -453,6 +574,64 @@ const HistoryPage = () => {
 												<span className={`success-badge ${item.success ? 'success' : 'failed'}`}>
 													{item.success ? '✓' : '✗'}
 												</span>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* Voice Commands History Content */}
+			{activeTab === "voice" && (
+				<div className="voice-commands-section">
+					<h3>📋 Voice Commands History</h3>
+					{filteredVoiceCommands.length === 0 ? (
+						<div className="no-data">No voice commands recorded yet.</div>
+					) : (
+						<div className="data-table-wrapper">
+							<table className="data-table">
+								<thead>
+									<tr>
+										<th>Time</th>
+										<th>Command</th>
+										<th>Confidence</th>
+										<th>Status</th>
+										<th>Response</th>
+									</tr>
+								</thead>
+								<tbody>
+									{filteredVoiceCommands.slice(0, 100).map((command) => (
+										<tr key={command.id}>
+											<td className="timeCell">{formatDateTime(command.timestamp)}</td>
+											<td className="commandCell">
+												<code>{command.command}</code>
+											</td>
+											<td>
+												<span className={`status-badge ${getConfidenceBadge(command.confidence)}`}>
+													{command.confidence != null ? (command.confidence * 100).toFixed(0) + '%' : 'N/A'}
+												</span>
+											</td>
+											<td>
+												<span className={`status-badge ${getVoiceStatusBadge(command)}`}>
+													{command.errorMessage
+														? "Error"
+														: command.processed
+															? "Processed"
+															: "Pending"
+													}
+												</span>
+											</td>
+											<td className="responseCell">
+												{command.errorMessage ? (
+													<span style={{ color: '#dc3545' }}>{command.errorMessage}</span>
+												) : command.response ? (
+													<span style={{ color: '#198754' }}>{command.response}</span>
+												) : (
+													<span style={{ color: '#6c757d' }}>-</span>
+												)}
 											</td>
 										</tr>
 									))}

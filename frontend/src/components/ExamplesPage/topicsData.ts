@@ -4,11 +4,11 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/temperature",
 		dataType: "Float",
 		unit: "°C",
-		description: "Nhiệt độ môi trường từ cảm biến DHT11",
+		description: "Environmental temperature from DHT11 sensor",
 		examples: [
-			{ description: "Nhiệt độ bình thường", value: 25.5 },
-			{ description: "Nhiệt độ cao", value: 35.0 },
-			{ description: "Nhiệt độ thấp", value: 15.2 }
+			{ description: "Normal temperature", value: 25.5 },
+			{ description: "High temperature", value: 35.0 },
+			{ description: "Low temperature", value: 15.2 }
 		]
 	},
 	{
@@ -16,11 +16,11 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/humidity",
 		dataType: "Float",
 		unit: "%",
-		description: "Độ ẩm không khí từ cảm biến DHT11",
+		description: "Air humidity from DHT11 sensor",
 		examples: [
-			{ description: "Độ ẩm tối ưu", value: 65.0 },
-			{ description: "Độ ẩm cao", value: 80.0 },
-			{ description: "Độ ẩm thấp", value: 40.0 }
+			{ description: "Optimal humidity", value: 65.0 },
+			{ description: "High humidity", value: 80.0 },
+			{ description: "Low humidity", value: 40.0 }
 		]
 	},
 	{
@@ -28,10 +28,10 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/soil",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Trạng thái độ ẩm đất (0=khô, 1=ẩm)",
+		description: "Soil moisture status (0=dry, 1=wet)",
 		examples: [
-			{ description: "Đất khô", value: 0 },
-			{ description: "Đất ẩm", value: 1 }
+			{ description: "Dry soil", value: 0 },
+			{ description: "Wet soil", value: 1 }
 		]
 	},
 	{
@@ -39,10 +39,10 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/water",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Mức nước trong bể (0=thấp, 1=đủ)",
+		description: "Water level in tank (0=low, 1=sufficient)",
 		examples: [
-			{ description: "Mức nước thấp", value: 0 },
-			{ description: "Mức nước đủ", value: 1 }
+			{ description: "Low water level", value: 0 },
+			{ description: "Sufficient water level", value: 1 }
 		]
 	},
 	{
@@ -50,10 +50,10 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/light",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Cường độ ánh sáng (0=tối, 1=sáng)",
+		description: "Light intensity (0=dark, 1=bright)",
 		examples: [
-			{ description: "Môi trường tối", value: 0 },
-			{ description: "Có ánh sáng", value: 1 }
+			{ description: "Dark environment", value: 0 },
+			{ description: "Bright environment", value: 1 }
 		]
 	},
 	{
@@ -61,10 +61,10 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/rain",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Trạng thái mưa (0=không mưa, 1=có mưa)",
+		description: "Rain status (0=no rain, 1=raining)",
 		examples: [
-			{ description: "Không mưa", value: 0 },
-			{ description: "Có mưa", value: 1 }
+			{ description: "No rain", value: 0 },
+			{ description: "Raining", value: 1 }
 		]
 	},
 	{
@@ -72,11 +72,11 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/height",
 		dataType: "Integer",
 		unit: "cm",
-		description: "Chiều cao cây trồng đo bằng cảm biến siêu âm",
+		description: "Plant height measured by ultrasonic sensor",
 		examples: [
-			{ description: "Cây nhỏ", value: 15 },
-			{ description: "Cây trung bình", value: 25 },
-			{ description: "Cây lớn", value: 35 }
+			{ description: "Small plant", value: 15 },
+			{ description: "Medium plant", value: 25 },
+			{ description: "Large plant", value: 35 }
 		]
 	},
 	{
@@ -84,10 +84,10 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/motion",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Cảm biến chuyển động PIR (0=không có, 1=có chuyển động)",
+		description: "PIR motion sensor (0=no motion, 1=motion detected)",
 		examples: [
-			{ description: "Không có chuyển động", value: 0 },
-			{ description: "Phát hiện chuyển động", value: 1 }
+			{ description: "No motion", value: 0 },
+			{ description: "Motion detected", value: 1 }
 		]
 	}
 ];
@@ -98,10 +98,10 @@ export const controlTopicsData = [
 		topic: "greenhouse/devices/light/control",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Điều khiển đèn LED (ESP32 nhận binary values)",
+		description: "Control LED lights (ESP32 receives binary values)",
 		examples: [
-			{ description: "Bật đèn", value: "1" },
-			{ description: "Tắt đèn", value: "0" }
+			{ description: "Turn on light", value: "1" },
+			{ description: "Turn off light", value: "0" }
 		]
 	},
 	{
@@ -109,10 +109,10 @@ export const controlTopicsData = [
 		topic: "greenhouse/devices/pump/control",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Điều khiển máy bơm nước (ESP32 nhận binary values)",
+		description: "Control water pump (ESP32 receives binary values)",
 		examples: [
-			{ description: "Bật máy bơm", value: "1" },
-			{ description: "Tắt máy bơm", value: "0" }
+			{ description: "Turn on pump", value: "1" },
+			{ description: "Turn off pump", value: "0" }
 		]
 	},
 	{
@@ -120,10 +120,10 @@ export const controlTopicsData = [
 		topic: "greenhouse/devices/window/control",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Điều khiển cửa sổ tự động (ESP32 nhận binary values)",
+		description: "Control automatic window (ESP32 receives binary values)",
 		examples: [
-			{ description: "Mở cửa sổ", value: "1" },
-			{ description: "Đóng cửa sổ", value: "0" }
+			{ description: "Open window", value: "1" },
+			{ description: "Close window", value: "0" }
 		]
 	},
 	{
@@ -131,10 +131,10 @@ export const controlTopicsData = [
 		topic: "greenhouse/devices/door/control",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Điều khiển cửa ra vào (ESP32 nhận binary values)",
+		description: "Control entrance door (ESP32 receives binary values)",
 		examples: [
-			{ description: "Mở cửa", value: "1" },
-			{ description: "Đóng cửa", value: "0" }
+			{ description: "Open door", value: "1" },
+			{ description: "Close door", value: "0" }
 		]
 	},
 	{
@@ -142,10 +142,10 @@ export const controlTopicsData = [
 		topic: "greenhouse/devices/microphone/control",
 		dataType: "Binary",
 		unit: "0/1",
-		description: "Điều khiển microphone cho voice commands (ESP32 nhận binary values)",
+		description: "Control microphone for voice commands (ESP32 receives binary values)",
 		examples: [
-			{ description: "Bật microphone", value: "1" },
-			{ description: "Tắt microphone", value: "0" }
+			{ description: "Turn on microphone", value: "1" },
+			{ description: "Turn off microphone", value: "0" }
 		]
 	}
 ];

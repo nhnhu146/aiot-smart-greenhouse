@@ -1,13 +1,24 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Container, Row, Col, Card, Badge, Alert, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Alert, Form, Button } from 'react-bootstrap';
 import AppLineChart from '@/components/LineChart/LineChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
 import ActivityCard from '@/components/ActivityCard/ActivityCard';
 import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import useWebSocket from '@/hooks/useWebSocket';
 import mockDataService, { type SensorData } from '@/services/mockDataService';
 import './DashboardPage.css';
+
+interface VoiceCommand {
+	id: string;
+	command: string;
+	confidence: number | null;
+	timestamp: string;
+	processed: boolean;
+	response?: string;
+	errorMessage?: string;
+}
 
 const DashboardPage = () => {
 	const { persistentSensorData, sendDeviceControl, isConnected } = useWebSocketContext();
@@ -18,6 +29,12 @@ const DashboardPage = () => {
 	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
 	const [userInteraction, setUserInteraction] = useState(false);
 	const [autoMode, setAutoMode] = useState(false);
+	// Voice command states
+	const [testCommand, setTestCommand] = useState("");
+	const [isSending, setIsSending] = useState(false);
+	const [latestVoiceCommand, setLatestVoiceCommand] = useState<VoiceCommand | null>(null);
+
+	const { socket } = useWebSocket();
 
 	const activities = useMemo(() => [
 		{
@@ -73,6 +90,53 @@ const DashboardPage = () => {
 		console.log(`Auto mode ${newAutoMode ? 'enabled' : 'disabled'}`);
 	}, [autoMode]);
 
+	// Send test voice command
+	const sendTestCommand = useCallback(async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!testCommand.trim()) return;
+
+		try {
+			setIsSending(true);
+			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+			const response = await fetch(`${API_BASE_URL}/api/voice-commands/process`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					command: testCommand.trim(),
+					confidence: 1.0,
+				}),
+			});
+
+			if (response.ok) {
+				setTestCommand("");
+				console.log("Voice command sent successfully");
+			} else {
+				console.error("Failed to send test command:", response.status);
+			}
+		} catch (error) {
+			console.error("Error sending test command:", error);
+		} finally {
+			setIsSending(false);
+		}
+	}, [testCommand]);
+
+	// Format timestamp for display
+	const formatDateTime = (timestamp: string): string => {
+		const date = new Date(timestamp);
+		if (isNaN(date.getTime())) {
+			return timestamp;
+		}
+		return date.toLocaleString("en-GB", {
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			hour12: false,
+		});
+	};
+
 	// Handle real-time persistent sensor data updates
 	useEffect(() => {
 		if (persistentSensorData) {
@@ -96,6 +160,24 @@ const DashboardPage = () => {
 			}
 		}
 	}, [persistentSensorData]);
+
+	// WebSocket listener for real-time voice command updates
+	useEffect(() => {
+		if (socket) {
+			const handleVoiceCommand = (data: VoiceCommand) => {
+				setLatestVoiceCommand(data);
+				console.log("🎤 Received voice command update:", data);
+			};
+
+			socket.on("voice-command", handleVoiceCommand);
+			socket.on("voice-command-history", handleVoiceCommand);
+
+			return () => {
+				socket.off("voice-command", handleVoiceCommand);
+				socket.off("voice-command-history", handleVoiceCommand);
+			};
+		}
+	}, [socket]);
 
 	// Initial data fetch
 	useEffect(() => {
@@ -198,6 +280,84 @@ const DashboardPage = () => {
 			<Row className="mb-4">
 				<Col>
 					<SensorDashboard />
+				</Col>
+			</Row>
+
+			{/* Voice Command Section */}
+			<Row className="mb-4">
+				<Col md={6}>
+					<Card className="voice-test-card">
+						<Card.Header>
+							<h5 className="mb-0">🧪 Test Voice Command</h5>
+						</Card.Header>
+						<Card.Body>
+							<Form onSubmit={sendTestCommand}>
+								<Form.Group className="mb-3">
+									<Form.Label>Voice Command</Form.Label>
+									<Form.Control
+										type="text"
+										placeholder="e.g., turn on light, open door, close window"
+										value={testCommand}
+										onChange={(e) => setTestCommand(e.target.value)}
+										disabled={isSending}
+									/>
+									<Form.Text className="text-muted">
+										Try commands like: "turn on light", "open door", "close window"
+									</Form.Text>
+								</Form.Group>
+								<Button
+									type="submit"
+									variant="primary"
+									disabled={isSending || !testCommand.trim()}
+								>
+									{isSending ? "Sending..." : "Send Command"}
+								</Button>
+							</Form>
+						</Card.Body>
+					</Card>
+				</Col>
+				<Col md={6}>
+					<Card className="latest-voice-card">
+						<Card.Header>
+							<h5 className="mb-0">🎤 Latest Voice Command</h5>
+						</Card.Header>
+						<Card.Body>
+							{latestVoiceCommand ? (
+								<div>
+									<div className="mb-2">
+										<strong>Command:</strong> <code>{latestVoiceCommand.command}</code>
+									</div>
+									<div className="mb-2">
+										<strong>Time:</strong> {formatDateTime(latestVoiceCommand.timestamp)}
+									</div>
+									<div className="mb-2">
+										<strong>Confidence:</strong>{' '}
+										<Badge bg={latestVoiceCommand.confidence && latestVoiceCommand.confidence >= 0.9 ? "success" : latestVoiceCommand.confidence && latestVoiceCommand.confidence >= 0.7 ? "warning" : "secondary"}>
+											{latestVoiceCommand.confidence != null ? (latestVoiceCommand.confidence * 100).toFixed(0) + '%' : 'N/A'}
+										</Badge>
+									</div>
+									<div className="mb-2">
+										<strong>Status:</strong>{' '}
+										<Badge bg={latestVoiceCommand.errorMessage ? "danger" : latestVoiceCommand.processed ? "success" : "secondary"}>
+											{latestVoiceCommand.errorMessage ? "Error" : latestVoiceCommand.processed ? "Processed" : "Pending"}
+										</Badge>
+									</div>
+									{latestVoiceCommand.response && (
+										<div className="mb-2">
+											<strong>Response:</strong> <span className="text-success">{latestVoiceCommand.response}</span>
+										</div>
+									)}
+									{latestVoiceCommand.errorMessage && (
+										<div className="mb-2">
+											<strong>Error:</strong> <span className="text-danger">{latestVoiceCommand.errorMessage}</span>
+										</div>
+									)}
+								</div>
+							) : (
+								<div className="text-muted">No voice commands received yet</div>
+							)}
+						</Card.Body>
+					</Card>
 				</Col>
 			</Row>
 

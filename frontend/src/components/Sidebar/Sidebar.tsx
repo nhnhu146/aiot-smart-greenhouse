@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
 	LayoutDashboard,
-	Mic,
 	History,
 	Settings,
 	Cog,
@@ -15,7 +14,6 @@ import './Sidebar.css';
 
 const navItems = [
 	{ label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-	{ label: 'Voice Received', icon: Mic, path: '/voice-commands' },
 	{ label: 'History', icon: History, path: '/history' },
 	{ label: 'AutoMode', icon: Cog, path: '/automode' },
 	{ label: 'Settings', icon: Settings, path: '/settings' },

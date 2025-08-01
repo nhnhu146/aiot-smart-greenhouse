@@ -74,28 +74,28 @@ const ExamplesPage = () => {
 						<div className="bg-light p-3 rounded mb-4">
 							<h6>Sensor Data APIs</h6>
 							<ul className="mb-0">
-								<li><code>GET /api/sensors/latest</code> - Lấy dữ liệu cảm biến mới nhất</li>
-								<li><code>GET /api/sensors?page=1&limit=20</code> - Lấy danh sách dữ liệu cảm biến</li>
-								<li><code>GET /api/sensors/stats</code> - Thống kê dữ liệu cảm biến</li>
-								<li><code>GET /api/history</code> - Lịch sử dữ liệu sensor, device, alerts</li>
+								<li><code>GET /api/sensors/latest</code> - Get latest sensor data</li>
+								<li><code>GET /api/sensors?page=1&limit=20</code> - Get sensor data list</li>
+								<li><code>GET /api/sensors/stats</code> - Get sensor data statistics</li>
+								<li><code>GET /api/history</code> - Get history data for sensors, devices, alerts</li>
 							</ul>
 						</div>
 
 						<div className="bg-light p-3 rounded mb-4">
 							<h6>Device Control APIs</h6>
 							<ul className="mb-0">
-								<li><code>GET /api/devices/status</code> - Trạng thái tất cả thiết bị</li>
-								<li><code>POST /api/devices/control</code> - Điều khiển thiết bị</li>
-								<li><code>POST /api/devices/schedule</code> - Lên lịch điều khiển</li>
+								<li><code>GET /api/devices/status</code> - Get all device status</li>
+								<li><code>POST /api/devices/control</code> - Control devices</li>
+								<li><code>POST /api/devices/schedule</code> - Schedule device control</li>
 							</ul>
 						</div>
 
 						<div className="bg-light p-3 rounded mb-4">
 							<h6>Dashboard & System APIs</h6>
 							<ul className="mb-0">
-								<li><code>GET /api/dashboard</code> - Dữ liệu tổng quan dashboard</li>
-								<li><code>GET /api/automation</code> - Cấu hình tự động hóa</li>
-								<li><code>PUT /api/automation</code> - Cập nhật cấu hình tự động</li>
+								<li><code>GET /api/dashboard</code> - Get dashboard overview data</li>
+								<li><code>GET /api/automation</code> - Get automation configuration</li>
+								<li><code>PUT /api/automation</code> - Update automation configuration</li>
 							</ul>
 						</div>
 
@@ -131,13 +131,13 @@ const ExamplesPage = () => {
 							<p><strong>URL:</strong> <code>ws://localhost:5000</code></p>
 							<p><strong>Events:</strong></p>
 							<ul>
-								<li><code>sensor-data</code> - Dữ liệu cảm biến real-time</li>
-								<li><code>sensor:data</code> - Dữ liệu cảm biến general channel</li>
-								<li><code>sensor:temperature</code> - Dữ liệu nhiệt độ specific</li>
-								<li><code>sensor:humidity</code> - Dữ liệu độ ẩm specific</li>
-								<li><code>device-status</code> - Trạng thái thiết bị</li>
-								<li><code>alert</code> - Cảnh báo hệ thống</li>
-								<li><code>connection-status</code> - Trạng thái kết nối</li>
+								<li><code>sensor-data</code> - Real-time sensor data</li>
+								<li><code>sensor:data</code> - General sensor data channel</li>
+								<li><code>sensor:temperature</code> - Specific temperature data</li>
+								<li><code>sensor:humidity</code> - Specific humidity data</li>
+								<li><code>device-status</code> - Device status updates</li>
+								<li><code>alert</code> - System alerts</li>
+								<li><code>connection-status</code> - Connection status</li>
 							</ul>
 						</div>
 

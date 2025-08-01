@@ -18,11 +18,11 @@ export const formatVietnamTimestamp = (date?: Date): string => {
 };
 
 /**
- * Get Vietnam timezone formatted string for display
+ * Get Vietnam timezone formatted string for display in English
  */
 export const getVietnamTimeString = (date?: Date): string => {
 	const vietnamTime = date ? new Date(date.getTime() + (7 * 60 * 60 * 1000)) : getVietnamTime();
-	return vietnamTime.toLocaleString('vi-VN', {
+	return vietnamTime.toLocaleString('en-US', {
 		year: 'numeric',
 		month: '2-digit',
 		day: '2-digit',
