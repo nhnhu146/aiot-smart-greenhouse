@@ -102,3 +102,4 @@ temp/
 # pnpm-lock.yaml
 **/package-lock.json
 **/yarn.lock
+/.copilot_temp
