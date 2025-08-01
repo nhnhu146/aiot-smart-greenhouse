@@ -61,7 +61,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 	});
 	const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
 	const [alerts, setAlerts] = useState<Alert[]>([]);
-	const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+	const reconnectTimeoutRef = useRef<number>();
 
 	// Use requestAnimationFrame to prevent UI blocking
 	const updateSensorData = useCallback((data: SensorData) => {

@@ -1,3 +1,7 @@
+// SensorDashboard component - Uses WebSocket data only (as requested)
+// This component shows real-time sensor data from MQTT/WebSocket
+// Chart components use API data for historical/processed data
+
 import React from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import './SensorDashboard.css';
@@ -162,16 +166,8 @@ const SensorDashboard: React.FC = () => {
 
 			console.log('📊 SensorDashboard updated with persistent data');
 		} else if (!isConnected) {
-			// Show N/A when disconnected
-			setSensors({
-				temperature: { value: 'N/A', timestamp: null },
-				humidity: { value: 'N/A', timestamp: null },
-				soil: { value: 'N/A', timestamp: null },
-				water: { value: 'N/A', timestamp: null },
-				light: { value: 'N/A', timestamp: null },
-				rain: { value: 'N/A', timestamp: null },
-				height: { value: 'N/A', timestamp: null }
-			});
+			// Show loading when disconnected but don't clear existing data immediately
+			console.log('📡 WebSocket disconnected - keeping last known data');
 		}
 	}, [persistentSensorData, isConnected]);
 
@@ -193,21 +189,21 @@ const SensorDashboard: React.FC = () => {
 		{
 			key: 'soil',
 			title: 'Soil Moisture',
-			unit: '', // Binary: Wet/Dry
+			unit: '%', // Binary: Wet/Dry
 			icon: '🌱',
 			color: 'success'
 		},
 		{
 			key: 'water',
 			title: 'Water Level',
-			unit: '', // Binary: None/Full
+			unit: '%', // Binary: None/Full
 			icon: '🚰',
 			color: 'primary'
 		},
 		{
 			key: 'light',
 			title: 'Light Level',
-			unit: '', // Binary: Dark/Bright
+			unit: 'lux', // Binary: Dark/Bright
 			icon: '☀️',
 			color: 'warning'
 		},

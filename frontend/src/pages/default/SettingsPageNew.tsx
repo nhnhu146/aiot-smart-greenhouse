@@ -147,7 +147,7 @@ const SettingsPage = () => {
 
 			<Tabs defaultActiveKey="thresholds" className="mb-4">
 				<Tab eventKey="thresholds" title="📊 Sensor Thresholds">
-					<ThresholdSettingsCard 
+					<ThresholdSettingsCard
 						thresholds={thresholds}
 						onThresholdChange={handleThresholdChange}
 					/>

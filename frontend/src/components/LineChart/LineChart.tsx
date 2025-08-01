@@ -1,3 +1,7 @@
+// LineChart component - Uses API data only (as requested)
+// This component should receive historical/processed data from the API
+// WebSocket data is handled by SensorDashboard for real-time updates
+
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -130,7 +134,7 @@ const AppLineChart: React.FC = () => {
 				alignItems: 'center',
 				height: '300px'
 			}}>
-				<div>No data available</div>
+				<div>Loading chart data...</div>
 			</div>
 		);
 	}
