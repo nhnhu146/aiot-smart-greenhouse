@@ -16,25 +16,121 @@ interface VoiceCommand {
 	errorMessage?: string;
 }
 
+interface PaginationInfo {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+	hasNext: boolean;
+	hasPrev: boolean;
+}
+
+interface FilterState {
+	// Date filters
+	dateFrom: string;
+	dateTo: string;
+
+	// Value range filters
+	minTemperature: string;
+	maxTemperature: string;
+	minHumidity: string;
+	maxHumidity: string;
+	minSoilMoisture: string;
+	maxSoilMoisture: string;
+	minWaterLevel: string;
+	maxWaterLevel: string;
+
+	// Specific value filters
+	soilMoisture: string;
+	waterLevel: string;
+	rainStatus: string;
+
+	// Device filters
+	deviceType: string;
+	controlType: string;
+}
+
 const HistoryPage = () => {
 	const [data, setData] = useState<ChartDataPoint[]>([]);
-	const [filteredData, setFilteredData] = useState<ChartDataPoint[]>([]);
 	const [deviceControls, setDeviceControls] = useState<DeviceControl[]>([]);
-	const [filteredDeviceControls, setFilteredDeviceControls] = useState<
-		DeviceControl[]
-	>([]);
 	const [voiceCommands, setVoiceCommands] = useState<VoiceCommand[]>([]);
-	const [filteredVoiceCommands, setFilteredVoiceCommands] = useState<VoiceCommand[]>([]);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState<"sensors" | "controls" | "voice">("sensors");
-	const [dateFilter, setDateFilter] = useState("");
-	const [monthFilter, setMonthFilter] = useState("");
-	const [yearFilter, setYearFilter] = useState("");
 	const [isExporting, setIsExporting] = useState(false);
+
+	// Pagination states
+	const [sensorPagination, setSensorPagination] = useState<PaginationInfo>({
+		page: 1,
+		limit: 20,
+		total: 0,
+		totalPages: 0,
+		hasNext: false,
+		hasPrev: false
+	});
+	const [devicePagination, setDevicePagination] = useState<PaginationInfo>({
+		page: 1,
+		limit: 20,
+		total: 0,
+		totalPages: 0,
+		hasNext: false,
+		hasPrev: false
+	});
+	const [voicePagination, setVoicePagination] = useState<PaginationInfo>({
+		page: 1,
+		limit: 20,
+		total: 0,
+		totalPages: 0,
+		hasNext: false,
+		hasPrev: false
+	});
+
+	// Filter states
+	const [filters, setFilters] = useState<FilterState>({
+		dateFrom: "",
+		dateTo: "",
+		minTemperature: "",
+		maxTemperature: "",
+		minHumidity: "",
+		maxHumidity: "",
+		minSoilMoisture: "",
+		maxSoilMoisture: "",
+		minWaterLevel: "",
+		maxWaterLevel: "",
+		soilMoisture: "",
+		waterLevel: "",
+		rainStatus: "",
+		deviceType: "",
+		controlType: ""
+	});
 
 	// WebSocket integration for real-time updates
 	const { socket } = useWebSocket();
+
+	// Helper function to build query params
+	const buildQueryParams = (pagination: PaginationInfo, filters: FilterState) => {
+		const params = new URLSearchParams();
+		params.append('page', pagination.page.toString());
+		params.append('limit', pagination.limit.toString());
+
+		if (filters.dateFrom) params.append('from', filters.dateFrom);
+		if (filters.dateTo) params.append('to', filters.dateTo);
+		if (filters.minTemperature) params.append('minTemperature', filters.minTemperature);
+		if (filters.maxTemperature) params.append('maxTemperature', filters.maxTemperature);
+		if (filters.minHumidity) params.append('minHumidity', filters.minHumidity);
+		if (filters.maxHumidity) params.append('maxHumidity', filters.maxHumidity);
+		if (filters.minSoilMoisture) params.append('minSoilMoisture', filters.minSoilMoisture);
+		if (filters.maxSoilMoisture) params.append('maxSoilMoisture', filters.maxSoilMoisture);
+		if (filters.minWaterLevel) params.append('minWaterLevel', filters.minWaterLevel);
+		if (filters.maxWaterLevel) params.append('maxWaterLevel', filters.maxWaterLevel);
+		if (filters.soilMoisture) params.append('soilMoisture', filters.soilMoisture);
+		if (filters.waterLevel) params.append('waterLevel', filters.waterLevel);
+		if (filters.rainStatus) params.append('rainStatus', filters.rainStatus);
+		if (filters.deviceType) params.append('deviceType', filters.deviceType);
+		if (filters.controlType) params.append('controlType', filters.controlType);
+
+		return params.toString();
+	};
 
 	// Format timestamp to display date-time consistently
 	const formatDateTime = (timestamp: string): string => {
@@ -71,573 +167,620 @@ const HistoryPage = () => {
 		return "secondary";
 	};
 
-	// Fetch device control history
-	const fetchDeviceControls = async () => {
+	// Fetch sensor data from backend API
+	const fetchSensorData = async (page: number = 1) => {
 		try {
 			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-			const response = await fetch(
-				`${API_BASE_URL}/api/history/device-controls`
-			);
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success) {
-					setDeviceControls(result.data.controls || []);
-				}
+			const queryParams = buildQueryParams({ ...sensorPagination, page }, filters);
+			const response = await fetch(`${API_BASE_URL}/api/sensors?${queryParams}`);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch sensor data");
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				// Transform API response to match our interface
+				const transformedData = result.data.sensors?.map((item: any) => ({
+					time: item.createdAt || item.timestamp,
+					temperature: item.temperature || 0,
+					humidity: item.humidity || 0,
+					soilMoisture: item.soilMoisture || 0,
+					waterLevel: item.waterLevel || 0,
+					plantHeight: item.plantHeight || 0,
+					rainStatus: item.rainStatus || false,
+					lightLevel: item.lightLevel || 0,
+					motionDetected: item.motionDetected || false,
+				})) || [];
+
+				setData(transformedData);
+				setSensorPagination(result.data.pagination);
 			} else {
-				console.warn(
-					"Device controls API response not ok:",
-					response.status,
-					response.statusText
-				);
+				console.error("API returned error:", result.message);
+				throw new Error(result.message);
+			}
+		} catch (error) {
+			console.error("Failed to fetch sensor data:", error);
+			// Fallback to mock data
+			const mockResult = await mockDataService.getChartData();
+			setData(mockResult.data);
+			setIsUsingMockData(true);
+		}
+	};
+
+	// Fetch device control history
+	const fetchDeviceControls = async (page: number = 1) => {
+		try {
+			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+			const queryParams = buildQueryParams({ ...devicePagination, page }, filters);
+			const response = await fetch(`${API_BASE_URL}/api/history/device-controls?${queryParams}`);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch device controls");
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				setDeviceControls(result.data.deviceControls || []);
+				setDevicePagination(result.data.pagination);
 			}
 		} catch (error) {
 			console.error("Failed to fetch device controls:", error);
-			// Mock device controls for development
-			setDeviceControls([
-				{
-					_id: "1",
-					deviceId: "pump-01",
-					deviceType: "pump",
-					action: "on",
-					status: true,
-					controlType: "auto",
-					triggeredBy: "Soil moisture = 0 (dry)",
-					timestamp: new Date(Date.now() - 3600000).toISOString(),
-					success: true,
-				},
-				{
-					_id: "2",
-					deviceId: "light-01",
-					deviceType: "light",
-					action: "off",
-					status: false,
-					controlType: "manual",
-					userId: "user123",
-					timestamp: new Date(Date.now() - 7200000).toISOString(),
-					success: true,
-				},
-			]);
 		}
 	};
 
 	// Fetch voice commands history
-	const fetchVoiceCommands = async () => {
+	const fetchVoiceCommands = async (page: number = 1) => {
 		try {
 			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-			const response = await fetch(`${API_BASE_URL}/api/voice-commands`);
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success) {
-					setVoiceCommands(result.data.commands || []);
-				}
-			} else {
-				console.warn("Voice commands API response not ok:", response.status);
+			const queryParams = buildQueryParams({ ...voicePagination, page }, filters);
+			const response = await fetch(`${API_BASE_URL}/api/voice-commands?${queryParams}`);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch voice commands");
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				setVoiceCommands(result.data.commands || []);
+				setVoicePagination(result.data.pagination);
 			}
 		} catch (error) {
 			console.error("Failed to fetch voice commands:", error);
+			setVoiceCommands([]);
 		}
 	};
 
-	// Fetch sensor data from backend API
-	const fetchSensorData = async () => {
+	// Apply filters and refetch data
+	const applyFilters = () => {
+		setSensorPagination(prev => ({ ...prev, page: 1 }));
+		setDevicePagination(prev => ({ ...prev, page: 1 }));
+		setVoicePagination(prev => ({ ...prev, page: 1 }));
+
+		fetchSensorData(1);
+		fetchDeviceControls(1);
+		fetchVoiceCommands(1);
+	};
+
+	// Clear all filters
+	const clearFilters = () => {
+		setFilters({
+			dateFrom: "",
+			dateTo: "",
+			minTemperature: "",
+			maxTemperature: "",
+			minHumidity: "",
+			maxHumidity: "",
+			minSoilMoisture: "",
+			maxSoilMoisture: "",
+			minWaterLevel: "",
+			maxWaterLevel: "",
+			soilMoisture: "",
+			waterLevel: "",
+			rainStatus: "",
+			deviceType: "",
+			controlType: ""
+		});
+	};
+
+	// Pagination handlers
+	const handleSensorPageChange = (newPage: number) => {
+		setSensorPagination(prev => ({ ...prev, page: newPage }));
+		fetchSensorData(newPage);
+	};
+
+	const handleDevicePageChange = (newPage: number) => {
+		setDevicePagination(prev => ({ ...prev, page: newPage }));
+		fetchDeviceControls(newPage);
+	};
+
+	const handleVoicePageChange = (newPage: number) => {
+		setVoicePagination(prev => ({ ...prev, page: newPage }));
+		fetchVoiceCommands(newPage);
+	};
+
+	// Export to CSV with filters
+	const exportToCSV = async () => {
+		setIsExporting(true);
 		try {
 			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-			const response = await fetch(`${API_BASE_URL}/api/history?limit=100`);
+			let exportUrl = "";
+			let filename = "";
 
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success && result.data?.sensors?.data) {
-					// Convert backend data to ChartDataPoint format
-					const chartData: ChartDataPoint[] = result.data.sensors.data.map((item: any) => ({
-						time: item.createdAt || item.timestamp || new Date().toISOString(),
-						temperature: item.temperature || 0,
-						humidity: item.humidity || 0,
-						soilMoisture: item.soilMoisture || 0,
-						waterLevel: item.waterLevel || 0,
-						lightLevel: item.lightLevel || 0,
-						rainStatus: item.rainStatus || 0,
-						plantHeight: item.plantHeight || 0
-					}));
-
-					setData(chartData);
-					setIsUsingMockData(false);
-					console.log("✅ Using real sensor history data from API", chartData.length, "records");
-				} else {
-					throw new Error("Invalid API response format");
-				}
-			} else {
-				throw new Error(`API responded with status ${response.status}`);
+			switch (activeTab) {
+				case "sensors":
+					exportUrl = `/api/history/export/sensors`;
+					filename = "sensor-data.csv";
+					break;
+				case "controls":
+					exportUrl = `/api/history/export/device-controls`;
+					filename = "device-controls.csv";
+					break;
+				case "voice":
+					exportUrl = `/api/history/export/voice-commands`;
+					filename = "voice-commands.csv";
+					break;
 			}
+
+			// Build query params for export (without pagination)
+			const queryParams = buildQueryParams({ page: 1, limit: 999999, total: 0, totalPages: 0, hasNext: false, hasPrev: false }, filters);
+			const response = await fetch(`${API_BASE_URL}${exportUrl}?${queryParams}`);
+
+			if (!response.ok) {
+				throw new Error("Failed to export data");
+			}
+
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
 		} catch (error) {
-			console.error("Failed to fetch sensor data from API:", error);
-			// Fallback to mock data
-			try {
-				const result = await mockDataService.getChartData();
-				setData(result.data);
-				setIsUsingMockData(true);
-				console.log("🎭 Fallback to mock sensor data (API unavailable)");
-			} catch (mockError) {
-				console.error("Failed to fetch mock data:", mockError);
-				setData([]);
-				setIsUsingMockData(true);
-			}
+			console.error("Failed to export data:", error);
+			alert("Failed to export data. Please try again.");
+		} finally {
+			setIsExporting(false);
 		}
 	};
 
 	// Fetch data when component is mounted
 	useEffect(() => {
 		const fetchData = async () => {
+			setIsLoading(true);
 			try {
-				// Check if mock data is enabled in settings
-				const isUsingMock = mockDataService.isUsingMockData();
-
-				if (isUsingMock) {
-					// Use mock data
-					const result = await mockDataService.getChartData();
-					setData(result.data);
-					setIsUsingMockData(true);
-					console.log("🎭 Using mock history data (enabled in settings)");
-				} else {
-					// Fetch real data from backend API
-					await fetchSensorData();
-				}
-
-				// Fetch device controls
-				await fetchDeviceControls();
-
-				// Fetch voice commands
-				await fetchVoiceCommands();
-
-				setIsLoading(false);
+				await Promise.all([
+					fetchSensorData(),
+					fetchDeviceControls(),
+					fetchVoiceCommands()
+				]);
 			} catch (error) {
 				console.error("Failed to fetch history data:", error);
+			} finally {
 				setIsLoading(false);
 			}
 		};
 		fetchData();
 	}, []);
 
-	// Apply filters to sensor data
-	useEffect(() => {
-		let filtered = [...data];
-
-		if (dateFilter) {
-			filtered = filtered.filter((item) => {
-				const itemDate = new Date(item.time).toISOString().split("T")[0];
-				return itemDate === dateFilter;
-			});
-		}
-
-		if (monthFilter) {
-			filtered = filtered.filter((item) => {
-				const itemMonth = new Date(item.time).toISOString().slice(0, 7);
-				return itemMonth === monthFilter;
-			});
-		}
-
-		if (yearFilter) {
-			filtered = filtered.filter((item) => {
-				const itemYear = new Date(item.time).getFullYear().toString();
-				return itemYear === yearFilter;
-			});
-		}
-
-		setFilteredData(filtered);
-	}, [data, dateFilter, monthFilter, yearFilter]);
-
-	// Apply filters to device controls
-	useEffect(() => {
-		let filtered = [...deviceControls];
-
-		if (dateFilter) {
-			filtered = filtered.filter((item) => {
-				const itemDate = new Date(item.timestamp).toISOString().split("T")[0];
-				return itemDate === dateFilter;
-			});
-		}
-
-		if (monthFilter) {
-			filtered = filtered.filter((item) => {
-				const itemMonth = new Date(item.timestamp).toISOString().slice(0, 7);
-				return itemMonth === monthFilter;
-			});
-		}
-
-		if (yearFilter) {
-			filtered = filtered.filter((item) => {
-				const itemYear = new Date(item.timestamp).getFullYear().toString();
-				return itemYear === yearFilter;
-			});
-		}
-
-		setFilteredDeviceControls(filtered);
-	}, [deviceControls, dateFilter, monthFilter, yearFilter]);
-
-	// Apply filters to voice commands
-	useEffect(() => {
-		let filtered = [...voiceCommands];
-
-		if (dateFilter) {
-			filtered = filtered.filter((item) => {
-				const itemDate = new Date(item.timestamp).toISOString().split("T")[0];
-				return itemDate === dateFilter;
-			});
-		}
-
-		if (monthFilter) {
-			filtered = filtered.filter((item) => {
-				const itemMonth = new Date(item.timestamp).toISOString().slice(0, 7);
-				return itemMonth === monthFilter;
-			});
-		}
-
-		if (yearFilter) {
-			filtered = filtered.filter((item) => {
-				const itemYear = new Date(item.timestamp).getFullYear().toString();
-				return itemYear === yearFilter;
-			});
-		}
-
-		setFilteredVoiceCommands(filtered);
-	}, [voiceCommands, dateFilter, monthFilter, yearFilter]);
-
 	// WebSocket listener for real-time voice command updates
 	useEffect(() => {
 		if (socket) {
-			const handleVoiceCommand = (data: VoiceCommand) => {
-				setVoiceCommands(prev => [data, ...prev.filter(cmd => cmd.id !== data.id)]);
+			const handleVoiceCommand = (command: VoiceCommand) => {
+				setVoiceCommands(prev => [command, ...prev.slice(0, -1)]);
 			};
 
-			socket.on("voice-command", handleVoiceCommand);
-			socket.on("voice-command-history", handleVoiceCommand);
+			socket.on('voice-command', handleVoiceCommand);
 
 			return () => {
-				socket.off("voice-command", handleVoiceCommand);
-				socket.off("voice-command-history", handleVoiceCommand);
+				socket.off('voice-command', handleVoiceCommand);
 			};
 		}
 	}, [socket]);
 
-	const exportToCSV = () => {
-		setIsExporting(true);
-
-		try {
-			if (activeTab === "sensors") {
-				const csvData = filteredData.map(item => ({
-					Time: formatDateTime(item.time),
-					Temperature: item.temperature || 'N/A',
-					Humidity: item.humidity || 'N/A',
-					SoilMoisture: item.soilMoisture || 'N/A',
-					WaterLevel: item.waterLevel || 'N/A',
-					LightLevel: item.lightLevel || 'N/A',
-					RainStatus: item.rainStatus || 'N/A',
-					PlantHeight: item.plantHeight || 'N/A'
-				}));
-
-				const headers = Object.keys(csvData[0] || {}).join(',');
-				const rows = csvData.map(row => Object.values(row).join(','));
-				const csvContent = [headers, ...rows].join('\n');
-
-				const blob = new Blob([csvContent], { type: 'text/csv' });
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.style.display = 'none';
-				a.href = url;
-				a.download = `sensor-history-${new Date().toISOString().split('T')[0]}.csv`;
-				document.body.appendChild(a);
-				a.click();
-				window.URL.revokeObjectURL(url);
-			} else if (activeTab === "controls") {
-				const csvData = filteredDeviceControls.map(item => ({
-					Time: formatDateTime(item.timestamp),
-					DeviceType: item.deviceType,
-					Action: item.action,
-					Status: item.status ? 'ON' : 'OFF',
-					ControlType: item.controlType,
-					TriggeredBy: item.triggeredBy || 'N/A',
-					Success: item.success ? 'Yes' : 'No'
-				}));
-
-				const headers = Object.keys(csvData[0] || {}).join(',');
-				const rows = csvData.map(row => Object.values(row).join(','));
-				const csvContent = [headers, ...rows].join('\n');
-
-				const blob = new Blob([csvContent], { type: 'text/csv' });
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.style.display = 'none';
-				a.href = url;
-				a.download = `device-controls-history-${new Date().toISOString().split('T')[0]}.csv`;
-				document.body.appendChild(a);
-				a.click();
-				window.URL.revokeObjectURL(url);
-			} else {
-				// Voice commands export
-				const csvData = filteredVoiceCommands.map(item => ({
-					Time: formatDateTime(item.timestamp),
-					Command: item.command,
-					Confidence: item.confidence != null ? (item.confidence * 100).toFixed(0) + '%' : 'N/A',
-					Processed: item.processed ? 'Yes' : 'No',
-					Response: item.response || 'N/A',
-					Error: item.errorMessage || 'N/A'
-				}));
-
-				const headers = Object.keys(csvData[0] || {}).join(',');
-				const rows = csvData.map(row => Object.values(row).join(','));
-				const csvContent = [headers, ...rows].join('\n');
-
-				const blob = new Blob([csvContent], { type: 'text/csv' });
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.style.display = 'none';
-				a.href = url;
-				a.download = `voice-commands-history-${new Date().toISOString().split('T')[0]}.csv`;
-				document.body.appendChild(a);
-				a.click();
-				window.URL.revokeObjectURL(url);
-			}
-		} catch (error) {
-			console.error("Export failed:", error);
-		} finally {
-			setIsExporting(false);
-		}
-	};
-
 	if (isLoading) {
 		return (
-			<div className="history-loading">
-				<div>Loading history data...</div>
+			<div className="history-container">
+				<div className="loading-container">
+					<div className="loading-spinner"></div>
+					<p>Loading history data...</p>
+				</div>
 			</div>
 		);
 	}
 
 	return (
 		<div className="history-container">
+			{/* Header */}
 			<div className="history-header">
-				<h1>Data History</h1>
+				<h2>📊 Data History</h2>
 				{isUsingMockData && (
-					<div className="mock-data-badge">
-						🎭 Mock Data Mode
+					<div className="mock-data-notice">
+						⚠️ Using mock data (API unavailable)
 					</div>
 				)}
+				<button
+					className="export-btn"
+					onClick={exportToCSV}
+					disabled={isExporting}
+				>
+					{isExporting ? "Exporting..." : "📁 Export CSV"}
+				</button>
+			</div>
+
+			{/* Filters Section */}
+			<div className="filters-section">
+				<div className="filters-header">
+					<h3>🔍 Filters</h3>
+					<button onClick={clearFilters} className="clear-filters-btn">Clear All</button>
+				</div>
+
+				{/* Date Range Filters */}
+				<div className="filter-group">
+					<label>📅 Date Range:</label>
+					<input
+						type="datetime-local"
+						value={filters.dateFrom}
+						onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+						placeholder="From"
+					/>
+					<input
+						type="datetime-local"
+						value={filters.dateTo}
+						onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+						placeholder="To"
+					/>
+				</div>
+
+				{/* Value Range Filters for Sensors */}
+				{activeTab === "sensors" && (
+					<>
+						<div className="filter-group">
+							<label>🌡️ Temperature Range (°C):</label>
+							<input
+								type="number"
+								value={filters.minTemperature}
+								onChange={(e) => setFilters(prev => ({ ...prev, minTemperature: e.target.value }))}
+								placeholder="Min"
+								step="0.1"
+							/>
+							<input
+								type="number"
+								value={filters.maxTemperature}
+								onChange={(e) => setFilters(prev => ({ ...prev, maxTemperature: e.target.value }))}
+								placeholder="Max"
+								step="0.1"
+							/>
+						</div>
+
+						<div className="filter-group">
+							<label>💧 Humidity Range (%):</label>
+							<input
+								type="number"
+								value={filters.minHumidity}
+								onChange={(e) => setFilters(prev => ({ ...prev, minHumidity: e.target.value }))}
+								placeholder="Min"
+								step="0.1"
+							/>
+							<input
+								type="number"
+								value={filters.maxHumidity}
+								onChange={(e) => setFilters(prev => ({ ...prev, maxHumidity: e.target.value }))}
+								placeholder="Max"
+								step="0.1"
+							/>
+						</div>
+
+						<div className="filter-group">
+							<label>🌱 Soil Moisture:</label>
+							<select
+								value={filters.soilMoisture}
+								onChange={(e) => setFilters(prev => ({ ...prev, soilMoisture: e.target.value }))}
+							>
+								<option value="">All</option>
+								<option value="0">Dry (0)</option>
+								<option value="1">Wet (1)</option>
+							</select>
+						</div>
+
+						<div className="filter-group">
+							<label>🌧️ Rain Status:</label>
+							<select
+								value={filters.rainStatus}
+								onChange={(e) => setFilters(prev => ({ ...prev, rainStatus: e.target.value }))}
+							>
+								<option value="">All</option>
+								<option value="true">Raining</option>
+								<option value="false">Not Raining</option>
+							</select>
+						</div>
+					</>
+				)}
+
+				{/* Device Type Filters for Controls */}
+				{activeTab === "controls" && (
+					<>
+						<div className="filter-group">
+							<label>🎮 Device Type:</label>
+							<select
+								value={filters.deviceType}
+								onChange={(e) => setFilters(prev => ({ ...prev, deviceType: e.target.value }))}
+							>
+								<option value="">All Devices</option>
+								<option value="light">Light</option>
+								<option value="pump">Pump</option>
+								<option value="door">Door</option>
+								<option value="window">Window</option>
+							</select>
+						</div>
+
+						<div className="filter-group">
+							<label>⚙️ Control Type:</label>
+							<select
+								value={filters.controlType}
+								onChange={(e) => setFilters(prev => ({ ...prev, controlType: e.target.value }))}
+							>
+								<option value="">All Types</option>
+								<option value="auto">Automatic</option>
+								<option value="manual">Manual</option>
+							</select>
+						</div>
+					</>
+				)}
+
+				<button onClick={applyFilters} className="apply-filters-btn">Apply Filters</button>
 			</div>
 
 			{/* Tab Navigation */}
 			<div className="tab-navigation">
 				<button
-					className={`tab-button ${activeTab === "sensors" ? "active" : ""}`}
+					className={`tab-btn ${activeTab === "sensors" ? "active" : ""}`}
 					onClick={() => setActiveTab("sensors")}
 				>
-					📊 Sensor Data
+					📊 Sensor Data ({data.length})
 				</button>
 				<button
-					className={`tab-button ${activeTab === "controls" ? "active" : ""}`}
+					className={`tab-btn ${activeTab === "controls" ? "active" : ""}`}
 					onClick={() => setActiveTab("controls")}
 				>
-					🎛️ Device Controls
+					🎮 Device Controls ({deviceControls.length})
 				</button>
 				<button
-					className={`tab-button ${activeTab === "voice" ? "active" : ""}`}
+					className={`tab-btn ${activeTab === "voice" ? "active" : ""}`}
 					onClick={() => setActiveTab("voice")}
 				>
-					🎤 Voice Commands
+					🎤 Voice Commands ({voiceCommands.length})
 				</button>
 			</div>
 
-			{/* Filters */}
-			<div className="filters-section">
-				<div className="filter-group">
-					<label>Filter by Date:</label>
-					<input
-						type="date"
-						value={dateFilter}
-						onChange={(e) => setDateFilter(e.target.value)}
-						className="filter-input"
-					/>
-				</div>
-				<div className="filter-group">
-					<label>Filter by Month:</label>
-					<input
-						type="month"
-						value={monthFilter}
-						onChange={(e) => setMonthFilter(e.target.value)}
-						className="filter-input"
-					/>
-				</div>
-				<div className="filter-group">
-					<label>Filter by Year:</label>
-					<input
-						type="number"
-						value={yearFilter}
-						onChange={(e) => setYearFilter(e.target.value)}
-						placeholder="YYYY"
-						min="2020"
-						max="2030"
-						className="filter-input"
-					/>
-				</div>
-				<button
-					onClick={() => {
-						setDateFilter("");
-						setMonthFilter("");
-						setYearFilter("");
-					}}
-					className="clear-filters-btn"
-				>
-					Clear Filters
-				</button>
-				<button
-					onClick={exportToCSV}
-					disabled={isExporting}
-					className="export-btn"
-				>
-					{isExporting ? "Exporting..." : "Export CSV"}
-				</button>
-			</div>
-
-			{/* Content */}
+			{/* Content based on active tab */}
 			{activeTab === "sensors" ? (
 				<div className="sensor-data-section">
-					<h3>Sensor Data History ({filteredData.length} records)</h3>
-					{filteredData.length === 0 ? (
+					<div className="section-header">
+						<h3>📊 Sensor Data History</h3>
+						<div className="pagination-info">
+							Page {sensorPagination.page} of {sensorPagination.totalPages}
+							({sensorPagination.total} total records)
+						</div>
+					</div>
+
+					{data.length === 0 ? (
 						<div className="no-data">No sensor data available for the selected filters.</div>
 					) : (
-						<div className="data-table-wrapper">
-							<table className="data-table">
-								<thead>
-									<tr>
-										<th>Time</th>
-										<th>Temperature (°C)</th>
-										<th>Humidity (%)</th>
-										<th>Soil Moisture</th>
-										<th>Water Level</th>
-										<th>Light Level</th>
-										<th>Rain Status</th>
-										<th>Plant Height (cm)</th>
-									</tr>
-								</thead>
-								<tbody>
-									{filteredData.slice(0, 100).map((item, index) => (
-										<tr key={index}>
-											<td>{formatDateTime(item.time)}</td>
-											<td>{item.temperature?.toFixed(1) || "N/A"}</td>
-											<td>{item.humidity?.toFixed(1) || "N/A"}</td>
-											<td>{item.soilMoisture !== null ? (item.soilMoisture ? "Wet" : "Dry") : "N/A"}</td>
-											<td>{item.waterLevel !== null ? (item.waterLevel ? "Full" : "Empty") : "N/A"}</td>
-											<td>{item.lightLevel !== null ? (item.lightLevel ? "Bright" : "Dark") : "N/A"}</td>
-											<td>{item.rainStatus !== null ? (item.rainStatus ? "Raining" : "No Rain") : "N/A"}</td>
-											<td>{item.plantHeight?.toFixed(1) || "N/A"}</td>
+						<>
+							<div className="data-table-wrapper">
+								<table className="data-table">
+									<thead>
+										<tr>
+											<th>Time</th>
+											<th>Temperature (°C)</th>
+											<th>Humidity (%)</th>
+											<th>Soil Moisture</th>
+											<th>Water Level</th>
+											<th>Rain Status</th>
+											<th>Plant Height (cm)</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
+									</thead>
+									<tbody>
+										{data.map((item, index) => (
+											<tr key={index}>
+												<td>{formatDateTime(item.time)}</td>
+												<td>{item.temperature?.toFixed(1) || "N/A"}</td>
+												<td>{item.humidity?.toFixed(1) || "N/A"}</td>
+												<td>
+													<span className={`soil-moisture ${item.soilMoisture ? 'wet' : 'dry'}`}>
+														{item.soilMoisture ? 'Wet (1)' : 'Dry (0)'}
+													</span>
+												</td>
+												<td>{item.waterLevel?.toFixed(1) || "N/A"}</td>
+												<td>
+													<span className={`rain-status ${item.rainStatus ? 'raining' : 'clear'}`}>
+														{item.rainStatus ? '🌧️ Raining' : '☀️ Clear'}
+													</span>
+												</td>
+												<td>{item.plantHeight?.toFixed(1) || "N/A"}</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+
+							{/* Pagination Controls */}
+							<div className="pagination-controls">
+								<button
+									onClick={() => handleSensorPageChange(sensorPagination.page - 1)}
+									disabled={!sensorPagination.hasPrev}
+									className="pagination-btn"
+								>
+									Previous
+								</button>
+								<span className="page-info">
+									Page {sensorPagination.page} of {sensorPagination.totalPages}
+								</span>
+								<button
+									onClick={() => handleSensorPageChange(sensorPagination.page + 1)}
+									disabled={!sensorPagination.hasNext}
+									className="pagination-btn"
+								>
+									Next
+								</button>
+							</div>
+						</>
+					)}
+				</div>
+			) : activeTab === "controls" ? (
+				<div className="device-controls-section">
+					<div className="section-header">
+						<h3>🎮 Device Control History</h3>
+						<div className="pagination-info">
+							Page {devicePagination.page} of {devicePagination.totalPages}
+							({devicePagination.total} total records)
 						</div>
+					</div>
+
+					{deviceControls.length === 0 ? (
+						<div className="no-data">No device control data available for the selected filters.</div>
+					) : (
+						<>
+							<div className="data-table-wrapper">
+								<table className="data-table">
+									<thead>
+										<tr>
+											<th>Time</th>
+											<th>Device</th>
+											<th>Action</th>
+											<th>Status</th>
+											<th>Control Type</th>
+											<th>Triggered By</th>
+											<th>Success</th>
+										</tr>
+									</thead>
+									<tbody>
+										{deviceControls.map((item, index) => (
+											<tr key={index}>
+												<td>{formatDateTime(item.timestamp)}</td>
+												<td>{item.deviceType}</td>
+												<td>{item.action}</td>
+												<td>
+													<span className={`status-badge ${item.status ? 'on' : 'off'}`}>
+														{item.status ? 'ON' : 'OFF'}
+													</span>
+												</td>
+												<td>
+													<span className={`control-type ${item.controlType}`}>
+														{item.controlType}
+													</span>
+												</td>
+												<td>{item.triggeredBy || 'N/A'}</td>
+												<td>
+													<span className={`success-badge ${item.success ? 'success' : 'failed'}`}>
+														{item.success ? '✓' : '✗'}
+													</span>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+
+							{/* Pagination Controls */}
+							<div className="pagination-controls">
+								<button
+									onClick={() => handleDevicePageChange(devicePagination.page - 1)}
+									disabled={!devicePagination.hasPrev}
+									className="pagination-btn"
+								>
+									Previous
+								</button>
+								<span className="page-info">
+									Page {devicePagination.page} of {devicePagination.totalPages}
+								</span>
+								<button
+									onClick={() => handleDevicePageChange(devicePagination.page + 1)}
+									disabled={!devicePagination.hasNext}
+									className="pagination-btn"
+								>
+									Next
+								</button>
+							</div>
+						</>
 					)}
 				</div>
 			) : (
-				<div className="device-controls-section">
-					<h3>Device Control History ({filteredDeviceControls.length} records)</h3>
-					{filteredDeviceControls.length === 0 ? (
-						<div className="no-data">No device control data available for the selected filters.</div>
-					) : (
-						<div className="data-table-wrapper">
-							<table className="data-table">
-								<thead>
-									<tr>
-										<th>Time</th>
-										<th>Device</th>
-										<th>Action</th>
-										<th>Status</th>
-										<th>Control Type</th>
-										<th>Triggered By</th>
-										<th>Success</th>
-									</tr>
-								</thead>
-								<tbody>
-									{filteredDeviceControls.slice(0, 100).map((item, index) => (
-										<tr key={index}>
-											<td>{formatDateTime(item.timestamp)}</td>
-											<td>{item.deviceType}</td>
-											<td>{item.action}</td>
-											<td>
-												<span className={`status-badge ${item.status ? 'on' : 'off'}`}>
-													{item.status ? 'ON' : 'OFF'}
-												</span>
-											</td>
-											<td>
-												<span className={`control-type ${item.controlType}`}>
-													{item.controlType}
-												</span>
-											</td>
-											<td>{item.triggeredBy || 'N/A'}</td>
-											<td>
-												<span className={`success-badge ${item.success ? 'success' : 'failed'}`}>
-													{item.success ? '✓' : '✗'}
-												</span>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					)}
-				</div>
-			)}
-
-			{/* Voice Commands History Content */}
-			{activeTab === "voice" && (
 				<div className="voice-commands-section">
-					<h3>📋 Voice Commands History</h3>
-					{filteredVoiceCommands.length === 0 ? (
-						<div className="no-data">No voice commands recorded yet.</div>
-					) : (
-						<div className="data-table-wrapper">
-							<table className="data-table">
-								<thead>
-									<tr>
-										<th>Time</th>
-										<th>Command</th>
-										<th>Confidence</th>
-										<th>Status</th>
-										<th>Response</th>
-									</tr>
-								</thead>
-								<tbody>
-									{filteredVoiceCommands.slice(0, 100).map((command) => (
-										<tr key={command.id}>
-											<td className="timeCell">{formatDateTime(command.timestamp)}</td>
-											<td className="commandCell">
-												<code>{command.command}</code>
-											</td>
-											<td>
-												<span className={`status-badge ${getConfidenceBadge(command.confidence)}`}>
-													{command.confidence != null ? (command.confidence * 100).toFixed(0) + '%' : 'N/A'}
-												</span>
-											</td>
-											<td>
-												<span className={`status-badge ${getVoiceStatusBadge(command)}`}>
-													{command.errorMessage
-														? "Error"
-														: command.processed
-															? "Processed"
-															: "Pending"
-													}
-												</span>
-											</td>
-											<td className="responseCell">
-												{command.errorMessage ? (
-													<span style={{ color: '#dc3545' }}>{command.errorMessage}</span>
-												) : command.response ? (
-													<span style={{ color: '#198754' }}>{command.response}</span>
-												) : (
-													<span style={{ color: '#6c757d' }}>-</span>
-												)}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
+					<div className="section-header">
+						<h3>🎤 Voice Commands History</h3>
+						<div className="pagination-info">
+							Page {voicePagination.page} of {voicePagination.totalPages}
+							({voicePagination.total} total records)
 						</div>
+					</div>
+
+					{voiceCommands.length === 0 ? (
+						<div className="no-data">No voice command data available.</div>
+					) : (
+						<>
+							<div className="data-table-wrapper">
+								<table className="data-table">
+									<thead>
+										<tr>
+											<th>Time</th>
+											<th>Command</th>
+											<th>Confidence</th>
+											<th>Status</th>
+											<th>Response</th>
+										</tr>
+									</thead>
+									<tbody>
+										{voiceCommands.map((command, index) => (
+											<tr key={command.id || index}>
+												<td>{formatDateTime(command.timestamp)}</td>
+												<td>{command.command}</td>
+												<td>
+													{command.confidence !== null ? (
+														<span className={`confidence-badge ${getConfidenceBadge(command.confidence)}`}>
+															{(command.confidence * 100).toFixed(1)}%
+														</span>
+													) : (
+														<span className="confidence-badge secondary">N/A</span>
+													)}
+												</td>
+												<td>
+													<span className={`status-badge ${getVoiceStatusBadge(command)}`}>
+														{command.errorMessage ? 'Error' : command.processed ? 'Processed' : 'Pending'}
+													</span>
+												</td>
+												<td>{command.response || command.errorMessage || 'N/A'}</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+
+							{/* Pagination Controls */}
+							<div className="pagination-controls">
+								<button
+									onClick={() => handleVoicePageChange(voicePagination.page - 1)}
+									disabled={!voicePagination.hasPrev}
+									className="pagination-btn"
+								>
+									Previous
+								</button>
+								<span className="page-info">
+									Page {voicePagination.page} of {voicePagination.totalPages}
+								</span>
+								<button
+									onClick={() => handleVoicePageChange(voicePagination.page + 1)}
+									disabled={!voicePagination.hasNext}
+									className="pagination-btn"
+								>
+									Next
+								</button>
+							</div>
+						</>
 					)}
 				</div>
 			)}

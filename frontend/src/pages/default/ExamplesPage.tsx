@@ -71,52 +71,72 @@ const ExamplesPage = () => {
 				<Tab eventKey="api" title="🌐 REST API">
 					<div className="mt-4">
 						<h5>📊 Backend API Endpoints</h5>
-						<div className="bg-light p-3 rounded mb-4">
-							<h6>Sensor Data APIs</h6>
-							<ul className="mb-0">
-								<li><code>GET /api/sensors/latest</code> - Get latest sensor data</li>
-								<li><code>GET /api/sensors?page=1&limit=20</code> - Get sensor data list</li>
-								<li><code>GET /api/sensors/stats</code> - Get sensor data statistics</li>
-								<li><code>GET /api/history</code> - Get history data for sensors, devices, alerts</li>
+						<div className="bg-light p-3 rounded mb-4 border">
+							<h6 className="text-dark">Sensor Data APIs</h6>
+							<ul className="mb-0 text-dark">
+								<li><code className="bg-white p-1 rounded border">GET /api/sensors/latest</code> - Get latest sensor data</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/sensors?page=1&limit=20&from=2025-01-01&to=2025-12-31</code> - Get paginated sensor data with filters</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/sensors/stats</code> - Get sensor data statistics</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/sensors/export</code> - Export sensor data as CSV</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/history</code> - Get history data for sensors, devices, alerts</li>
 							</ul>
 						</div>
 
-						<div className="bg-light p-3 rounded mb-4">
-							<h6>Device Control APIs</h6>
-							<ul className="mb-0">
-								<li><code>GET /api/devices/status</code> - Get all device status</li>
-								<li><code>POST /api/devices/control</code> - Control devices</li>
-								<li><code>POST /api/devices/schedule</code> - Schedule device control</li>
+						<div className="bg-light p-3 rounded mb-4 border">
+							<h6 className="text-dark">Device Control APIs</h6>
+							<ul className="mb-0 text-dark">
+								<li><code className="bg-white p-1 rounded border">GET /api/devices/status</code> - Get all device status</li>
+								<li><code className="bg-white p-1 rounded border">POST /api/devices/control</code> - Control devices (body: &#123;deviceType, action, duration&#125;)</li>
+								<li><code className="bg-white p-1 rounded border">POST /api/devices/schedule</code> - Schedule device control</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/history/device-controls?page=1&deviceType=pump</code> - Get device control history with filters</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/history/export/device-controls</code> - Export device controls as CSV</li>
 							</ul>
 						</div>
 
-						<div className="bg-light p-3 rounded mb-4">
-							<h6>Dashboard & System APIs</h6>
-							<ul className="mb-0">
-								<li><code>GET /api/dashboard</code> - Get dashboard overview data</li>
-								<li><code>GET /api/automation</code> - Get automation configuration</li>
-								<li><code>PUT /api/automation</code> - Update automation configuration</li>
+						<div className="bg-light p-3 rounded mb-4 border">
+							<h6 className="text-dark">Voice Commands & Advanced APIs</h6>
+							<ul className="mb-0 text-dark">
+								<li><code className="bg-white p-1 rounded border">GET /api/voice-commands?page=1&limit=20</code> - Get voice commands history with pagination</li>
+								<li><code className="bg-white p-1 rounded border">POST /api/voice-commands/process</code> - Process voice command (body: &#123;command, confidence&#125;)</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/history/export/voice-commands</code> - Export voice commands as CSV</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/dashboard</code> - Get dashboard overview data</li>
+								<li><code className="bg-white p-1 rounded border">GET /api/automation</code> - Get automation configuration</li>
+								<li><code className="bg-white p-1 rounded border">PUT /api/automation</code> - Update automation configuration</li>
 							</ul>
 						</div>
 
-						<div className="bg-primary text-white p-3 rounded">
-							<h6>📄 API Response Format</h6>
+						<div className="bg-dark text-white p-3 rounded">
+							<h6 className="text-white">📄 API Response Format with Pagination</h6>
 							<pre className="text-white mb-0">{`{
   "success": true,
   "message": "Data retrieved successfully",
   "data": {
-    "temperature": 25.5,
-    "humidity": 65.0,
-    "soilMoisture": 1,
-    "waterLevel": 0,
-    "lightLevel": 1,
-    "rainStatus": 0,
-    "plantHeight": 25,
-    "motionDetected": 0,
-    "deviceId": "esp32-greenhouse-01",
-    "dataQuality": "partial",
-    "createdAt": "2025-08-02T...",
-    "updatedAt": "2025-08-02T..."
+    "sensors": [
+      {
+        "temperature": 25.5,
+        "humidity": 65.0,
+        "soilMoisture": 1,
+        "waterLevel": 0,
+        "lightLevel": 1,
+        "rainStatus": false,
+        "plantHeight": 25,
+        "motionDetected": false,
+        "createdAt": "2025-08-02T..."
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 500,
+      "totalPages": 25,
+      "hasNext": true,
+      "hasPrev": false
+    },
+    "filters": {
+      "dateRange": {"from": "2025-01-01", "to": "2025-12-31"},
+      "valueRanges": {"temperature": {"min": 20, "max": 30}},
+      "specificValues": {"soilMoisture": 1, "rainStatus": false}
+    }
   },
   "timestamp": "2025-08-02T..."
 }`}</pre>
@@ -127,22 +147,23 @@ const ExamplesPage = () => {
 				<Tab eventKey="websocket" title="⚡ WebSocket">
 					<div className="mt-4">
 						<h5>🔌 WebSocket Connection</h5>
-						<div className="bg-light p-3 rounded mb-4">
-							<p><strong>URL:</strong> <code>ws://localhost:5000</code></p>
-							<p><strong>Events:</strong></p>
-							<ul>
-								<li><code>sensor-data</code> - Real-time sensor data</li>
-								<li><code>sensor:data</code> - General sensor data channel</li>
-								<li><code>sensor:temperature</code> - Specific temperature data</li>
-								<li><code>sensor:humidity</code> - Specific humidity data</li>
-								<li><code>device-status</code> - Device status updates</li>
-								<li><code>alert</code> - System alerts</li>
-								<li><code>connection-status</code> - Connection status</li>
+						<div className="bg-light p-3 rounded mb-4 border">
+							<p className="text-dark"><strong>URL:</strong> <code className="bg-white p-1 rounded border">ws://localhost:5000</code></p>
+							<p className="text-dark"><strong>Events:</strong></p>
+							<ul className="text-dark">
+								<li><code className="bg-white p-1 rounded border">sensor-data</code> - Real-time sensor data</li>
+								<li><code className="bg-white p-1 rounded border">sensor:data</code> - General sensor data channel</li>
+								<li><code className="bg-white p-1 rounded border">sensor:temperature</code> - Specific temperature data</li>
+								<li><code className="bg-white p-1 rounded border">sensor:humidity</code> - Specific humidity data</li>
+								<li><code className="bg-white p-1 rounded border">device-status</code> - Device status updates</li>
+								<li><code className="bg-white p-1 rounded border">alert</code> - System alerts</li>
+								<li><code className="bg-white p-1 rounded border">connection-status</code> - Connection status</li>
+								<li><code className="bg-white p-1 rounded border">voice-command</code> - Voice command updates</li>
 							</ul>
 						</div>
 
 						<div className="bg-success text-white p-3 rounded mb-4">
-							<h6>📡 Sensor Data Event Format</h6>
+							<h6 className="text-white">📡 Sensor Data Event Format</h6>
 							<pre className="text-white mb-0">{`{
   "topic": "greenhouse/sensors/temperature",
   "sensor": "temperature",
@@ -156,8 +177,8 @@ const ExamplesPage = () => {
 }`}</pre>
 						</div>
 
-						<div className="bg-warning text-dark p-3 rounded">
-							<h6>🎮 Device Status Event Format</h6>
+						<div className="bg-warning text-dark p-3 rounded mb-4">
+							<h6 className="text-dark">🎮 Device Status Event Format</h6>
 							<pre className="text-dark mb-0">{`{
   "device": "light",
   "status": {
@@ -167,6 +188,19 @@ const ExamplesPage = () => {
     "isOnline": true
   },
   "timestamp": "2025-08-02T..."
+}`}</pre>
+						</div>
+
+						<div className="bg-info text-white p-3 rounded">
+							<h6 className="text-white">🎤 Voice Command Event Format</h6>
+							<pre className="text-white mb-0">{`{
+  "id": "voice_cmd_123",
+  "command": "turn on the pump",
+  "confidence": 0.95,
+  "timestamp": "2025-08-02T...",
+  "processed": true,
+  "response": "Pump turned on successfully",
+  "errorMessage": null
 }`}</pre>
 						</div>
 					</div>

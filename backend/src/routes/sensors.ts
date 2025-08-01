@@ -10,7 +10,25 @@ const router = Router();
 
 // GET /api/sensors - Lấy dữ liệu cảm biến (đã merge)
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
-	const { page = 1, limit = 20, from, to } = req.query as any;
+	const {
+		page = 1,
+		limit = 50,
+		from,
+		to,
+		minTemperature,
+		maxTemperature,
+		minHumidity,
+		maxHumidity,
+		minSoilMoisture,
+		maxSoilMoisture,
+		minWaterLevel,
+		maxWaterLevel,
+		soilMoisture,
+		waterLevel,
+		rainStatus,
+		sortBy = 'createdAt',
+		sortOrder = 'desc'
+	} = req.query as any;
 
 	const query: any = {};
 
@@ -21,7 +39,41 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 		if (to) query.createdAt.$lte = to;
 	}
 
+	// Value range filters
+	if (minTemperature !== undefined || maxTemperature !== undefined) {
+		query.temperature = {};
+		if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
+		if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
+	}
+
+	if (minHumidity !== undefined || maxHumidity !== undefined) {
+		query.humidity = {};
+		if (minHumidity !== undefined) query.humidity.$gte = minHumidity;
+		if (maxHumidity !== undefined) query.humidity.$lte = maxHumidity;
+	}
+
+	if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
+		query.soilMoisture = {};
+		if (minSoilMoisture !== undefined) query.soilMoisture.$gte = minSoilMoisture;
+		if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = maxSoilMoisture;
+	}
+
+	if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
+		query.waterLevel = {};
+		if (minWaterLevel !== undefined) query.waterLevel.$gte = minWaterLevel;
+		if (maxWaterLevel !== undefined) query.waterLevel.$lte = maxWaterLevel;
+	}
+
+	// Specific value filters
+	if (soilMoisture !== undefined) query.soilMoisture = soilMoisture;
+	if (waterLevel !== undefined) query.waterLevel = waterLevel;
+	if (rainStatus !== undefined) query.rainStatus = rainStatus;
+
 	const skip = (page - 1) * limit;
+
+	// Sort options
+	const sortOptions: any = {};
+	sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
 	// Ensure data is merged before returning
 	const dataMergerService = DataMergerService.getInstance();
@@ -49,7 +101,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 
 	const [data, total] = await Promise.all([
 		SensorData.find(query)
-			.sort({ createdAt: -1 })
+			.sort(sortOptions)
 			.skip(skip)
 			.limit(limit)
 			.lean(),
@@ -68,7 +120,22 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 				totalPages: Math.ceil(total / limit),
 				hasNext: page < Math.ceil(total / limit),
 				hasPrev: page > 1
-			}
+			},
+			filters: {
+				dateRange: from || to ? { from, to } : null,
+				valueRanges: {
+					temperature: minTemperature !== undefined || maxTemperature !== undefined ? { min: minTemperature, max: maxTemperature } : null,
+					humidity: minHumidity !== undefined || maxHumidity !== undefined ? { min: minHumidity, max: maxHumidity } : null,
+					soilMoisture: minSoilMoisture !== undefined || maxSoilMoisture !== undefined ? { min: minSoilMoisture, max: maxSoilMoisture } : null,
+					waterLevel: minWaterLevel !== undefined || maxWaterLevel !== undefined ? { min: minWaterLevel, max: maxWaterLevel } : null
+				},
+				specificValues: {
+					soilMoisture: soilMoisture !== undefined ? soilMoisture : null,
+					waterLevel: waterLevel !== undefined ? waterLevel : null,
+					rainStatus: rainStatus !== undefined ? rainStatus : null
+				}
+			},
+			sort: { by: sortBy, order: sortOrder }
 		},
 		timestamp: formatVietnamTimestamp()
 	};
@@ -221,17 +288,70 @@ router.get('/current', asyncHandler(async (req: Request, res: Response) => {
 
 // GET /api/sensors/export - Export dữ liệu cảm biến (CSV format)
 router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
-	const { from, to, limit = 1000 } = req.query as any;
+	const {
+		from,
+		to,
+		limit = 10000,
+		minTemperature,
+		maxTemperature,
+		minHumidity,
+		maxHumidity,
+		minSoilMoisture,
+		maxSoilMoisture,
+		minWaterLevel,
+		maxWaterLevel,
+		soilMoisture,
+		waterLevel,
+		rainStatus,
+		sortBy = 'createdAt',
+		sortOrder = 'desc'
+	} = req.query as any;
 
 	const query: any = {};
+
+	// Apply same filters as main route
 	if (from || to) {
 		query.createdAt = {};
 		if (from) query.createdAt.$gte = from;
 		if (to) query.createdAt.$lte = to;
 	}
 
+	// Value range filters
+	if (minTemperature !== undefined || maxTemperature !== undefined) {
+		query.temperature = {};
+		if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
+		if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
+	}
+
+	if (minHumidity !== undefined || maxHumidity !== undefined) {
+		query.humidity = {};
+		if (minHumidity !== undefined) query.humidity.$gte = minHumidity;
+		if (maxHumidity !== undefined) query.humidity.$lte = maxHumidity;
+	}
+
+	if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
+		query.soilMoisture = {};
+		if (minSoilMoisture !== undefined) query.soilMoisture.$gte = minSoilMoisture;
+		if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = maxSoilMoisture;
+	}
+
+	if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
+		query.waterLevel = {};
+		if (minWaterLevel !== undefined) query.waterLevel.$gte = minWaterLevel;
+		if (maxWaterLevel !== undefined) query.waterLevel.$lte = maxWaterLevel;
+	}
+
+	// Specific value filters
+	if (soilMoisture !== undefined) query.soilMoisture = soilMoisture;
+	if (waterLevel !== undefined) query.waterLevel = waterLevel;
+	if (rainStatus !== undefined) query.rainStatus = rainStatus;
+
+	// Sort options
+	const sortOptions: any = {};
+	sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
 	const data = await SensorData.find(query)
-		.sort({ createdAt: -1 })
+		.sort(sortOptions)
 		.limit(limit)
 		.lean();
 

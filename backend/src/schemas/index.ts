@@ -55,11 +55,29 @@ export const AlertCreateSchema = z.object({
 
 export const QueryParamsSchema = z.object({
 	page: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1)).optional(),
-	limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(100)).optional(),
+	limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(1000)).optional(),
 	from: z.string().transform(val => new Date(val)).pipe(z.date()).optional(),
 	to: z.string().transform(val => new Date(val)).pipe(z.date()).optional(),
 	deviceType: z.enum(['light', 'pump', 'door', 'window']).optional(),
-	resolved: z.string().transform(val => val === 'true').pipe(z.boolean()).optional()
+	resolved: z.string().transform(val => val === 'true').pipe(z.boolean()).optional(),
+	// Value range filters
+	minTemperature: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	maxTemperature: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	minHumidity: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	maxHumidity: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	minSoilMoisture: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	maxSoilMoisture: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	minWaterLevel: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	maxWaterLevel: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	// Specific value filters
+	soilMoisture: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	waterLevel: z.string().transform(val => parseFloat(val)).pipe(z.number()).optional(),
+	rainStatus: z.string().transform(val => val === 'true').pipe(z.boolean()).optional(),
+	// Control type filter
+	controlType: z.enum(['auto', 'manual']).optional(),
+	// Sort options
+	sortBy: z.enum(['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel']).optional(),
+	sortOrder: z.enum(['asc', 'desc']).optional()
 });
 
 export type SensorDataInput = z.infer<typeof SensorDataSchema>;

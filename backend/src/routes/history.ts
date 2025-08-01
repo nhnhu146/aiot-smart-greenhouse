@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { SensorData, DeviceStatus, DeviceHistory, Alert } from '../models';
+import { SensorData, DeviceStatus, DeviceHistory, Alert, VoiceCommand } from '../models';
 import { validateQuery, asyncHandler, AppError } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
@@ -507,6 +507,159 @@ router.get('/device-controls', validateQuery(QueryParamsSchema), asyncHandler(as
 	};
 
 	res.json(response);
+}));
+
+// GET /api/history/export/sensors - Export sensor data as CSV
+router.get('/export/sensors', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
+	const {
+		from,
+		to,
+		minTemperature,
+		maxTemperature,
+		minHumidity,
+		maxHumidity,
+		minSoilMoisture,
+		maxSoilMoisture,
+		minWaterLevel,
+		maxWaterLevel,
+		soilMoisture,
+		waterLevel,
+		rainStatus,
+		sortBy = 'createdAt',
+		sortOrder = 'desc'
+	} = req.query as any;
+
+	const query: any = {};
+
+	// Filter by date range if provided
+	if (from || to) {
+		query.createdAt = {};
+		if (from) query.createdAt.$gte = new Date(from);
+		if (to) query.createdAt.$lte = new Date(to);
+	}
+
+	// Value range filters
+	if (minTemperature !== undefined || maxTemperature !== undefined) {
+		query.temperature = {};
+		if (minTemperature !== undefined) query.temperature.$gte = parseFloat(minTemperature);
+		if (maxTemperature !== undefined) query.temperature.$lte = parseFloat(maxTemperature);
+	}
+
+	if (minHumidity !== undefined || maxHumidity !== undefined) {
+		query.humidity = {};
+		if (minHumidity !== undefined) query.humidity.$gte = parseFloat(minHumidity);
+		if (maxHumidity !== undefined) query.humidity.$lte = parseFloat(maxHumidity);
+	}
+
+	if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
+		query.soilMoisture = {};
+		if (minSoilMoisture !== undefined) query.soilMoisture.$gte = parseFloat(minSoilMoisture);
+		if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = parseFloat(maxSoilMoisture);
+	}
+
+	if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
+		query.waterLevel = {};
+		if (minWaterLevel !== undefined) query.waterLevel.$gte = parseFloat(minWaterLevel);
+		if (maxWaterLevel !== undefined) query.waterLevel.$lte = parseFloat(maxWaterLevel);
+	}
+
+	// Specific value filters
+	if (soilMoisture !== undefined) query.soilMoisture = parseFloat(soilMoisture);
+	if (waterLevel !== undefined) query.waterLevel = parseFloat(waterLevel);
+	if (rainStatus !== undefined) query.rainStatus = rainStatus === 'true';
+
+	// Sort options
+	const sortOptions: any = {};
+	sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+	const data = await SensorData.find(query)
+		.sort(sortOptions)
+		.lean();
+
+	// Convert to CSV
+	const csvHeader = 'Timestamp,Temperature,Humidity,Soil Moisture,Water Level,Rain Status,Plant Height\n';
+	const csvRows = data.map((item: any) => {
+		const timestamp = new Date(item.createdAt || item.timestamp).toISOString();
+		return `${timestamp},${item.temperature || 0},${item.humidity || 0},${item.soilMoisture || 0},${item.waterLevel || 0},${item.rainStatus || false},${item.plantHeight || 0}`;
+	}).join('\n');
+
+	const csv = csvHeader + csvRows;
+
+	res.setHeader('Content-Type', 'text/csv');
+	res.setHeader('Content-Disposition', 'attachment; filename="sensor-data.csv"');
+	res.send(csv);
+}));
+
+// GET /api/history/export/device-controls - Export device controls as CSV
+router.get('/export/device-controls', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
+	const { from, to, deviceType, controlType } = req.query as any;
+
+	const query: any = {};
+
+	// Filter by date range if provided
+	if (from || to) {
+		query.timestamp = {};
+		if (from) query.timestamp.$gte = new Date(from);
+		if (to) query.timestamp.$lte = new Date(to);
+	}
+
+	// Filter by device type
+	if (deviceType) {
+		query.deviceType = deviceType;
+	}
+
+	// Filter by control type (auto/manual)
+	if (controlType) {
+		query.controlType = controlType;
+	}
+
+	const data = await DeviceHistory.find(query)
+		.sort({ timestamp: -1 })
+		.lean();
+
+	// Convert to CSV
+	const csvHeader = 'Timestamp,Device ID,Device Type,Action,Status,Control Type,Triggered By,User ID,Success\n';
+	const csvRows = data.map((item: any) => {
+		const timestamp = new Date(item.timestamp || item.createdAt).toISOString();
+		return `${timestamp},"${item.deviceId || ''}","${item.deviceType}","${item.action}",${item.status},"${item.controlType || ''}","${item.triggeredBy || ''}","${item.userId || ''}",${item.success}`;
+	}).join('\n');
+
+	const csv = csvHeader + csvRows;
+
+	res.setHeader('Content-Type', 'text/csv');
+	res.setHeader('Content-Disposition', 'attachment; filename="device-controls.csv"');
+	res.send(csv);
+}));
+
+// GET /api/history/export/voice-commands - Export voice commands as CSV
+router.get('/export/voice-commands', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
+	const { from, to } = req.query as any;
+
+	const query: any = {};
+
+	// Filter by date range if provided
+	if (from || to) {
+		query.timestamp = {};
+		if (from) query.timestamp.$gte = new Date(from);
+		if (to) query.timestamp.$lte = new Date(to);
+	}
+
+	const data = await VoiceCommand.find(query)
+		.sort({ timestamp: -1 })
+		.lean();
+
+	// Convert to CSV
+	const csvHeader = 'Timestamp,Command,Confidence,Processed,Response,Error Message\n';
+	const csvRows = data.map((item: any) => {
+		const timestamp = new Date(item.timestamp || item.createdAt).toISOString();
+		return `${timestamp},"${item.command}",${item.confidence || 'N/A'},${item.processed},"${item.response || ''}","${item.errorMessage || ''}"`;
+	}).join('\n');
+
+	const csv = csvHeader + csvRows;
+
+	res.setHeader('Content-Type', 'text/csv');
+	res.setHeader('Content-Disposition', 'attachment; filename="voice-commands.csv"');
+	res.send(csv);
 }));
 
 export default router;

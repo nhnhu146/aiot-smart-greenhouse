@@ -239,7 +239,7 @@ const AppLineChart: React.FC = () => {
 	};
 
 	return (
-		<div style={{ width: '100%', height: '400px' }}>
+		<div style={{ width: '100%', height: '400px', minWidth: '700px', overflow: 'auto' }}>
 			<Line data={data} options={options} />
 		</div>
 	);
