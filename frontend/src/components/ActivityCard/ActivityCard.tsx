@@ -23,6 +23,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ title, icon, switchState, o
 		if (onSwitchChange) {
 			// Call callback to update actual state with the new state
 			onSwitchChange(newState);
+			console.log(`[ActivityCard] Clicked: ${title}, current: ${localActive}, new: ${newState}`);
 		}
 	};
 

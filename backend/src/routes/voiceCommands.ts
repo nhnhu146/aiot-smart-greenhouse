@@ -66,4 +66,45 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 	}
 }));
 
+/**
+ * @route POST /api/voice-commands/process - Process a voice command (for testing)
+ * @desc Manually process a voice command for testing purposes
+ * @access Public
+ */
+router.post('/process', asyncHandler(async (req: Request, res: Response) => {
+	try {
+		const { command, confidence = 1.0 } = req.body;
+
+		if (!command) {
+			const response: APIResponse = {
+				success: false,
+				message: 'Command is required',
+				timestamp: new Date().toISOString()
+			};
+			res.status(400).json(response);
+			return;
+		}
+
+		// Process the command asynchronously
+		voiceCommandService.processVoiceCommand(command, confidence);
+
+		const response: APIResponse = {
+			success: true,
+			message: 'Voice command queued for processing',
+			data: { command, confidence },
+			timestamp: new Date().toISOString()
+		};
+
+		res.json(response);
+	} catch (error) {
+		console.error('[VOICE-COMMANDS-PROCESS] Error:', error);
+		const response: APIResponse = {
+			success: false,
+			message: 'Failed to process voice command',
+			timestamp: new Date().toISOString()
+		};
+		res.status(500).json(response);
+	}
+}));
+
 export default router;

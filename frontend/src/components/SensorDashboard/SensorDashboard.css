@@ -48,34 +48,6 @@
 	box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
 	border: none;
 	outline: none;
-	transition: all 0.3s ease;
-}
-
-.sensor-card.highlight-effect {
-	transform: scale(1.05);
-	box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
-	border: 2px solid rgba(40, 167, 69, 0.6);
-}
-
-.sensor-card.highlight-effect {
-	animation: sensorHighlight 1s ease-in-out;
-}
-
-@keyframes sensorHighlight {
-	0% {
-		box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-	}
-
-	50% {
-		box-shadow: 0 0 25px rgba(40, 167, 69, 0.6);
-		transform: scale(1.05);
-	}
-
-	100% {
-		box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-		transform: scale(1);
-	}
-}
 }
 
 .sensor-card-body {

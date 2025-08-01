@@ -44,8 +44,18 @@ class MockDataService {
 
 		// Only enable mock data if explicitly saved as true
 		if (savedPreference === 'true') {
+			console.log('📊 Mock data mode enabled for testing');
 			this.useMockData = true;
+		} else {
+			console.log('📊 Real data mode - frontend will display backend-merged data');
 		}
+
+		// Debug log
+		console.log('🔧 MockDataService initialized:', {
+			savedPreference,
+			useMockData: this.useMockData,
+			note: 'Frontend displays data only - no merge logic'
+		});
 	}
 
 	// Mock sensor data with realistic greenhouse values
@@ -92,6 +102,7 @@ class MockDataService {
 	// Configuration methods
 	public setUseMockData(enabled: boolean): void {
 		this.useMockData = enabled;
+		console.log(`🔧 Mock data ${enabled ? 'ENABLED' : 'DISABLED'} by user`);
 
 		// Save to localStorage
 		if (typeof localStorage !== 'undefined') {
@@ -212,14 +223,17 @@ class MockDataService {
 	// Update mock data for testing scenarios
 	public updateMockSensorData(data: Partial<SensorData>): void {
 		this.mockSensorData = { ...this.mockSensorData, ...data };
+		console.log('🔧 Mock sensor data updated:', this.mockSensorData);
 	}
 
 	// Start mock data real-time updates
 	public startMockDataUpdates(intervalMs: number = 5000): () => void {
 		if (!this.useMockData) {
+			console.log('🔧 Not starting mock updates - using real data');
 			return () => { };
 		}
 
+		console.log(`🔧 Starting mock data updates every ${intervalMs}ms`);
 
 		const interval = setInterval(() => {
 			// Update mock data with small variations
@@ -242,6 +256,7 @@ class MockDataService {
 		// Return cleanup function
 		return () => {
 			clearInterval(interval);
+			console.log('🔧 Mock data updates stopped');
 		};
 	}
 }
@@ -252,6 +267,7 @@ const mockDataService = new MockDataService();
 // Expose to window for browser console debugging
 if (typeof window !== 'undefined') {
 	(window as any).mockDataService = mockDataService;
+	console.log('MockDataService available at window.mockDataService');
 }
 
 export default mockDataService;

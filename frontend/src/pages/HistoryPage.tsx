@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Container, Card, Button, Alert, Tab, Tabs, Badge, Spinner, Form, Row, Col } from "react-bootstrap";
-import {
+import mockDataService, {
 	type ChartDataPoint,
 	type DeviceControl,
 } from "@/services/mockDataService";
@@ -25,7 +25,6 @@ interface PaginationInfo {
 	hasPrev: boolean;
 }
 
-
 interface FilterState {
 	// Date filters
 	dateFrom: string;
@@ -49,9 +48,6 @@ interface FilterState {
 	// Device filters
 	deviceType: string;
 	controlType: string;
-
-	// Pagination option
-	pageSize: string;
 }
 
 const HistoryPage = () => {
@@ -106,8 +102,7 @@ const HistoryPage = () => {
 		waterLevel: "",
 		rainStatus: "",
 		deviceType: "",
-		controlType: "",
-		pageSize: "20"
+		controlType: ""
 	});
 
 	// WebSocket integration for real-time updates
@@ -211,9 +206,10 @@ const HistoryPage = () => {
 			}
 		} catch (error) {
 			console.error("Failed to fetch sensor data:", error);
-			// Set empty data on error
-			setData([]);
-			setIsUsingMockData(false);
+			// Fallback to mock data
+			const mockResult = await mockDataService.getChartData();
+			setData(mockResult.data);
+			setIsUsingMockData(true);
 		}
 	};
 
@@ -288,8 +284,7 @@ const HistoryPage = () => {
 			waterLevel: "",
 			rainStatus: "",
 			deviceType: "",
-			controlType: "",
-			pageSize: "20"
+			controlType: ""
 		});
 	};
 
@@ -536,28 +531,6 @@ const HistoryPage = () => {
 							</div>
 						)}
 
-						{/* Pagination Options */}
-						<div className="filter-section">
-							<div className="filter-section-title">📄 Pagination</div>
-							<Row className="g-2">
-								<Col md={6}>
-									<Form.Group>
-										<Form.Label>Items per page:</Form.Label>
-										<Form.Select
-											value={filters.pageSize}
-											onChange={(e) => setFilters(prev => ({ ...prev, pageSize: e.target.value }))}
-											size="sm"
-										>
-											<option value="10">10</option>
-											<option value="20">20</option>
-											<option value="50">50</option>
-											<option value="100">100</option>
-										</Form.Select>
-									</Form.Group>
-								</Col>
-							</Row>
-						</div>
-
 						{/* Filter Actions */}
 						<div className="filter-actions">
 							<Button variant="outline-secondary" size="sm" onClick={clearFilters}>
@@ -592,7 +565,7 @@ const HistoryPage = () => {
 				onSelect={(k) => setActiveTab(k as "sensors" | "controls" | "voice")}
 				className="mb-4"
 			>
-				<Tab eventKey="sensors" title={`📊 Sensor Data (${sensorPagination.total})`}>
+				<Tab eventKey="sensors" title={`📊 Sensor Data (${data.length})`}>
 					<Card>
 						<Card.Header>
 							<div className="d-flex justify-content-between align-items-center">
@@ -673,7 +646,7 @@ const HistoryPage = () => {
 					</Card>
 				</Tab>
 
-				<Tab eventKey="controls" title={`🎮 Device Controls (${devicePagination.total})`}>
+				<Tab eventKey="controls" title={`🎮 Device Controls (${deviceControls.length})`}>
 					<Card>
 						<Card.Header>
 							<div className="d-flex justify-content-between align-items-center">
@@ -758,7 +731,7 @@ const HistoryPage = () => {
 					</Card>
 				</Tab>
 
-				<Tab eventKey="voice" title={`🎤 Voice Commands (${voicePagination.total})`}>
+				<Tab eventKey="voice" title={`🎤 Voice Commands (${voiceCommands.length})`}>
 					<Card>
 						<Card.Header>
 							<div className="d-flex justify-content-between align-items-center">

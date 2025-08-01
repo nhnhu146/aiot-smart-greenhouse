@@ -18,6 +18,8 @@ export const getWebSocketUrl = (): string => {
 
 			// If we're accessing via localhost but API URL is set to a different host
 			if (hostname === 'localhost' && !serverUrl.includes('localhost')) {
+				console.warn('⚠️ Development mode: Frontend on localhost but API URL is not localhost');
+				console.info('💡 Falling back to localhost:5000 for WebSocket connection');
 				serverUrl = 'http://localhost:5000';
 			}
 		}
@@ -41,8 +43,16 @@ export const getWebSocketConfig = () => ({
 	pingInterval: 25000
 });
 
-export const logConnectionInfo = () => {
+export const logConnectionInfo = (serverUrl: string) => {
+	console.log('🔌 WebSocket Configuration:');
+	console.log(`   Server URL: ${serverUrl}`);
+	console.log(`   Environment: ${import.meta.env.MODE || 'development'}`);
+	console.log(`   Transport: WebSocket + Polling fallback`);
 
 	if (import.meta.env.MODE === 'development') {
+		console.log('💡 Development Tips:');
+		console.log('   - Make sure backend server is running: npm run dev (in backend folder)');
+		console.log('   - Backend should be accessible at: http://localhost:5000');
+		console.log('   - Check backend logs for WebSocket initialization');
 	}
 };

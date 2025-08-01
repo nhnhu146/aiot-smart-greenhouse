@@ -175,8 +175,10 @@ const SensorDashboard: React.FC = () => {
 				setLastUpdateTime(formatTimeEN(latestTimestamp));
 			}
 
+			console.log('📊 SensorDashboard updated with persistent data');
 		} else if (!isConnected) {
 			// Show loading when disconnected but don't clear existing data immediately
+			console.log('📡 WebSocket disconnected - keeping last known data');
 		}
 	}, [persistentSensorData, isConnected]);
 
