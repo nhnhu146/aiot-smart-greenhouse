@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { Container, Card, Button, Alert, Tab, Tabs, Badge, Spinner, Form, Row, Col } from "react-bootstrap";
+import { Container, Button, Alert, Tab, Tabs, Spinner, Form, Row, Col } from "react-bootstrap";
 import mockDataService, {
 	type ChartDataPoint,
 	type DeviceControl,
 } from "@/services/mockDataService";
 import useWebSocket from "@/hooks/useWebSocket";
+import { FilterState, PaginationInfo } from "@/types/history";
+import SensorDataTable from "@/components/History/SensorDataTable";
+import DeviceControlTable from "@/components/History/DeviceControlTable";
+import VoiceCommandTable from "@/components/History/VoiceCommandTable";
+import TabContent from "@/components/History/TabContent";
 import './HistoryPage.css';
 
 interface VoiceCommand {
@@ -14,43 +19,6 @@ interface VoiceCommand {
 	timestamp: string;
 	processed: boolean;
 	errorMessage?: string;
-}
-
-interface PaginationInfo {
-	page: number;
-	limit: number;
-	total: number;
-	totalPages: number;
-	hasNext: boolean;
-	hasPrev: boolean;
-}
-
-interface FilterState {
-	// Date filters
-	dateFrom: string;
-	dateTo: string;
-
-	// Value range filters
-	minTemperature: string;
-	maxTemperature: string;
-	minHumidity: string;
-	maxHumidity: string;
-	minSoilMoisture: string;
-	maxSoilMoisture: string;
-	minWaterLevel: string;
-	maxWaterLevel: string;
-
-	// Specific value filters
-	soilMoisture: string;
-	waterLevel: string;
-	rainStatus: string;
-
-	// Device filters
-	deviceType: string;
-	controlType: string;
-
-	// Pagination options
-	pageSize: string;
 }
 
 const HistoryPage = () => {
@@ -150,15 +118,6 @@ const HistoryPage = () => {
 		}
 	};
 
-	// Get sort icon for table headers
-	const getSortIcon = (field: string, tabType: string) => {
-		const sortState = tabType === 'sensors' ? sensorSort :
-			tabType === 'devices' ? deviceSort : voiceSort;
-
-		if (sortState.field !== field) return ' ↕️';
-		return sortState.direction === 'asc' ? ' ⬆️' : ' ⬇️';
-	};
-
 	// Helper function to build query params
 	const buildQueryParams = (pagination: PaginationInfo, filters: FilterState, sortField?: string, sortDirection?: string) => {
 		const params = new URLSearchParams();
@@ -187,42 +146,6 @@ const HistoryPage = () => {
 
 		return params.toString();
 	};
-
-	// Format timestamp to display date-time consistently
-	const formatDateTime = (timestamp: string): string => {
-		const date = new Date(timestamp);
-
-		// Check if it's a valid date
-		if (isNaN(date.getTime())) {
-			// If it's already a formatted string, return as is
-			return timestamp;
-		}
-
-		// Format as dd/mm/yyyy hh:mm:ss
-		return date.toLocaleString("en-GB", {
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			hour12: false,
-		});
-	};
-
-	const getConfidenceBadge = (confidence: number | null | undefined) => {
-		if (confidence == null) return "secondary"; // N/A case
-		if (confidence >= 0.9) return "success";
-		if (confidence >= 0.7) return "warning";
-		return "danger";
-	};
-
-	const getVoiceStatusBadge = (command: VoiceCommand) => {
-		if (command.errorMessage) return "danger";
-		if (command.processed) return "success";
-		return "secondary";
-	};
-
 
 	// Fetch data counts for navigation tabs
 	const fetchDataCounts = async () => {
@@ -756,290 +679,54 @@ const HistoryPage = () => {
 				className="mb-4"
 			>
 				<Tab eventKey="sensors" title={`📊 Sensor Data (${dataCounts.sensors})`}>
-					<Card>
-						<Card.Header>
-							<div className="d-flex justify-content-between align-items-center">
-								<h5 className="mb-0">📊 Sensor Data History</h5>
-								<small className="text-muted">
-									Page {sensorPagination.page} of {sensorPagination.totalPages}
-									({sensorPagination.total} total records)
-								</small>
-							</div>
-						</Card.Header>
-						<Card.Body>
-							{data.length === 0 ? (
-								<div className="text-center py-4 text-muted">
-									<p>No sensor data available for the selected filters.</p>
-								</div>
-							) : (
-								<>
-									<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-										<table className="table table-striped table-hover">
-											<thead className="table-light sticky-top">
-												<tr>
-													<th className="sortable-header" onClick={() => handleSort('time', 'sensors')}>
-														Time{getSortIcon('time', 'sensors')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('temperature', 'sensors')}>
-														Temperature (°C){getSortIcon('temperature', 'sensors')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('humidity', 'sensors')}>
-														Humidity (%){getSortIcon('humidity', 'sensors')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('soilMoisture', 'sensors')}>
-														Soil Moisture{getSortIcon('soilMoisture', 'sensors')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('waterLevel', 'sensors')}>
-														Water Level{getSortIcon('waterLevel', 'sensors')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('rainStatus', 'sensors')}>
-														Rain Status{getSortIcon('rainStatus', 'sensors')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('plantHeight', 'sensors')}>
-														Plant Height (cm){getSortIcon('plantHeight', 'sensors')}
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{data.map((item, index) => (
-													<tr key={index}>
-														<td className="text-nowrap">{formatDateTime(item.time)}</td>
-														<td>{item.temperature?.toFixed(1) || "N/A"}</td>
-														<td>{item.humidity?.toFixed(1) || "N/A"}</td>
-														<td>
-															<Badge bg={item.soilMoisture ? 'success' : 'danger'}>
-																{item.soilMoisture ? 'Wet (1)' : 'Dry (0)'}
-															</Badge>
-														</td>
-														<td>{item.waterLevel?.toFixed(1) || "N/A"}</td>
-														<td>
-															<Badge bg={item.rainStatus ? 'primary' : 'warning'}>
-																{item.rainStatus ? '🌧️ Raining' : '☀️ Clear'}
-															</Badge>
-														</td>
-														<td>{item.plantHeight?.toFixed(1) || "N/A"}</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-
-									{/* Pagination */}
-									<div className="d-flex justify-content-between align-items-center mt-3">
-										<Button
-											variant="outline-primary"
-											onClick={() => handleSensorPageChange(sensorPagination.page - 1)}
-											disabled={!sensorPagination.hasPrev}
-										>
-											Previous
-										</Button>
-										<span className="text-muted">
-											Page {sensorPagination.page} of {sensorPagination.totalPages}
-										</span>
-										<Button
-											variant="outline-primary"
-											onClick={() => handleSensorPageChange(sensorPagination.page + 1)}
-											disabled={!sensorPagination.hasNext}
-										>
-											Next
-										</Button>
-									</div>
-								</>
-							)}
-						</Card.Body>
-					</Card>
+					<TabContent
+						title="Sensor Data History"
+						icon="📊"
+						pagination={sensorPagination}
+						onPageChange={handleSensorPageChange}
+						isEmpty={data.length === 0}
+						emptyMessage="No sensor data available for the selected filters."
+					>
+						<SensorDataTable
+							data={data}
+							sortState={{ field: sensorSort.field, direction: sensorSort.direction as 'asc' | 'desc', tab: 'sensors' }}
+							onSort={handleSort}
+						/>
+					</TabContent>
 				</Tab>
 
 				<Tab eventKey="controls" title={`🎮 Device Controls (${dataCounts.devices})`}>
-					<Card>
-						<Card.Header>
-							<div className="d-flex justify-content-between align-items-center">
-								<h5 className="mb-0">🎮 Device Control History</h5>
-								<small className="text-muted">
-									Page {devicePagination.page} of {devicePagination.totalPages}
-									({devicePagination.total} total records)
-								</small>
-							</div>
-						</Card.Header>
-						<Card.Body>
-							{deviceControls.length === 0 ? (
-								<div className="text-center py-4 text-muted">
-									<p>No device control data available for the selected filters.</p>
-								</div>
-							) : (
-								<>
-									<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-										<table className="table table-striped table-hover">
-											<thead className="table-light sticky-top">
-												<tr>
-													<th className="sortable-header" onClick={() => handleSort('timestamp', 'devices')}>
-														Time{getSortIcon('timestamp', 'devices')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('deviceType', 'devices')}>
-														Device{getSortIcon('deviceType', 'devices')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('action', 'devices')}>
-														Action{getSortIcon('action', 'devices')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('status', 'devices')}>
-														Status{getSortIcon('status', 'devices')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('controlType', 'devices')}>
-														Control Type{getSortIcon('controlType', 'devices')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('userId', 'devices')}>
-														Triggered By{getSortIcon('userId', 'devices')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('success', 'devices')}>
-														Success{getSortIcon('success', 'devices')}
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{deviceControls.map((item, index) => (
-													<tr key={index}>
-														<td className="text-nowrap">{formatDateTime(item.timestamp)}</td>
-														<td>{item.deviceType}</td>
-														<td>{item.action}</td>
-														<td>
-															<Badge bg={item.status ? 'success' : 'secondary'}>
-																{item.status ? 'ON' : 'OFF'}
-															</Badge>
-														</td>
-														<td>
-															<Badge bg={item.controlType === 'auto' ? 'info' : 'warning'}>
-																{item.controlType}
-															</Badge>
-														</td>
-														<td>{item.triggeredBy || 'N/A'}</td>
-														<td>
-															<Badge bg={item.success ? 'success' : 'danger'}>
-																{item.success ? '✓' : '✗'}
-															</Badge>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-
-									{/* Pagination */}
-									<div className="d-flex justify-content-between align-items-center mt-3">
-										<Button
-											variant="outline-primary"
-											onClick={() => handleDevicePageChange(devicePagination.page - 1)}
-											disabled={!devicePagination.hasPrev}
-										>
-											Previous
-										</Button>
-										<span className="text-muted">
-											Page {devicePagination.page} of {devicePagination.totalPages}
-										</span>
-										<Button
-											variant="outline-primary"
-											onClick={() => handleDevicePageChange(devicePagination.page + 1)}
-											disabled={!devicePagination.hasNext}
-										>
-											Next
-										</Button>
-									</div>
-								</>
-							)}
-						</Card.Body>
-					</Card>
+					<TabContent
+						title="Device Control History"
+						icon="🎮"
+						pagination={devicePagination}
+						onPageChange={handleDevicePageChange}
+						isEmpty={deviceControls.length === 0}
+						emptyMessage="No device control data available for the selected filters."
+					>
+						<DeviceControlTable
+							data={deviceControls}
+							sortState={{ field: deviceSort.field, direction: deviceSort.direction as 'asc' | 'desc', tab: 'controls' }}
+							onSort={handleSort}
+						/>
+					</TabContent>
 				</Tab>
 
 				<Tab eventKey="voice" title={`🎤 Voice Commands (${dataCounts.voice})`}>
-					<Card>
-						<Card.Header>
-							<div className="d-flex justify-content-between align-items-center">
-								<h5 className="mb-0">🎤 Voice Commands History</h5>
-								<small className="text-muted">
-									Page {voicePagination.page} of {voicePagination.totalPages}
-									({voicePagination.total} total records)
-								</small>
-							</div>
-						</Card.Header>
-						<Card.Body>
-							{voiceCommands.length === 0 ? (
-								<div className="text-center py-4 text-muted">
-									<p>No voice command data available.</p>
-								</div>
-							) : (
-								<>
-									<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-										<table className="table table-striped table-hover">
-											<thead className="table-light sticky-top">
-												<tr>
-													<th className="sortable-header" onClick={() => handleSort('timestamp', 'voice')}>
-														Time{getSortIcon('timestamp', 'voice')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('command', 'voice')}>
-														Command{getSortIcon('command', 'voice')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('confidence', 'voice')}>
-														Confidence{getSortIcon('confidence', 'voice')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('processed', 'voice')}>
-														Status{getSortIcon('processed', 'voice')}
-													</th>
-													<th className="sortable-header" onClick={() => handleSort('errorMessage', 'voice')}>
-														Error{getSortIcon('errorMessage', 'voice')}
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{voiceCommands.map((command, index) => (
-													<tr key={command.id || index}>
-														<td className="text-nowrap">{formatDateTime(command.timestamp)}</td>
-														<td>
-															<code className="text-break">{command.command}</code>
-														</td>
-														<td>
-															{command.confidence !== null ? (
-																<Badge bg={getConfidenceBadge(command.confidence)}>
-																	{(command.confidence * 100).toFixed(1)}%
-																</Badge>
-															) : (
-																<Badge bg="secondary">N/A</Badge>
-															)}
-														</td>
-														<td>
-															<Badge bg={getVoiceStatusBadge(command)}>
-																{command.errorMessage ? 'Error' : command.processed ? 'Processed' : 'Pending'}
-															</Badge>
-														</td>
-														<td className="text-break">{command.errorMessage || 'N/A'}</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-
-									{/* Pagination */}
-									<div className="d-flex justify-content-between align-items-center mt-3">
-										<Button
-											variant="outline-primary"
-											onClick={() => handleVoicePageChange(voicePagination.page - 1)}
-											disabled={!voicePagination.hasPrev}
-										>
-											Previous
-										</Button>
-										<span className="text-muted">
-											Page {voicePagination.page} of {voicePagination.totalPages}
-										</span>
-										<Button
-											variant="outline-primary"
-											onClick={() => handleVoicePageChange(voicePagination.page + 1)}
-											disabled={!voicePagination.hasNext}
-										>
-											Next
-										</Button>
-									</div>
-								</>
-							)}
-						</Card.Body>
-					</Card>
+					<TabContent
+						title="Voice Commands History"
+						icon="🎤"
+						pagination={voicePagination}
+						onPageChange={handleVoicePageChange}
+						isEmpty={voiceCommands.length === 0}
+						emptyMessage="No voice command data available."
+					>
+						<VoiceCommandTable
+							data={voiceCommands}
+							sortState={{ field: voiceSort.field, direction: voiceSort.direction as 'asc' | 'desc', tab: 'voice' }}
+							onSort={handleSort}
+						/>
+					</TabContent>
 				</Tab>
 			</Tabs>
 		</Container>

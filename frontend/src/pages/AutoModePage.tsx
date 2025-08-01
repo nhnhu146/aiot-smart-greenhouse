@@ -1,52 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAutomation } from '@/hooks/useAutomation';
+import { AutomationSettings, AutomationMessage } from '@/types/automation';
+import AutomationHeader from '@/components/AutoMode/AutomationHeader';
+import AutomationMessageDisplay from '@/components/AutoMode/AutomationMessageDisplay';
+import ControlToggleCard from '@/components/AutoMode/ControlToggleCard';
+import LightThresholdCard from '@/components/AutoMode/LightThresholdCard';
+import PumpThresholdCard from '@/components/AutoMode/PumpThresholdCard';
+import TemperatureThresholdCard from '@/components/AutoMode/TemperatureThresholdCard';
+import RainSettingsCard from '@/components/AutoMode/RainSettingsCard';
+import AutomationActions from '@/components/AutoMode/AutomationActions';
 import './AutoModePage.css';
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-interface LightThresholds {
-	turnOnWhenDark: number;
-	turnOffWhenBright: number;
-}
-
-interface PumpThresholds {
-	turnOnWhenDry: number;
-	turnOffWhenWet: number;
-}
-
-interface TemperatureThresholds {
-	windowOpenTemp: number;
-	windowCloseTemp: number;
-	doorOpenTemp: number;
-	doorCloseTemp: number;
-}
-
-interface RainSettings {
-	autoCloseWindowOnRain: boolean;
-	autoOpenAfterRain: boolean;
-}
-
-interface WaterLevelSettings {
-	autoTurnOffPumpOnFlood: boolean;
-	autoOpenDoorOnFlood: boolean;
-}
-
-interface AutomationSettings {
-	_id?: string;
-	automationEnabled: boolean;
-	lightControlEnabled: boolean;
-	pumpControlEnabled: boolean;
-	doorControlEnabled: boolean;
-	windowControlEnabled: boolean;
-	lightThresholds: LightThresholds;
-	pumpThresholds: PumpThresholds;
-	temperatureThresholds: TemperatureThresholds;
-	rainSettings: RainSettings;
-	waterLevelSettings: WaterLevelSettings;
-	createdAt?: string;
-	updatedAt?: string;
-}
 
 const AutoModePage = () => {
 	const { config: automationConfig, toggleAutomation, updating: hookUpdating } = useAutomation();
@@ -55,7 +21,6 @@ const AutoModePage = () => {
 		automationEnabled: false,
 		lightControlEnabled: true,
 		pumpControlEnabled: true,
-		doorControlEnabled: false,
 		windowControlEnabled: true,
 		lightThresholds: {
 			turnOnWhenDark: 0,
@@ -67,17 +32,11 @@ const AutoModePage = () => {
 		},
 		temperatureThresholds: {
 			windowOpenTemp: 30,
-			windowCloseTemp: 25,
-			doorOpenTemp: 35,
-			doorCloseTemp: 30
+			windowCloseTemp: 25
 		},
 		rainSettings: {
 			autoCloseWindowOnRain: true,
 			autoOpenAfterRain: false
-		},
-		waterLevelSettings: {
-			autoTurnOffPumpOnFlood: true,
-			autoOpenDoorOnFlood: true
 		}
 	});
 
@@ -86,7 +45,7 @@ const AutoModePage = () => {
 	const [resetting, setResetting] = useState(false);
 	const [reloading, setReloading] = useState(false);
 	const [runningCheck, setRunningCheck] = useState(false);
-	const [message, setMessage] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
+	const [message, setMessage] = useState<AutomationMessage | null>(null);
 
 	// Check if any action is in progress
 	const isAnyActionInProgress = loading || saving || resetting || reloading || hookUpdating || runningCheck;
@@ -263,266 +222,57 @@ const AutoModePage = () => {
 
 	return (
 		<div className="automode-container">
-			<div className="automode-header">
-				<h1>Automation Settings</h1>
-				<div className="main-toggle">
-					<label className="switch">
-						<input
-							type="checkbox"
-							checked={autoMode}
-							onChange={handleAutomationToggle}
-							disabled={isAnyActionInProgress}
-						/>
-						<span className="slider round"></span>
-					</label>
-					<span className={`status-text ${autoMode ? 'enabled' : 'disabled'}`}>
-						{autoMode ? '🤖 Automation Enabled' : '⏹️ Automation Disabled'}
-					</span>
-				</div>
-			</div>
+			<AutomationHeader
+				autoMode={autoMode}
+				isAnyActionInProgress={isAnyActionInProgress}
+				onToggle={handleAutomationToggle}
+			/>
 
-			{message && (
-				<div className={`message ${message.type}`}>
-					{message.text}
-				</div>
-			)}
+			<AutomationMessageDisplay message={message} />
 
 			<div className="settings-grid">
-				{/* Device Control Toggles */}
-				<div className="settings-card">
-					<h3>Device Control</h3>
+				<ControlToggleCard
+					settings={settings}
+					isAnyActionInProgress={isAnyActionInProgress}
+					onInputChange={handleInputChange}
+				/>
 
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.lightControlEnabled}
-								onChange={(e) => handleInputChange('lightControlEnabled', e.target.checked)}
-								disabled={isAnyActionInProgress}
-							/>
-							💡 Light Control
-						</label>
-					</div>
+				<LightThresholdCard
+					lightThresholds={settings.lightThresholds}
+					isAnyActionInProgress={isAnyActionInProgress}
+					onInputChange={handleInputChange}
+				/>
 
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.pumpControlEnabled}
-								onChange={(e) => handleInputChange('pumpControlEnabled', e.target.checked)}
-								disabled={isAnyActionInProgress}
-							/>
-							💧 Pump Control
-						</label>
-					</div>
+				<PumpThresholdCard
+					pumpThresholds={settings.pumpThresholds}
+					isAnyActionInProgress={isAnyActionInProgress}
+					onInputChange={handleInputChange}
+				/>
 
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.windowControlEnabled}
-								onChange={(e) => handleInputChange('windowControlEnabled', e.target.checked)}
-								disabled={isAnyActionInProgress}
-							/>
-							🪟 Window Control
-						</label>
-					</div>
+				<TemperatureThresholdCard
+					temperatureThresholds={settings.temperatureThresholds}
+					isAnyActionInProgress={isAnyActionInProgress}
+					onInputChange={handleInputChange}
+				/>
 
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.doorControlEnabled}
-								onChange={(e) => handleInputChange('doorControlEnabled', e.target.checked)}
-								disabled={isAnyActionInProgress}
-							/>
-							🚪 Door Control
-						</label>
-					</div>
-				</div>
-
-				{/* Light Thresholds */}
-				<div className="settings-card">
-					<h3>💡 Light Thresholds</h3>
-
-					<div className="input-group">
-						<label>Turn on when dark (0-1):</label>
-						<input
-							type="number"
-							min="0"
-							max="1"
-							step="0.1"
-							value={settings.lightThresholds.turnOnWhenDark}
-							onChange={(e) => handleInputChange('turnOnWhenDark', parseFloat(e.target.value), 'lightThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-
-					<div className="input-group">
-						<label>Turn off when bright (0-1):</label>
-						<input
-							type="number"
-							min="0"
-							max="1"
-							step="0.1"
-							value={settings.lightThresholds.turnOffWhenBright}
-							onChange={(e) => handleInputChange('turnOffWhenBright', parseFloat(e.target.value), 'lightThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-				</div>
-
-				{/* Pump Thresholds */}
-				<div className="settings-card">
-					<h3>💧 Pump Thresholds</h3>
-
-					<div className="input-group">
-						<label>Turn on when dry (0-1):</label>
-						<input
-							type="number"
-							min="0"
-							max="1"
-							step="0.1"
-							value={settings.pumpThresholds.turnOnWhenDry}
-							onChange={(e) => handleInputChange('turnOnWhenDry', parseFloat(e.target.value), 'pumpThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-
-					<div className="input-group">
-						<label>Turn off when wet (0-1):</label>
-						<input
-							type="number"
-							min="0"
-							max="1"
-							step="0.1"
-							value={settings.pumpThresholds.turnOffWhenWet}
-							onChange={(e) => handleInputChange('turnOffWhenWet', parseFloat(e.target.value), 'pumpThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-				</div>
-
-				{/* Temperature Thresholds */}
-				<div className="settings-card">
-					<h3>🌡️ Temperature Thresholds</h3>
-
-					<div className="input-group">
-						<label>Window open temperature (°C):</label>
-						<input
-							type="number"
-							value={settings.temperatureThresholds.windowOpenTemp}
-							onChange={(e) => handleInputChange('windowOpenTemp', parseInt(e.target.value), 'temperatureThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-
-					<div className="input-group">
-						<label>Window close temperature (°C):</label>
-						<input
-							type="number"
-							value={settings.temperatureThresholds.windowCloseTemp}
-							onChange={(e) => handleInputChange('windowCloseTemp', parseInt(e.target.value), 'temperatureThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-
-					<div className="input-group">
-						<label>Door open temperature (°C):</label>
-						<input
-							type="number"
-							value={settings.temperatureThresholds.doorOpenTemp}
-							onChange={(e) => handleInputChange('doorOpenTemp', parseInt(e.target.value), 'temperatureThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-
-					<div className="input-group">
-						<label>Door close temperature (°C):</label>
-						<input
-							type="number"
-							value={settings.temperatureThresholds.doorCloseTemp}
-							onChange={(e) => handleInputChange('doorCloseTemp', parseInt(e.target.value), 'temperatureThresholds')}
-							disabled={isAnyActionInProgress}
-						/>
-					</div>
-				</div>
-
-				{/* Emergency Settings */}
-				<div className="settings-card">
-					<h3>🚨 Emergency Settings</h3>
-
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.rainSettings.autoCloseWindowOnRain}
-								onChange={(e) => handleInputChange('autoCloseWindowOnRain', e.target.checked, 'rainSettings')}
-								disabled={isAnyActionInProgress}
-							/>
-							🌧️ Close window on rain
-						</label>
-					</div>
-
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.waterLevelSettings.autoTurnOffPumpOnFlood}
-								onChange={(e) => handleInputChange('autoTurnOffPumpOnFlood', e.target.checked, 'waterLevelSettings')}
-								disabled={isAnyActionInProgress}
-							/>
-							🌊 Turn off pump on flood
-						</label>
-					</div>
-
-					<div className="control-item">
-						<label>
-							<input
-								type="checkbox"
-								checked={settings.waterLevelSettings.autoOpenDoorOnFlood}
-								onChange={(e) => handleInputChange('autoOpenDoorOnFlood', e.target.checked, 'waterLevelSettings')}
-								disabled={isAnyActionInProgress}
-							/>
-							🚪 Open door on flood
-						</label>
-					</div>
-				</div>
+				<RainSettingsCard
+					rainSettings={settings.rainSettings}
+					isAnyActionInProgress={isAnyActionInProgress}
+					onInputChange={handleInputChange}
+				/>
 			</div>
 
-			<div className="action-buttons">
-				<button
-					onClick={saveSettings}
-					disabled={isAnyActionInProgress}
-					className="save-btn"
-				>
-					{saving ? 'Saving...' : 'Save Settings'}
-				</button>
-
-				<button
-					onClick={loadSettings}
-					disabled={isAnyActionInProgress}
-					className="reload-btn"
-				>
-					{reloading ? 'Reloading...' : 'Reload Settings'}
-				</button>
-
-				<button
-					onClick={runAutomationCheck}
-					disabled={isAnyActionInProgress}
-					className="run-check-btn"
-				>
-					{runningCheck ? 'Running Check...' : '🔍 Run Check'}
-				</button>
-
-				<button
-					onClick={resetToDefaults}
-					disabled={isAnyActionInProgress}
-					className="reset-btn"
-				>
-					{resetting ? 'Resetting...' : 'Reset to Defaults'}
-				</button>
-			</div>
+			<AutomationActions
+				isAnyActionInProgress={isAnyActionInProgress}
+				saving={saving}
+				reloading={reloading}
+				runningCheck={runningCheck}
+				resetting={resetting}
+				onSave={saveSettings}
+				onReload={loadSettings}
+				onRunCheck={runAutomationCheck}
+				onReset={resetToDefaults}
+			/>
 		</div>
 	);
 };
