@@ -19,8 +19,8 @@ const ControlTopicCard: React.FC<ControlTopicCardProps> = ({
 	return (
 		<Col key={index} md={6} lg={4} className="mb-4">
 			<Card className="h-100 border-success">
-				<Card.Header className="bg-success text-white">
-					<h6 className="mb-0">{topic.name}</h6>
+				<Card.Header className="bg-success text-dark">
+					<h6 className="mb-0" style={{ color: '#2b512b', fontWeight: '600' }}>{topic.name}</h6>
 				</Card.Header>
 				<Card.Body>
 					<p className="text-muted">{topic.description}</p>

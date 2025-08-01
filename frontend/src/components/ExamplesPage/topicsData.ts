@@ -78,48 +78,74 @@ export const sensorTopicsData = [
 			{ description: "Cây trung bình", value: 25 },
 			{ description: "Cây lớn", value: 35 }
 		]
+	},
+	{
+		name: "Motion Detection",
+		topic: "greenhouse/sensors/motion",
+		dataType: "Binary",
+		unit: "0/1",
+		description: "Cảm biến chuyển động PIR (0=không có, 1=có chuyển động)",
+		examples: [
+			{ description: "Không có chuyển động", value: 0 },
+			{ description: "Phát hiện chuyển động", value: 1 }
+		]
 	}
 ];
 
 export const controlTopicsData = [
 	{
 		name: "Light Control",
-		topic: "greenhouse/devices/light",
-		dataType: "String",
-		description: "Điều khiển đèn LED",
+		topic: "greenhouse/devices/light/control",
+		dataType: "Binary",
+		unit: "0/1",
+		description: "Điều khiển đèn LED (ESP32 nhận binary values)",
 		examples: [
-			{ description: "Bật đèn", value: "on" },
-			{ description: "Tắt đèn", value: "off" }
+			{ description: "Bật đèn", value: "1" },
+			{ description: "Tắt đèn", value: "0" }
 		]
 	},
 	{
 		name: "Pump Control",
-		topic: "greenhouse/devices/pump",
-		dataType: "String",
-		description: "Điều khiển máy bơm nước",
+		topic: "greenhouse/devices/pump/control",
+		dataType: "Binary",
+		unit: "0/1",
+		description: "Điều khiển máy bơm nước (ESP32 nhận binary values)",
 		examples: [
-			{ description: "Bật máy bơm", value: "on" },
-			{ description: "Tắt máy bơm", value: "off" }
+			{ description: "Bật máy bơm", value: "1" },
+			{ description: "Tắt máy bơm", value: "0" }
 		]
 	},
 	{
 		name: "Window Control",
-		topic: "greenhouse/devices/window",
-		dataType: "String",
-		description: "Điều khiển cửa sổ tự động",
+		topic: "greenhouse/devices/window/control",
+		dataType: "Binary",
+		unit: "0/1",
+		description: "Điều khiển cửa sổ tự động (ESP32 nhận binary values)",
 		examples: [
-			{ description: "Mở cửa sổ", value: "open" },
-			{ description: "Đóng cửa sổ", value: "close" }
+			{ description: "Mở cửa sổ", value: "1" },
+			{ description: "Đóng cửa sổ", value: "0" }
 		]
 	},
 	{
 		name: "Door Control",
-		topic: "greenhouse/devices/door",
-		dataType: "String",
-		description: "Điều khiển cửa ra vào",
+		topic: "greenhouse/devices/door/control",
+		dataType: "Binary",
+		unit: "0/1",
+		description: "Điều khiển cửa ra vào (ESP32 nhận binary values)",
 		examples: [
-			{ description: "Mở cửa", value: "open" },
-			{ description: "Đóng cửa", value: "close" }
+			{ description: "Mở cửa", value: "1" },
+			{ description: "Đóng cửa", value: "0" }
+		]
+	},
+	{
+		name: "Microphone Control",
+		topic: "greenhouse/devices/microphone/control",
+		dataType: "Binary",
+		unit: "0/1",
+		description: "Điều khiển microphone cho voice commands (ESP32 nhận binary values)",
+		examples: [
+			{ description: "Bật microphone", value: "1" },
+			{ description: "Tắt microphone", value: "0" }
 		]
 	}
 ];

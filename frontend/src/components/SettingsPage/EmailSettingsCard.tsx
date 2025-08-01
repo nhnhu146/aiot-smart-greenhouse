@@ -157,7 +157,7 @@ const EmailSettingsCard: React.FC<EmailSettingsCardProps> = ({
 								<Button
 									variant="link"
 									size="sm"
-									className="text-white p-0 ms-1"
+									className="text-dark p-0 ms-1"
 									onClick={() => removeEmailRecipient(email)}
 								>
 									×

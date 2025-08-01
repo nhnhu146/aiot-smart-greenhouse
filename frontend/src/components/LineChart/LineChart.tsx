@@ -1,7 +1,3 @@
-// LineChart component - Uses API data only (as requested)
-// This component should receive historical/processed data from the API
-// WebSocket data is handled by SensorDashboard for real-time updates
-
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -61,17 +57,14 @@ const AppLineChart: React.FC = () => {
 					const updated = [...prev, newDataPoint];
 					const latest24 = updated.slice(-24);
 
-					// Sort by actual datetime to ensure chronological order (oldest to newest)
+					// Sort by actual datetime to ensure chronological order (newest first for display)
 					const sortedData = latest24.sort((a, b) => {
 						// Parse the Vietnam time string back to Date for proper comparison
-						const [timeA, dateA] = a.time.includes(' ') ? a.time.split(' ') : [a.time, new Date().toLocaleDateString('vi-VN')];
-						const [timeB, dateB] = b.time.includes(' ') ? b.time.split(' ') : [b.time, new Date().toLocaleDateString('vi-VN')];
+						const timeA = new Date(a.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6')).getTime();
+						const timeB = new Date(b.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6')).getTime();
 
-						const fullDateTimeA = new Date(`${dateA} ${timeA}`).getTime();
-						const fullDateTimeB = new Date(`${dateB} ${timeB}`).getTime();
-
-						return (fullDateTimeB - fullDateTimeA);
-					})
+						return timeB - timeA;
+					});
 
 					console.log('📈 Chart updated with persistent sensor data:', newDataPoint);
 					return sortedData;
@@ -134,7 +127,7 @@ const AppLineChart: React.FC = () => {
 				alignItems: 'center',
 				height: '300px'
 			}}>
-				<div>Loading chart data...</div>
+				<div>No data available</div>
 			</div>
 		);
 	}
@@ -183,9 +176,6 @@ const AppLineChart: React.FC = () => {
 			},
 			tooltip: {
 				enabled: true,
-			},
-			datalabels: {
-				display: false, // Remove value labels on data points
 			},
 		},
 		elements: {

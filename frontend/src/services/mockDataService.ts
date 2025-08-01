@@ -1,7 +1,7 @@
 // Mock data service for development and testing - DISPLAY ONLY
 interface SensorData {
 	humidity: number;
-	moisture: number;
+	soilMoisture: number; // Changed from 'moisture' to 'soilMoisture' to match backend API
 	temperature: number;
 	timestamp?: string;
 }
@@ -61,7 +61,7 @@ class MockDataService {
 	// Mock sensor data with realistic greenhouse values
 	private mockSensorData: SensorData = {
 		humidity: 65,
-		moisture: Math.random() > 0.7 ? 0 : 1, // Binary: 30% dry (0), 70% wet (1)
+		soilMoisture: Math.random() > 0.7 ? 0 : 1, // Binary: 30% dry (0), 70% wet (1)
 		temperature: 25,
 		timestamp: new Date().toISOString()
 	};
@@ -130,7 +130,7 @@ class MockDataService {
 			return {
 				data: {
 					humidity: Math.max(0, Math.min(100, this.mockSensorData.humidity + variance() * 10)),
-					moisture: Math.max(0, Math.min(100, this.mockSensorData.moisture + variance() * 10)),
+					soilMoisture: Math.max(0, Math.min(1, this.mockSensorData.soilMoisture)), // Keep binary 0/1
 					temperature: Math.max(0, Math.min(50, this.mockSensorData.temperature + variance() * 5)),
 					timestamp: new Date().toISOString()
 				},
@@ -153,7 +153,7 @@ class MockDataService {
 				// Transform backend data to frontend format
 				const transformedData: SensorData = {
 					humidity: result.data.humidity || 0,
-					moisture: result.data.soilMoisture || 0,
+					soilMoisture: result.data.soilMoisture || 0,
 					temperature: result.data.temperature || 0,
 					timestamp: result.data.createdAt || new Date().toISOString()
 				};
@@ -241,7 +241,7 @@ class MockDataService {
 				...this.mockSensorData,
 				humidity: Math.max(30, Math.min(90, this.mockSensorData.humidity + (Math.random() - 0.5) * 5)),
 				temperature: Math.max(15, Math.min(35, this.mockSensorData.temperature + (Math.random() - 0.5) * 2)),
-				moisture: Math.random() > 0.7 ? 0 : 1, // Keep binary nature
+				soilMoisture: Math.random() > 0.7 ? 0 : 1, // Keep binary nature
 				timestamp: new Date().toISOString()
 			};
 

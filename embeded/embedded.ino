@@ -40,14 +40,10 @@ bool setup_mic = true;
 const char* ssid = "47/52/11";
 const char* password = "12345789";
 
-// const char* ssid = "choem5";
-// const char* password = "@071104@";
-
 // ==============================
 // MQTT Broker Configuration
 // ==============================
 const char* mqttServer = "mqtt.noboroto.id.vn";
-//const char* mqttServer = "85.119.83.194";;
 const char* Username = "vision";
 const char* Password = "vision";
 const int mqttPort = 1883;
@@ -98,8 +94,20 @@ const int pump_pin       = 4;
 
 DHT dht(15, DHT11);          // DHT11 sensor on GPIO 15
 
-Servo windowServo;           // Servo motor for window
-Servo doorServo;             // Servo motor for door
+// Servo motor for window
+Servo windowServo;           
+unsigned long lastWindowServoMoveTime = 0;
+int currentWindowServoPos = 140;
+int targetWindowServoPos = 140;
+bool isWindowServoMoving = false;
+
+// Servo motor for door
+Servo doorServo;             
+unsigned long lastDoorServoMoveTime = 0;
+int currentDoorServoPos = 90;
+int targetDoorServoPos = 90;
+bool isDoorServoMoving = false;
+
 
 // Constant and pins
 unsigned long lastSendTime1 = 0;
@@ -114,6 +122,13 @@ int lastPIRState = LOW; // Track PIR state changes
 int wifiErrorCount = 0;
 int mqttErrorCount = 0;
 
+bool lastDoorCommand = 0;
+bool lastWindowCommand = 0;
+bool lastPumpCommand = 0;
+bool lastLightCommand = 0;
+
+int rainvalue = 0;
+
 /**
  * @brief Initializes the ESP32 and its peripherals.
  *
@@ -125,7 +140,7 @@ int mqttErrorCount = 0;
  */
 void setup() {
   Serial.begin(115200);
-
+  Serial.println(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
   setup_wifi();
   // summary of inferencing settings (from model_metadata.h)
   Serial.println("Booting in MIC MODE");
@@ -190,7 +205,7 @@ void loop() {
 
   lcd.backlight();
   int Photon_value = digitalRead(Photonresistor) ^ 1;
-  int rainvalue = digitalRead(rain_pin) ^ 1;
+  rainvalue = digitalRead(rain_pin) ^ 1;
   int moisture = digitalRead(moisture_pin) ^ 1;
 
   long distanceCm = getDistance();
@@ -199,29 +214,30 @@ void loop() {
 
   int PIRValue = digitalRead(PIR_in_pin);
   int FloatSwitchValue = digitalRead(float_switch);
-
+  updateDoorServoMovement();
+  updateWindowServoMovement();
   if (millis() - lastMotionCheck > 1000) {
     lastMotionCheck = millis();
-    if (PIRValue == HIGH && lastPIRState == LOW) {
-      client.publish("greenhouse/sensors/motion", "1");
-      Serial.println("Motion detected and sent!");
-      lastPIRState = HIGH;
-    } else if (PIRValue == LOW && lastPIRState == HIGH) {
-      client.publish("greenhouse/sensors/motion", "0");
-      Serial.println("Motion stopped");
-      lastPIRState = LOW;
-    }
-
-    if (millis() - lastWaterCheck > 5000) {
-      lastWaterCheck = millis();
-      sendWaterLevelValue(FloatSwitchValue);
-    }
+    // if (PIRValue == HIGH && lastPIRState == LOW) {
+    //   controlDoor("1");
+    //   Serial.println("Motion detected and sent!");
+    //   lastPIRState = HIGH;
+    // } else if (PIRValue == LOW && lastPIRState == HIGH) {
+    //   controlDoor("0");
+    //   Serial.println("Motion stopped");
+    //   lastPIRState = LOW;
+    // }
+    controlDoor(PIRValue == HIGH ? "1" : "0");
 
     if (millis() - lastSendTime2 > 5000) {
       lastSendTime2 = millis();
+      lcd.clear();
+
+      sendWaterLevelValue(FloatSwitchValue);
       sendTemperatureValue(t);
       sendHumidityValue(h);
       sendSoilMoistureValue(moisture);
+      controlPump(moisture == HIGH ? "0" : "1");
       sendLightLevelValue(Photon_value);
       sendRainSensorValue(rainvalue);
       sendPlantHeightValue(distanceCm);
@@ -230,19 +246,16 @@ void loop() {
       char line1[17];
       char line2[17];
       
+
+      const char* myCString = FloatSwitchValue ? "ON" : "OFF";
       snprintf(line1, sizeof(line1), "T: %.1fC H: %.0f%%", t, h);
       snprintf(line2, sizeof(line2), "S: %d W: %d P: %s",
               moisture,
               FloatSwitchValue,
-              FloatSwitchValue ? "ON " : "OFF");
+              FloatSwitchValue ? "ON" : "OFF");
 
-      lcd.setCursor(0, 0);
-      lcd.print("                ");
       lcd.setCursor(0, 0);
       lcd.print(line1);
-
-      lcd.setCursor(0, 1);
-      lcd.print("                ");
       lcd.setCursor(0, 1);
       lcd.print(line2);
     }
@@ -291,74 +304,15 @@ void loop() {
       if (result.classification[ix].value > max_score) {
           max_score = result.classification[ix].value;
           best_idx = ix;
-      }
+      } 
   }
 
   if (max_score > CONFIDENCE_THRESHOLD){
     const char* best_label = result.classification[best_idx].label;
     ei_printf("Voice command detected: %s (%.2f)\n", best_label, max_score);
     sendVoiceCommand(best_label, max_score);
+    
   }
-
-// /* TEST REGION FOR AUTOMATION AND VOICE COMMAND */
-//   if ((t > 26 && window == 0 && rainvalue == 0) || best_idx == 3) { // 3 is the index for "MoCuaSap" command
-//     Serial.println("Opening window...");
-//     controlWindow("1"); // Open window
-//     window = 1;
-//   } else if ((t < 24 && window == 1) || rainvalue == 1 || best_idx == 1) { // 4 is the index for "DongCuaSap" command
-//     Serial.println("Closing window...");
-//     controlWindow("0"); // Close window
-//     window = 0;
-//   }
-//   if (moisture == 0 && pump == 0 && FloatSwitchValue == 1) {
-//     Serial.println("Turning on pump...");
-//     controlPump("1"); // Turn on pump
-//     pump = 1;
-//   } else if (moisture == 1 && pump == 1) {
-//     Serial.println("Turning off pump...");
-//     controlPump("0"); // Turn off pump
-//     pump = 0;
-//   }
-//   if ((Photon_value == 0 && light == 0) || best_idx == 4) { // 4 is the index for "MoDen" command
-//     Serial.println("Turning on light...");
-//     controlLights("1"); // Turn on light
-//     light = 1;
-//   } else if ((Photon_value == 1 && light == 1) || best_idx == 5) { // 5 is the index for "TatDen" command
-//     Serial.println("Turning off light...");
-//     controlLights("0"); // Turn off light
-//     light = 0;
-//   }
-//   if ((PIRValue == HIGH && door == 0) || best_idx == 2) { // 2 is the index for "MoCua" command
-//     Serial.println("Opening door...");
-//     controlDoor("1"); // Open door
-//     door = 1;
-//   } else if ((PIRValue == LOW && door == 1) || best_idx == 0) { // 6 is the index for "DongCua" command
-//     Serial.println("Closing door...");
-//     controlDoor("0"); // Close door
-//     door = 0;
-//   }
-
-/* TEST REGION FOR AUTOMATION AND VOICE COMMAND */
-  if (best_idx == 3) { // 3 is the index for "MoCuaSap" command
-    Serial.println("Opening window...");
-    controlWindow("1"); // Open window
-  } else if (best_idx == 1) { // 4 is the index for "DongCuaSap" command
-    Serial.println("Closing window...");
-    controlWindow("0"); // Close window
-  } else if (best_idx == 4) { // 4 is the index for "MoDen" command
-    Serial.println("Turning on light...");
-    controlLights("1"); // Turn on light
-  } else if (best_idx == 5) { // 5 is the index for "TatDen" command
-    Serial.println("Turning off light...");
-    controlLights("0"); // Turn off light
-  } else if (best_idx == 2) { // 2 is the index for "MoCua" command
-    Serial.println("Opening door...");
-    controlDoor("1"); // Open door
-  } else if (best_idx == 0) { // 6 is the index for "DongCua" command
-    Serial.println("Closing door...");
-    controlDoor("0"); // Close door
-  }
-
 }
 
 /**
@@ -461,7 +415,6 @@ void reconnect() {
         Serial.println("Too many MQTT errors, restarting ESP32...");
         ESP.restart();
       }
-
       delay(5000);
     }
   }
@@ -642,7 +595,7 @@ void sendVoiceCommand(const char* label, float score) {
     // Format payload: ví dụ "fan_on:0.92"
     snprintf(payload, sizeof(payload), "%s; %.2f", label, score);
 
-    // Gửi MQTT (giả sử bạn đã có biến `client` kiểu PubSubClient)
+    // Gửi MQTT (giả sử bạn đã có biến client kiểu PubSubClient)
     client.publish("greenhouse/command", payload);
 
     // In ra UART để debug (tùy)
@@ -661,9 +614,11 @@ void sendVoiceCommand(const char* label, float score) {
  * @note Uses digitalWrite with the configured LED pin.
  */
 void controlLights(char* value) {
-  if (strcmp(value, "0") == 0) { // Compare C-style strings correctly
+  if (strcmp(value, "0") == 0 && lastLightCommand == 1) { // Compare C-style strings correctly
+    lastLightCommand = 0;
     digitalWrite(Led, LOW);
-  } else {
+  } else if (strcmp(value, "1") == 0 && lastLightCommand == 0) {
+    lastLightCommand = 1;
     digitalWrite(Led, HIGH);
   }
 }
@@ -678,16 +633,40 @@ void controlLights(char* value) {
  *
  * @return void
  */
-void controlWindow(char* value) {
-  if (strcmp(value, "0") == 0) { // Compare C-style strings correctly
-    for(int posDegrees = 140; posDegrees <= 180; posDegrees++) {
-      windowServo.write(posDegrees);
-      delay(20);
-    } 
-  } else if (strcmp(value, "1") == 0){
-    for(int posDegrees = 180; posDegrees >= 140; posDegrees--) {
-      windowServo.write(posDegrees);
-      delay(20);
+void controlWindow(const char* value) {
+  if (strcmp(value, "0") == 0 && lastWindowCommand == 1) {
+    lastWindowCommand = 0;
+    currentWindowServoPos = 140;
+    targetWindowServoPos = 180;
+    isWindowServoMoving = true;
+    lastWindowServoMoveTime = millis();
+  } else if (strcmp(value, "1") == 0 && lastWindowCommand == 0) {
+    if (rainvalue == 1) {
+      Serial.println("Rain detected, closing window.");
+      return;
+    }
+    lastWindowCommand = 1;
+    currentWindowServoPos = 180;
+    targetWindowServoPos = 140;
+    isWindowServoMoving = true;
+    lastWindowServoMoveTime = millis();
+  }
+}
+
+void updateWindowServoMovement() {
+  while (currentWindowServoPos != targetWindowServoPos) {
+    if (isWindowServoMoving && millis() - lastWindowServoMoveTime >= 30) {
+      if (currentWindowServoPos < targetWindowServoPos) {
+        currentWindowServoPos+=10;
+      } else if (currentWindowServoPos > targetWindowServoPos) {
+        currentWindowServoPos-=10;
+      } else {
+        isWindowServoMoving = false; // Đã đến vị trí đích
+        break;
+      }
+
+      windowServo.write(currentWindowServoPos);
+      lastWindowServoMoveTime = millis();
     }
   }
 }
@@ -701,18 +680,53 @@ void controlWindow(char* value) {
  *
  * @return void
  */
-void controlDoor(char* value) {
-  Serial.println(value);
-  if (strcmp(value, "0") == 0) { // Compare C-style strings correctly
-    for(int posDegrees = 160; posDegrees >= 90; posDegrees--) {
-      doorServo.write(posDegrees);
-      delay(20);
+// void controlDoor(const char* value) {
+//   if (strcmp(value, "0") == 0 && lastDoorCommand == 1) { // Compare C-style strings correctly
+//     lastDoorCommand = 0;
+//     for(int posDegrees = 160; posDegrees >= 90; posDegrees--) {
+//       doorServo.write(posDegrees);
+//       delay(20);
+//     }
+//   } else if (strcmp(value, "1") == 0 && lastDoorCommand == 0){
+//     lastDoorCommand = 1;
+//     for(int posDegrees = 90; posDegrees <= 160; posDegrees++) {
+//       doorServo.write(posDegrees);
+//       delay(20);
+//     } 
+//   }
+// }
+
+void controlDoor(const char* value) {
+  if (strcmp(value, "0") == 0 && lastDoorCommand == 1) {
+    lastDoorCommand = 0;
+    currentDoorServoPos = 160;
+    targetDoorServoPos = 90;
+    isDoorServoMoving = true;
+    lastDoorServoMoveTime = millis();
+  } else if (strcmp(value, "1") == 0 && lastDoorCommand == 0) {
+    lastDoorCommand = 1;
+    currentDoorServoPos = 90;
+    targetDoorServoPos = 160;
+    isDoorServoMoving = true;
+    lastDoorServoMoveTime = millis();
+  }
+}
+
+void updateDoorServoMovement() {
+  while (currentDoorServoPos != targetDoorServoPos) {
+    if (isDoorServoMoving && millis() - lastDoorServoMoveTime >= 30) {
+      if (currentDoorServoPos < targetDoorServoPos) {
+        currentDoorServoPos+=10;
+      } else if (currentDoorServoPos > targetDoorServoPos) {
+        currentDoorServoPos-=10;
+      } else {
+        isDoorServoMoving = false; // Đã đến vị trí đích
+        break;
+      }
+
+      doorServo.write(currentDoorServoPos);
+      lastDoorServoMoveTime = millis();
     }
-  } else {
-    for(int posDegrees = 90; posDegrees <= 160; posDegrees++) {
-      doorServo.write(posDegrees);
-      delay(20);
-    } 
   }
 }
 
@@ -725,12 +739,14 @@ void controlDoor(char* value) {
  *
  * @return void
  */
-void controlPump(char* value) {
-  if (strcmp(value, "0") == 0) {
-    digitalWrite(pump, LOW);
+void controlPump(const char* value) {
+  if (strcmp(value, "0") == 0 && lastPumpCommand == 1) { // Compare C-style strings correctly
+    lastPumpCommand = 0;
+    digitalWrite(pump_pin, LOW);
   }
-  else {
-    digitalWrite(pump, HIGH);
+  else if (strcmp(value, "1") == 0 && lastPumpCommand == 0) {
+    lastPumpCommand = 1;
+    digitalWrite(pump_pin, HIGH);
   }
 }
 
@@ -782,44 +798,15 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
 static void audio_inference_callback(uint32_t n_bytes)
 {
-    // Prevent buffer overrun - skip if buffer is not ready
-    if (inference.buf_ready == 1) {
-        return; // Buffer is still being processed, skip this callback
-    }
-    
-    uint32_t samples_to_process = n_bytes >> 1; // Divide by 2 for 16-bit samples
-    
-    for(uint32_t i = 0; i < samples_to_process; i++) {
-        // Boundary check to prevent buffer overflow
-        if (inference.buf_count >= inference.n_samples) {
-            break; // Stop processing if buffer is full
-        }
-        
-        // Additional safety check
-        if (i >= sample_buffer_size) {
-            break; // Prevent reading beyond sampleBuffer bounds
-        }
-        
-        inference.buffers[inference.buf_select][inference.buf_count++] = sampleBuffer[i];
+    for(int i = 0; i < n_bytes>>1; i++) {
+      inference.buffers[inference.buf_select][inference.buf_count++] = sampleBuffer[i];
 
-        if(inference.buf_count >= inference.n_samples) {
-            inference.buf_select ^= 1;
-            inference.buf_count = 0;
-            inference.buf_ready = 1;
-            break; // Exit loop immediately after switching buffers
-        }
+      if(inference.buf_count >= inference.n_samples) {
+          inference.buf_select ^= 1;
+          inference.buf_count = 0;
+          inference.buf_ready = 1;
+      }
     }
-}
-
-/**
- * @brief Reset inference buffers in case of overrun
- */
-static void reset_inference_buffers(void)
-{
-    inference.buf_ready = 0;
-    inference.buf_count = 0;
-    inference.buf_select = 0;
-    ei_printf("Inference buffers reset due to overrun\n");
 }
 
 static void capture_samples(void* arg) {
@@ -835,20 +822,6 @@ static void capture_samples(void* arg) {
     int samples_read = bytes_read / sizeof(int32_t);
     double sum = 0;
 
-    // for (int i = 0; i < samples_read && i < 200; i++) {  // Limit to 200 samples
-    //   int32_t raw_sample = sampleBuffer[i];
-
-    //   // Optional: normalize to float [-1.0, 1.0]
-    //   float sample = (float)raw_sample / INT32_MAX;
-
-    //   sum += sample * sample;
-
-    //   // Print raw or normalized sample (choose one)
-    //   //Serial.println(raw_sample);  // For raw values
-      
-    // }
-    // Serial.println(sum);        // For normalized float values
-
     if (bytes_read <= 0) {
       ei_printf("Error in I2S read : %d", bytes_read);
     }
@@ -858,10 +831,7 @@ static void capture_samples(void* arg) {
         }
 
         //scale the data (otherwise the sound is too quiet)
-        uint32_t samples_to_scale = (i2s_bytes_to_read / 2 < sample_buffer_size) ? 
-                                   i2s_bytes_to_read / 2 : sample_buffer_size;
-        
-        for (uint32_t x = 0; x < samples_to_scale; x++) {
+        for (int x = 0; x < i2s_bytes_to_read/2; x++) {
             sampleBuffer[x] = (int16_t)(sampleBuffer[x]) * 8;
         }
 
@@ -910,8 +880,7 @@ static bool microphone_inference_start(uint32_t n_samples)
 
     record_status = true;
 
-    // Increase stack size to prevent stack overflow which can cause buffer issues
-    xTaskCreate(capture_samples, "CaptureSamples", 1024 * 40, (void*)sample_buffer_size, 10, NULL);
+    xTaskCreate(capture_samples, "CaptureSamples", 1024 * 40, (void*)sample_buffer_size, 1, NULL);
 
     return true;
 }
@@ -924,29 +893,20 @@ static bool microphone_inference_start(uint32_t n_samples)
 static bool microphone_inference_record(void)
 {
     bool ret = true;
-    uint32_t timeout_counter = 0;
-    const uint32_t MAX_TIMEOUT = 5000; // 5 seconds timeout
 
     if (inference.buf_ready == 1) {
-        ei_printf("Warning: Buffer overrun detected. Processing may be too slow.\n");
-        // Reset buffers to recover from overrun
-        reset_inference_buffers();
+        ei_printf(
+            "Error sample buffer overrun. Decrease the number of slices per model window "
+            "(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW)\n");
         ret = false;
     }
 
-    while (inference.buf_ready == 0 && timeout_counter < MAX_TIMEOUT) {
+    while (inference.buf_ready == 0) {
         delay(1);
-        timeout_counter++;
-    }
-    
-    if (timeout_counter >= MAX_TIMEOUT) {
-        ei_printf("Error: Timeout waiting for audio buffer\n");
-        reset_inference_buffers();
-        ret = false;
     }
 
     inference.buf_ready = 0;
-    return ret;
+    return true;
 }
 
 /**
@@ -955,7 +915,6 @@ static bool microphone_inference_record(void)
 static int microphone_audio_signal_get_data(size_t offset, size_t length, float *out_ptr)
 {
     numpy::int16_to_float(&inference.buffers[inference.buf_select ^ 1][offset], out_ptr, length);
-    //memcpy(out_ptr, &features[offset], length * sizeof(float));
     return 0;
 }
 

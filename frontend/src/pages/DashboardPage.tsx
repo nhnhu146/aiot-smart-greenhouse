@@ -82,7 +82,7 @@ const DashboardPage = () => {
 			const sensorDataObj: SensorData = {
 				temperature: temperature?.value || 0,
 				humidity: humidity?.value || 0,
-				moisture: soil?.value || 0,
+				soilMoisture: soil?.value || 0, // Changed from 'moisture' to 'soilMoisture' to match backend
 				timestamp: new Date().toISOString()
 			};
 

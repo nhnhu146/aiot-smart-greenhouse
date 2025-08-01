@@ -95,6 +95,52 @@ const HistoryPage = () => {
 		}
 	};
 
+	// Fetch sensor data from backend API
+	const fetchSensorData = async () => {
+		try {
+			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+			const response = await fetch(`${API_BASE_URL}/api/history?limit=100`);
+
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success && result.data?.sensors?.data) {
+					// Convert backend data to ChartDataPoint format
+					const chartData: ChartDataPoint[] = result.data.sensors.data.map((item: any) => ({
+						time: item.createdAt || item.timestamp || new Date().toISOString(),
+						temperature: item.temperature || 0,
+						humidity: item.humidity || 0,
+						soilMoisture: item.soilMoisture || 0,
+						waterLevel: item.waterLevel || 0,
+						lightLevel: item.lightLevel || 0,
+						rainStatus: item.rainStatus || 0,
+						plantHeight: item.plantHeight || 0
+					}));
+
+					setData(chartData);
+					setIsUsingMockData(false);
+					console.log("✅ Using real sensor history data from API", chartData.length, "records");
+				} else {
+					throw new Error("Invalid API response format");
+				}
+			} else {
+				throw new Error(`API responded with status ${response.status}`);
+			}
+		} catch (error) {
+			console.error("Failed to fetch sensor data from API:", error);
+			// Fallback to mock data
+			try {
+				const result = await mockDataService.getChartData();
+				setData(result.data);
+				setIsUsingMockData(true);
+				console.log("🎭 Fallback to mock sensor data (API unavailable)");
+			} catch (mockError) {
+				console.error("Failed to fetch mock data:", mockError);
+				setData([]);
+				setIsUsingMockData(true);
+			}
+		}
+	};
+
 	// Fetch data when component is mounted
 	useEffect(() => {
 		const fetchData = async () => {
@@ -109,15 +155,8 @@ const HistoryPage = () => {
 					setIsUsingMockData(true);
 					console.log("🎭 Using mock history data (enabled in settings)");
 				} else {
-					// Try to get real data from API
-					const result = await mockDataService.getChartData();
-					setData(result.data);
-					setIsUsingMockData(result.isMock);
-					console.log(
-						result.isMock
-							? "🎭 Fallback to mock data (API unavailable)"
-							: "✅ Using real history data from API"
-					);
+					// Fetch real data from backend API
+					await fetchSensorData();
 				}
 
 				// Fetch device controls

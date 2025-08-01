@@ -122,7 +122,8 @@ const SensorDashboard: React.FC = () => {
 		water: { value: '--', timestamp: null },
 		light: { value: '--', timestamp: null },
 		rain: { value: '--', timestamp: null },
-		height: { value: '--', timestamp: null } // Plant height
+		height: { value: '--', timestamp: null }, // Plant height
+		motion: { value: '--', timestamp: null } // Motion detection
 	});
 	const [lastUpdateTime, setLastUpdateTime] = React.useState<string>('');
 
@@ -138,10 +139,23 @@ const SensorDashboard: React.FC = () => {
 					// Only update with valid numeric values
 					const numericValue = parseFloat(sensorInfo.value);
 					if (!isNaN(numericValue)) {
-						// Special handling for binary sensors (soil, water, light, rain)
-						let formattedValue;
-						if (sensorType === 'soil' || sensorType === 'water' || sensorType === 'light' || sensorType === 'rain') {
-							formattedValue = numericValue.toString(); // Keep binary values as is (0 or 1)
+						// Special handling for binary sensors (soil, water, light, rain, motion)
+						let formattedValue: string;
+						if (['soil', 'water', 'light', 'rain', 'motion'].includes(sensorType)) {
+							// For binary sensors, show status text instead of numbers
+							if (sensorType === 'soil') {
+								formattedValue = numericValue === 1 ? 'Ẩm' : 'Khô';
+							} else if (sensorType === 'water') {
+								formattedValue = numericValue === 1 ? 'Đủ' : 'Thấp';
+							} else if (sensorType === 'light') {
+								formattedValue = numericValue === 1 ? 'Sáng' : 'Tối';
+							} else if (sensorType === 'rain') {
+								formattedValue = numericValue === 1 ? 'Mưa' : 'Khô ráo';
+							} else if (sensorType === 'motion') {
+								formattedValue = numericValue === 1 ? 'Có' : 'Không';
+							} else {
+								formattedValue = numericValue.toString();
+							}
 						} else {
 							formattedValue = numericValue.toFixed(1); // Format other sensors with 1 decimal
 						}
@@ -189,21 +203,21 @@ const SensorDashboard: React.FC = () => {
 		{
 			key: 'soil',
 			title: 'Soil Moisture',
-			unit: '%', // Binary: Wet/Dry
+			unit: '', // Binary: Wet/Dry
 			icon: '🌱',
 			color: 'success'
 		},
 		{
 			key: 'water',
 			title: 'Water Level',
-			unit: '%', // Binary: None/Full
+			unit: '', // Binary: None/Full
 			icon: '🚰',
 			color: 'primary'
 		},
 		{
 			key: 'light',
 			title: 'Light Level',
-			unit: 'lux', // Binary: Dark/Bright
+			unit: '', // Binary: Dark/Bright
 			icon: '☀️',
 			color: 'warning'
 		},
@@ -220,6 +234,13 @@ const SensorDashboard: React.FC = () => {
 			unit: 'cm',
 			icon: '📏',
 			color: 'info'
+		},
+		{
+			key: 'motion',
+			title: 'Motion Detection',
+			unit: '', // Binary: No Motion/Motion Detected
+			icon: '👁️',
+			color: 'dark'
 		}
 	];
 

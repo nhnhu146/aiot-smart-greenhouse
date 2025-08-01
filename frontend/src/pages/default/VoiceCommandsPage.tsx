@@ -144,7 +144,7 @@ const VoiceCommandsPage = () => {
 			</Row>
 
 			<Row className="mb-4">
-				<Col md={6}>
+				<Col md={8} lg={6}>
 					<Card className={styles.testCard}>
 						<Card.Header>
 							<h5 className="mb-0">🧪 Test Voice Command</h5>
@@ -175,33 +175,7 @@ const VoiceCommandsPage = () => {
 						</Card.Body>
 					</Card>
 				</Col>
-				<Col md={6}>
-					<Card className={styles.statusCard}>
-						<Card.Header>
-							<h5 className="mb-0">📊 Voice Commands Status</h5>
-						</Card.Header>
-						<Card.Body>
-							<div className={styles.statusGrid}>
-								<div className={styles.statusItem}>
-									<div className={styles.statusValue}>{commands.length}</div>
-									<div className={styles.statusLabel}>Total Commands</div>
-								</div>
-								<div className={styles.statusItem}>
-									<div className={styles.statusValue}>
-										{commands.filter(cmd => cmd.processed && !cmd.errorMessage).length}
-									</div>
-									<div className={styles.statusLabel}>Successful</div>
-								</div>
-								<div className={styles.statusItem}>
-									<div className={styles.statusValue}>
-										{commands.filter(cmd => cmd.errorMessage).length}
-									</div>
-									<div className={styles.statusLabel}>Failed</div>
-								</div>
-							</div>
-						</Card.Body>
-					</Card>
-				</Col>
+
 			</Row>
 
 			<Row>
