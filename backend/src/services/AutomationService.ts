@@ -10,7 +10,7 @@ class AutomationService {
 	private lastPumpAutomation = 0;
 	private lastDoorAutomation = 0;
 	private lastWindowAutomation = 0;
-	private readonly AUTOMATION_COOLDOWN = 15000; // 15 seconds cooldown between automations (reduced from 30s)
+	private readonly AUTOMATION_COOLDOWN = 3000; // 3 seconds cooldown between automations (reduced from 15s to 3s)
 	private isDataProcessing = false; // Flag to prevent automation during data merge
 
 	constructor() {
@@ -188,11 +188,21 @@ class AutomationService {
 	private async handleTemperatureAutomation(temperature: number, now: number): Promise<void> {
 		const { windowOpenTemp, windowCloseTemp, doorOpenTemp, doorCloseTemp } = this.config!.temperatureThresholds;
 
-		// Window control
+		// Window control with rain protection
 		if (this.config!.windowControlEnabled && (now - this.lastWindowAutomation) >= this.AUTOMATION_COOLDOWN) {
+			// Check current rain status before opening window
 			if (temperature >= windowOpenTemp) {
-				await this.controlDevice('window', '1', `Auto: Temperature high (${temperature}°C)`);
-				this.lastWindowAutomation = now;
+				// Get latest rain status from database to ensure no rain before opening window
+				const latestSensorData = await SensorData.findOne().sort({ createdAt: -1 });
+				const isRaining = latestSensorData?.rainStatus === 1;
+
+				if (!isRaining) {
+					await this.controlDevice('window', '1', `Auto: Temperature high (${temperature}°C) - No rain detected`);
+					this.lastWindowAutomation = now;
+					console.log(`🌡️ Window opened due to high temperature (${temperature}°C) - Rain check: Safe`);
+				} else {
+					console.log(`🌧️ Window NOT opened - Rain detected despite high temperature (${temperature}°C)`);
+				}
 			} else if (temperature <= windowCloseTemp) {
 				await this.controlDevice('window', '0', `Auto: Temperature normal (${temperature}°C)`);
 				this.lastWindowAutomation = now;
@@ -223,18 +233,29 @@ class AutomationService {
 		}
 	}
 
-	// Handle rain detection automation
+	// Handle rain detection automation with enhanced window protection
 	private async handleRainAutomation(rainStatus: number, now: number): Promise<void> {
 		if (!this.config!.windowControlEnabled) {
 			return;
 		}
 
 		if (rainStatus === 1 && this.config!.rainSettings.autoCloseWindowOnRain && (now - this.lastWindowAutomation) >= this.AUTOMATION_COOLDOWN) {
-			await this.controlDevice('window', '0', 'Auto: Rain detected');
+			await this.controlDevice('window', '0', 'Auto: Rain detected - Protecting greenhouse');
 			this.lastWindowAutomation = now;
+			console.log(`🌧️ Rain detected - Window automatically closed for protection`);
 		} else if (rainStatus === 0 && this.config!.rainSettings.autoOpenAfterRain && (now - this.lastWindowAutomation) >= this.AUTOMATION_COOLDOWN) {
-			await this.controlDevice('window', '1', 'Auto: Rain stopped');
-			this.lastWindowAutomation = now;
+			// Check temperature before reopening after rain stops
+			const latestSensorData = await SensorData.findOne().sort({ createdAt: -1 });
+			const currentTemp = latestSensorData?.temperature || 0;
+			const { windowOpenTemp } = this.config!.temperatureThresholds;
+
+			if (currentTemp >= windowOpenTemp) {
+				await this.controlDevice('window', '1', `Auto: Rain stopped - Temperature suitable (${currentTemp}°C)`);
+				this.lastWindowAutomation = now;
+				console.log(`☀️ Rain stopped and temperature is suitable (${currentTemp}°C) - Window reopened`);
+			} else {
+				console.log(`🌤️ Rain stopped but temperature too low (${currentTemp}°C) - Window stays closed`);
+			}
 		}
 	}
 
@@ -254,6 +275,13 @@ class AutomationService {
 	// Control device via MQTT
 	private async controlDevice(device: string, action: string, reason: string): Promise<void> {
 		try {
+			// Enhanced logging for automation MQTT control
+			console.log(`🤖 [AUTO-CONTROL] Automation sending MQTT command:`);
+			console.log(`   🎯 Reason: ${reason}`);
+			console.log(`   📱 Device: ${device}`);
+			console.log(`   🔧 Action: ${action} (${action === '1' ? 'ON/OPEN' : 'OFF/CLOSE'})`);
+			console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
+
 			mqttService.publishDeviceControl(device, action);
 
 			// Convert action to status and determine action name

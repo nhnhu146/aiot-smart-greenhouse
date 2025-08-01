@@ -10,7 +10,23 @@ const router = Router();
 
 // GET /api/history - Lấy dữ liệu lịch sử
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
-	const { page = 1, limit = 50, from, to } = req.query as any;
+	const {
+		page = 1,
+		limit = 50,
+		from,
+		to,
+		// Range filters
+		tempMin, tempMax,
+		humidityMin, humidityMax,
+		soilMin, soilMax,
+		waterMin, waterMax,
+		lightMin, lightMax,
+		heightMin, heightMax,
+		// Value filters
+		rainStatus,
+		deviceType,
+		controlType
+	} = req.query as any;
 
 	const query: any = {};
 
@@ -21,7 +37,76 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 		if (to) query.createdAt.$lte = to;
 	}
 
+	// Temperature range filter
+	if (tempMin !== undefined || tempMax !== undefined) {
+		query.temperature = {};
+		if (tempMin !== undefined) query.temperature.$gte = parseFloat(tempMin);
+		if (tempMax !== undefined) query.temperature.$lte = parseFloat(tempMax);
+	}
+
+	// Humidity range filter
+	if (humidityMin !== undefined || humidityMax !== undefined) {
+		query.humidity = {};
+		if (humidityMin !== undefined) query.humidity.$gte = parseFloat(humidityMin);
+		if (humidityMax !== undefined) query.humidity.$lte = parseFloat(humidityMax);
+	}
+
+	// Soil moisture range filter
+	if (soilMin !== undefined || soilMax !== undefined) {
+		query.soilMoisture = {};
+		if (soilMin !== undefined) query.soilMoisture.$gte = parseFloat(soilMin);
+		if (soilMax !== undefined) query.soilMoisture.$lte = parseFloat(soilMax);
+	}
+
+	// Water level range filter
+	if (waterMin !== undefined || waterMax !== undefined) {
+		query.waterLevel = {};
+		if (waterMin !== undefined) query.waterLevel.$gte = parseFloat(waterMin);
+		if (waterMax !== undefined) query.waterLevel.$lte = parseFloat(waterMax);
+	}
+
+	// Light level range filter
+	if (lightMin !== undefined || lightMax !== undefined) {
+		query.lightLevel = {};
+		if (lightMin !== undefined) query.lightLevel.$gte = parseFloat(lightMin);
+		if (lightMax !== undefined) query.lightLevel.$lte = parseFloat(lightMax);
+	}
+
+	// Plant height range filter
+	if (heightMin !== undefined || heightMax !== undefined) {
+		query.plantHeight = {};
+		if (heightMin !== undefined) query.plantHeight.$gte = parseFloat(heightMin);
+		if (heightMax !== undefined) query.plantHeight.$lte = parseFloat(heightMax);
+	}
+
+	// Rain status value filter
+	if (rainStatus !== undefined) {
+		query.rainStatus = parseInt(rainStatus);
+	}
+
 	const skip = (page - 1) * limit;
+
+	// Device control query with backend filtering
+	const deviceQuery: any = {};
+	if (from || to) {
+		deviceQuery.timestamp = {};
+		if (from) deviceQuery.timestamp.$gte = from;
+		if (to) deviceQuery.timestamp.$lte = to;
+	}
+	if (deviceType && ['light', 'pump', 'door', 'window'].includes(deviceType)) {
+		deviceQuery.deviceType = deviceType;
+	}
+	if (controlType && ['auto', 'manual'].includes(controlType)) {
+		deviceQuery.controlType = controlType;
+	}
+
+	// Alert query
+	const alertQuery: any = {};
+	if (from || to) {
+		alertQuery.createdAt = {};
+		if (from) alertQuery.createdAt.$gte = from;
+		if (to) alertQuery.createdAt.$lte = to;
+	}
 
 	// Smart merge: only merge if duplicates detected
 	const mergerService = DataMergerService.getInstance();
@@ -49,7 +134,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 		console.warn('⚠️ Merge failed, continuing with raw data:', mergeError);
 	}
 
-	// Get sensor data history
+	// Get sensor data history with backend filtering
 	const [sensorHistory, deviceHistory, deviceControlHistory, alertHistory] = await Promise.all([
 		SensorData.find(query)
 			.sort({ createdAt: -1 })
@@ -59,12 +144,12 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 		DeviceStatus.find()
 			.sort({ updatedAt: -1 })
 			.lean(),
-		DeviceHistory.find(query.createdAt ? { timestamp: query.createdAt } : {})
+		DeviceHistory.find(deviceQuery)
 			.sort({ timestamp: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean(),
-		Alert.find(query.createdAt ? { createdAt: query.createdAt } : {})
+		Alert.find(alertQuery)
 			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit)
@@ -72,8 +157,8 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	]);
 
 	const totalSensors = await SensorData.countDocuments(query);
-	const totalDeviceControls = await DeviceHistory.countDocuments(query.createdAt ? { timestamp: query.createdAt } : {});
-	const totalAlerts = await Alert.countDocuments(query.createdAt ? { createdAt: query.createdAt } : {});
+	const totalDeviceControls = await DeviceHistory.countDocuments(deviceQuery);
+	const totalAlerts = await Alert.countDocuments(alertQuery);
 
 	const response: APIResponse = {
 		success: true,
@@ -307,20 +392,92 @@ router.get('/trends', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 
 // GET /api/history/export - Export toàn bộ dữ liệu lịch sử
 router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
-	const { from, to, format = 'json' } = req.query as any;
+	const {
+		from,
+		to,
+		format = 'json',
+		// Range filters
+		tempMin, tempMax,
+		humidityMin, humidityMax,
+		soilMin, soilMax,
+		waterMin, waterMax,
+		lightMin, lightMax,
+		heightMin, heightMax,
+		// Value filters
+		rainStatus,
+		deviceType,
+		controlType
+	} = req.query as any;
 
-	const query: any = {};
+	// Build sensor query with filters
+	const sensorQuery: any = {};
 	if (from || to) {
-		query.timestamp = {};
-		if (from) query.timestamp.$gte = from;
-		if (to) query.timestamp.$lte = to;
+		sensorQuery.createdAt = {};
+		if (from) sensorQuery.createdAt.$gte = from;
+		if (to) sensorQuery.createdAt.$lte = to;
+	}
+
+	// Apply range filters for sensors
+	if (tempMin !== undefined || tempMax !== undefined) {
+		sensorQuery.temperature = {};
+		if (tempMin !== undefined) sensorQuery.temperature.$gte = parseFloat(tempMin);
+		if (tempMax !== undefined) sensorQuery.temperature.$lte = parseFloat(tempMax);
+	}
+	if (humidityMin !== undefined || humidityMax !== undefined) {
+		sensorQuery.humidity = {};
+		if (humidityMin !== undefined) sensorQuery.humidity.$gte = parseFloat(humidityMin);
+		if (humidityMax !== undefined) sensorQuery.humidity.$lte = parseFloat(humidityMax);
+	}
+	if (soilMin !== undefined || soilMax !== undefined) {
+		sensorQuery.soilMoisture = {};
+		if (soilMin !== undefined) sensorQuery.soilMoisture.$gte = parseFloat(soilMin);
+		if (soilMax !== undefined) sensorQuery.soilMoisture.$lte = parseFloat(soilMax);
+	}
+	if (waterMin !== undefined || waterMax !== undefined) {
+		sensorQuery.waterLevel = {};
+		if (waterMin !== undefined) sensorQuery.waterLevel.$gte = parseFloat(waterMin);
+		if (waterMax !== undefined) sensorQuery.waterLevel.$lte = parseFloat(waterMax);
+	}
+	if (lightMin !== undefined || lightMax !== undefined) {
+		sensorQuery.lightLevel = {};
+		if (lightMin !== undefined) sensorQuery.lightLevel.$gte = parseFloat(lightMin);
+		if (lightMax !== undefined) sensorQuery.lightLevel.$lte = parseFloat(lightMax);
+	}
+	if (heightMin !== undefined || heightMax !== undefined) {
+		sensorQuery.plantHeight = {};
+		if (heightMin !== undefined) sensorQuery.plantHeight.$gte = parseFloat(heightMin);
+		if (heightMax !== undefined) sensorQuery.plantHeight.$lte = parseFloat(heightMax);
+	}
+	if (rainStatus !== undefined) {
+		sensorQuery.rainStatus = parseInt(rainStatus);
+	}
+
+	// Build device control query
+	const deviceQuery: any = {};
+	if (from || to) {
+		deviceQuery.timestamp = {};
+		if (from) deviceQuery.timestamp.$gte = from;
+		if (to) deviceQuery.timestamp.$lte = to;
+	}
+	if (deviceType && ['light', 'pump', 'door', 'window'].includes(deviceType)) {
+		deviceQuery.deviceType = deviceType;
+	}
+	if (controlType && ['auto', 'manual'].includes(controlType)) {
+		deviceQuery.controlType = controlType;
+	}
+
+	// Build alert query
+	const alertQuery: any = {};
+	if (from || to) {
+		alertQuery.createdAt = {};
+		if (from) alertQuery.createdAt.$gte = from;
+		if (to) alertQuery.createdAt.$lte = to;
 	}
 
 	const [sensors, devices, alerts] = await Promise.all([
-		SensorData.find(query).sort({ createdAt: -1 }).limit(5000).lean(),
+		SensorData.find(sensorQuery).sort({ createdAt: -1 }).limit(5000).lean(),
 		DeviceStatus.find().sort({ updatedAt: -1 }).lean(),
-		Alert.find(query.timestamp ? { timestamp: query.timestamp } : {})
-			.sort({ timestamp: -1 }).limit(1000).lean()
+		Alert.find(alertQuery).sort({ createdAt: -1 }).limit(1000).lean()
 	]);
 
 	const exportData = {
@@ -339,21 +496,78 @@ router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 	};
 
 	if (format === 'csv') {
-		// CSV export for sensors only
-		const csvHeader = 'Timestamp,Temperature,Humidity,SoilMoisture,WaterLevel,PlantHeight,RainStatus\n';
-		const csvData = sensors.map((row: any) =>
-			`${row.timestamp},${row.temperature},${row.humidity},${row.soilMoisture},${row.waterLevel},${row.plantHeight},${row.rainStatus}`
-		).join('\n');
+		// CSV export với filter được áp dụng
+		const csvRows = [];
 
-		const csvContent = csvHeader + csvData;
+		// Header cho sensors
+		csvRows.push('Type,Timestamp,Temperature,Humidity,SoilMoisture,WaterLevel,LightLevel,PlantHeight,RainStatus');
 
-		res.setHeader('Content-Type', 'text/csv');
-		res.setHeader('Content-Disposition', `attachment; filename=history-export-${Date.now()}.csv`);
-		res.send(csvContent);
+		// Sensor data rows
+		sensors.forEach((row: any) => {
+			csvRows.push(`sensor,${formatVietnamTimestamp(row.createdAt)},${row.temperature || ''},${row.humidity || ''},${row.soilMoisture || ''},${row.waterLevel || ''},${row.lightLevel || ''},${row.plantHeight || ''},${row.rainStatus || ''}`);
+		});
+
+		// Device control data
+		const deviceControls = await DeviceHistory.find(deviceQuery).sort({ timestamp: -1 }).limit(1000).lean();
+
+		// Header for device controls
+		if (deviceControls.length > 0) {
+			csvRows.push(''); // Empty line separator
+			csvRows.push('Type,Timestamp,DeviceType,Action,ControlType,Success,Note');
+			deviceControls.forEach((row: any) => {
+				csvRows.push(`device,${formatVietnamTimestamp(row.timestamp)},${row.deviceType || ''},${row.action || ''},${row.controlType || ''},${row.success || ''},${row.note || ''}`);
+			});
+		}
+
+		// Alert data
+		if (alerts.length > 0) {
+			csvRows.push(''); // Empty line separator
+			csvRows.push('Type,Timestamp,AlertType,Message,Severity,Resolved');
+			alerts.forEach((row: any) => {
+				csvRows.push(`alert,${formatVietnamTimestamp(row.createdAt)},${row.type || ''},${row.message || ''},${row.severity || ''},${row.resolved || false}`);
+			});
+		}
+
+		const csvContent = csvRows.join('\n');
+
+		res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+		res.setHeader('Content-Disposition', `attachment; filename=greenhouse-history-export-${Date.now()}.csv`);
+		res.send('\uFEFF' + csvContent); // Add BOM for Excel compatibility
 	} else {
-		// JSON export
-		res.setHeader('Content-Type', 'application/json');
-		res.setHeader('Content-Disposition', `attachment; filename=history-export-${Date.now()}.json`);
+		// JSON export với thông tin filter chi tiết
+		const exportData = {
+			exportInfo: {
+				exportTime: formatVietnamTimestamp(),
+				dateRange: { from, to },
+				appliedFilters: {
+					temperature: { min: tempMin, max: tempMax },
+					humidity: { min: humidityMin, max: humidityMax },
+					soilMoisture: { min: soilMin, max: soilMax },
+					waterLevel: { min: waterMin, max: waterMax },
+					lightLevel: { min: lightMin, max: lightMax },
+					plantHeight: { min: heightMin, max: heightMax },
+					rainStatus: rainStatus,
+					deviceType: deviceType,
+					controlType: controlType
+				}
+			},
+			data: {
+				sensors: sensors,
+				deviceControls: await DeviceHistory.find(deviceQuery).sort({ timestamp: -1 }).limit(1000).lean(),
+				alerts: alerts
+			},
+			summary: {
+				totalSensorReadings: sensors.length,
+				totalDeviceControls: await DeviceHistory.countDocuments(deviceQuery),
+				totalAlerts: alerts.length,
+				dateRangeDescription: from && to ?
+					`From ${formatVietnamTimestamp(new Date(from))} to ${formatVietnamTimestamp(new Date(to))}` :
+					'All available data'
+			}
+		};
+
+		res.setHeader('Content-Type', 'application/json; charset=utf-8');
+		res.setHeader('Content-Disposition', `attachment; filename=greenhouse-history-export-${Date.now()}.json`);
 		res.json(exportData);
 	}
 }));

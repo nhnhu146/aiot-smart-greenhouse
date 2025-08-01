@@ -26,6 +26,17 @@ const History = () => {
 	const [dateFilter, setDateFilter] = useState("");
 	const [monthFilter, setMonthFilter] = useState("");
 	const [yearFilter, setYearFilter] = useState("");
+	// Range filters for sensors
+	const [tempRange, setTempRange] = useState({ min: "", max: "" });
+	const [humidityRange, setHumidityRange] = useState({ min: "", max: "" });
+	const [soilRange, setSoilRange] = useState({ min: "", max: "" });
+	const [waterRange, setWaterRange] = useState({ min: "", max: "" });
+	const [lightRange, setLightRange] = useState({ min: "", max: "" });
+	const [heightRange, setHeightRange] = useState({ min: "", max: "" });
+	// Value filters
+	const [rainFilter, setRainFilter] = useState("");
+	const [deviceTypeFilter, setDeviceTypeFilter] = useState("");
+	const [controlTypeFilter, setControlTypeFilter] = useState("");
 	const [isExporting, setIsExporting] = useState(false);
 
 	// WebSocket integration for real-time updates
@@ -118,15 +129,9 @@ const History = () => {
 					setIsUsingMockData(true);
 					console.log("🎭 Using mock history data (enabled in settings)");
 				} else {
-					// Try to get real data from API
-					const result = await mockDataService.getChartData();
-					setData(result.data);
-					setIsUsingMockData(result.isMock);
-					console.log(
-						result.isMock
-							? "🎭 Fallback to mock data (API unavailable)"
-							: "✅ Using real history data from API"
-					);
+					// Fetch real data from backend with current filters
+					await fetchFilteredData();
+					console.log("✅ Using real history data from API");
 				}
 
 				// Fetch device controls
@@ -140,6 +145,82 @@ const History = () => {
 		};
 		fetchData();
 	}, []);
+
+	// Fetch filtered data from backend API
+	const fetchFilteredData = async () => {
+		try {
+			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+			// Build query parameters
+			const params = new URLSearchParams();
+
+			// Date filters
+			if (dateFilter) {
+				params.append('from', new Date(dateFilter).toISOString());
+				params.append('to', new Date(dateFilter + 'T23:59:59.999Z').toISOString());
+			}
+			if (monthFilter) {
+				const [year, month] = monthFilter.split('-');
+				params.append('from', new Date(parseInt(year), parseInt(month) - 1, 1).toISOString());
+				params.append('to', new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999).toISOString());
+			}
+			if (yearFilter) {
+				params.append('from', new Date(parseInt(yearFilter), 0, 1).toISOString());
+				params.append('to', new Date(parseInt(yearFilter), 11, 31, 23, 59, 59, 999).toISOString());
+			}
+
+			// Range filters
+			if (tempRange.min) params.append('tempMin', tempRange.min);
+			if (tempRange.max) params.append('tempMax', tempRange.max);
+			if (humidityRange.min) params.append('humidityMin', humidityRange.min);
+			if (humidityRange.max) params.append('humidityMax', humidityRange.max);
+			if (soilRange.min) params.append('soilMin', soilRange.min);
+			if (soilRange.max) params.append('soilMax', soilRange.max);
+			if (waterRange.min) params.append('waterMin', waterRange.min);
+			if (waterRange.max) params.append('waterMax', waterRange.max);
+			if (lightRange.min) params.append('lightMin', lightRange.min);
+			if (lightRange.max) params.append('lightMax', lightRange.max);
+			if (heightRange.min) params.append('heightMin', heightRange.min);
+			if (heightRange.max) params.append('heightMax', heightRange.max);
+
+			// Value filters
+			if (rainFilter) params.append('rainStatus', rainFilter);
+			if (deviceTypeFilter) params.append('deviceType', deviceTypeFilter);
+			if (controlTypeFilter) params.append('controlType', controlTypeFilter);
+
+			const response = await fetch(`${API_BASE_URL}/api/history?${params.toString()}`);
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success) {
+					// Convert sensor data to chart format
+					const chartData = result.data.sensors.data.map((sensor: any) => ({
+						time: sensor.createdAt,
+						temperature: sensor.temperature,
+						humidity: sensor.humidity,
+						soilMoisture: sensor.soilMoisture,
+						waterLevel: sensor.waterLevel,
+						lightLevel: sensor.lightLevel,
+						rainStatus: sensor.rainStatus,
+						plantHeight: sensor.plantHeight,
+					}));
+					setData(chartData);
+					setIsUsingMockData(false);
+				}
+			} else {
+				console.warn("History API response not ok:", response.status);
+				// Fallback to mock data
+				const result = await mockDataService.getChartData();
+				setData(result.data);
+				setIsUsingMockData(true);
+			}
+		} catch (error) {
+			console.error("Failed to fetch filtered data:", error);
+			// Fallback to mock data
+			const result = await mockDataService.getChartData();
+			setData(result.data);
+			setIsUsingMockData(true);
+		}
+	};
 
 	// WebSocket listeners for real-time updates
 	useEffect(() => {
@@ -199,194 +280,220 @@ const History = () => {
 		}
 	}, [socket]);
 
-	// Apply filters when filter state or data changes
+	// Apply filters by fetching from backend instead of client-side filtering
 	useEffect(() => {
-		// Filter data based on date, month, and year
-		const applyFilters = () => {
-			// Filter sensor data
-			let filtered = [...data];
+		if (!isUsingMockData) {
+			fetchFilteredData();
+		} else {
+			// For mock data, still use client-side filtering
+			applyClientSideFilters();
+		}
+	}, [dateFilter, monthFilter, yearFilter, tempRange, humidityRange, soilRange, waterRange, lightRange, heightRange, rainFilter, deviceTypeFilter, controlTypeFilter]);
 
-			if (dateFilter) {
-				// Filter by specific date (YYYY-MM-DD)
-				filtered = filtered.filter((entry) => {
-					const entryDate = new Date(entry.time);
-					return entryDate.toISOString().split("T")[0] === dateFilter;
-				});
-			}
+	// Client-side filtering for mock data only
+	const applyClientSideFilters = () => {
+		let filtered = [...data];
 
-			if (monthFilter) {
-				// Filter by month (YYYY-MM)
-				filtered = filtered.filter((entry) => {
-					const entryDate = new Date(entry.time);
-					const entryMonth = `${entryDate.getFullYear()}-${String(
-						entryDate.getMonth() + 1
-					).padStart(2, "0")}`;
-					return entryMonth === monthFilter;
-				});
-			}
+		if (dateFilter) {
+			filtered = filtered.filter((entry) => {
+				const entryDate = new Date(entry.time);
+				return entryDate.toISOString().split("T")[0] === dateFilter;
+			});
+		}
 
-			if (yearFilter) {
-				// Filter by year (YYYY)
-				filtered = filtered.filter((entry) => {
-					const entryDate = new Date(entry.time);
-					return entryDate.getFullYear().toString() === yearFilter;
-				});
-			}
+		if (monthFilter) {
+			filtered = filtered.filter((entry) => {
+				const entryDate = new Date(entry.time);
+				const entryMonth = `${entryDate.getFullYear()}-${String(
+					entryDate.getMonth() + 1
+				).padStart(2, "0")}`;
+				return entryMonth === monthFilter;
+			});
+		}
 
-			setFilteredData(filtered);
+		if (yearFilter) {
+			filtered = filtered.filter((entry) => {
+				const entryDate = new Date(entry.time);
+				return entryDate.getFullYear().toString() === yearFilter;
+			});
+		}
 
-			// Filter device controls
-			let filteredControls = [...deviceControls];
+		// Range filters
+		if (tempRange.min) {
+			filtered = filtered.filter((entry) => entry.temperature >= parseFloat(tempRange.min));
+		}
+		if (tempRange.max) {
+			filtered = filtered.filter((entry) => entry.temperature <= parseFloat(tempRange.max));
+		}
+		if (humidityRange.min) {
+			filtered = filtered.filter((entry) => entry.humidity >= parseFloat(humidityRange.min));
+		}
+		if (humidityRange.max) {
+			filtered = filtered.filter((entry) => entry.humidity <= parseFloat(humidityRange.max));
+		}
+		if (soilRange.min) {
+			filtered = filtered.filter((entry) => entry.soilMoisture >= parseFloat(soilRange.min));
+		}
+		if (soilRange.max) {
+			filtered = filtered.filter((entry) => entry.soilMoisture <= parseFloat(soilRange.max));
+		}
+		if (waterRange.min) {
+			filtered = filtered.filter((entry) => entry.waterLevel !== undefined && entry.waterLevel >= parseFloat(waterRange.min));
+		}
+		if (waterRange.max) {
+			filtered = filtered.filter((entry) => entry.waterLevel !== undefined && entry.waterLevel <= parseFloat(waterRange.max));
+		}
+		if (lightRange.min) {
+			filtered = filtered.filter((entry) => entry.lightLevel !== undefined && entry.lightLevel >= parseFloat(lightRange.min));
+		}
+		if (lightRange.max) {
+			filtered = filtered.filter((entry) => entry.lightLevel !== undefined && entry.lightLevel <= parseFloat(lightRange.max));
+		}
+		if (heightRange.min) {
+			filtered = filtered.filter((entry) => entry.plantHeight !== undefined && entry.plantHeight >= parseFloat(heightRange.min));
+		}
+		if (heightRange.max) {
+			filtered = filtered.filter((entry) => entry.plantHeight !== undefined && entry.plantHeight <= parseFloat(heightRange.max));
+		}
 
-			if (dateFilter) {
-				filteredControls = filteredControls.filter((control) => {
-					const controlDate = new Date(control.timestamp);
-					return controlDate.toISOString().split("T")[0] === dateFilter;
-				});
-			}
+		// Value filters
+		if (rainFilter) {
+			filtered = filtered.filter((entry) => entry.rainStatus === parseInt(rainFilter));
+		}
 
-			if (monthFilter) {
-				filteredControls = filteredControls.filter((control) => {
-					const controlDate = new Date(control.timestamp);
-					const controlMonth = `${controlDate.getFullYear()}-${String(
-						controlDate.getMonth() + 1
-					).padStart(2, "0")}`;
-					return controlMonth === monthFilter;
-				});
-			}
+		setFilteredData(filtered);
 
-			if (yearFilter) {
-				// Filter by year (YYYY)
-				filteredControls = filteredControls.filter((control) => {
-					const controlDate = new Date(control.timestamp);
-					return controlDate.getFullYear().toString() === yearFilter;
-				});
-			}
+		// Apply device control filters
+		let filteredControls = [...deviceControls];
+		if (deviceTypeFilter) {
+			filteredControls = filteredControls.filter((control) => control.deviceType === deviceTypeFilter);
+		}
+		if (controlTypeFilter) {
+			filteredControls = filteredControls.filter((control) => control.controlType === controlTypeFilter);
+		}
 
-			setFilteredDeviceControls(filteredControls);
-		};
-
-		applyFilters();
-	}, [data, deviceControls, dateFilter, monthFilter, yearFilter]);
+		setFilteredDeviceControls(filteredControls);
+	};
 
 	// Reset filters
 	const resetFilters = () => {
 		setDateFilter("");
 		setMonthFilter("");
 		setYearFilter("");
+		setTempRange({ min: "", max: "" });
+		setHumidityRange({ min: "", max: "" });
+		setSoilRange({ min: "", max: "" });
+		setWaterRange({ min: "", max: "" });
+		setLightRange({ min: "", max: "" });
+		setHeightRange({ min: "", max: "" });
+		setRainFilter("");
+		setDeviceTypeFilter("");
+		setControlTypeFilter("");
 	};
 
 	// Function to convert data to CSV
 	const exportToCSV = async (exportType: "sensors" | "controls") => {
-		// Set exporting state
 		setIsExporting(true);
 
 		try {
-			// Choose data based on tab
-			if (exportType === "sensors") {
-				// Handle sensor data export
-				const dataToExport = filteredData.length > 0 ? filteredData : data;
+			if (!isUsingMockData) {
+				// Use backend export endpoint with filters
+				const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-				if (dataToExport.length === 0) {
-					alert("No sensor data available to export");
-					setIsExporting(false);
-					return;
+				const params = new URLSearchParams();
+				params.append('format', 'csv');
+
+				// Date filters
+				if (dateFilter) {
+					params.append('from', new Date(dateFilter).toISOString());
+					params.append('to', new Date(dateFilter + 'T23:59:59.999Z').toISOString());
+				}
+				if (monthFilter) {
+					const [year, month] = monthFilter.split('-');
+					params.append('from', new Date(parseInt(year), parseInt(month) - 1, 1).toISOString());
+					params.append('to', new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999).toISOString());
+				}
+				if (yearFilter) {
+					params.append('from', new Date(parseInt(yearFilter), 0, 1).toISOString());
+					params.append('to', new Date(parseInt(yearFilter), 11, 31, 23, 59, 59, 999).toISOString());
 				}
 
-				// Headers for sensor data
-				let csvContent =
-					"Time,Temperature (°C),Humidity (%),Soil Moisture,Water Level,Light Level,Rain Status,Plant Height (cm)\n";
+				// Range filters
+				if (tempRange.min) params.append('tempMin', tempRange.min);
+				if (tempRange.max) params.append('tempMax', tempRange.max);
+				if (humidityRange.min) params.append('humidityMin', humidityRange.min);
+				if (humidityRange.max) params.append('humidityMax', humidityRange.max);
+				if (soilRange.min) params.append('soilMin', soilRange.min);
+				if (soilRange.max) params.append('soilMax', soilRange.max);
+				if (waterRange.min) params.append('waterMin', waterRange.min);
+				if (waterRange.max) params.append('waterMax', waterRange.max);
+				if (lightRange.min) params.append('lightMin', lightRange.min);
+				if (lightRange.max) params.append('lightMax', lightRange.max);
+				if (heightRange.min) params.append('heightMin', heightRange.min);
+				if (heightRange.max) params.append('heightMax', heightRange.max);
 
-				// Data rows for sensors
-				dataToExport.forEach((entry: ChartDataPoint) => {
-					// Format soil moisture
-					const soilMoistureText =
-						entry.soilMoisture === 1
-							? "Wet"
-							: entry.soilMoisture === 0
-								? "Dry"
-								: "N/A";
+				// Value filters
+				if (rainFilter) params.append('rainStatus', rainFilter);
+				if (deviceTypeFilter) params.append('deviceType', deviceTypeFilter);
+				if (controlTypeFilter) params.append('controlType', controlTypeFilter);
 
-					// Format water level
-					const waterLevelText =
-						entry.waterLevel === 1
-							? "Full"
-							: entry.waterLevel === 0
-								? "None"
-								: "N/A";
-
-					// Format light level
-					const lightLevelText =
-						entry.lightLevel === 1
-							? "Bright"
-							: entry.lightLevel === 0
-								? "Dark"
-								: "N/A";
-
-					// Format rain status
-					const rainStatusText =
-						entry.rainStatus === 1 || entry.rainStatus === true
-							? "Raining"
-							: entry.rainStatus === 0 || entry.rainStatus === false
-								? "No Rain"
-								: "N/A";
-
-					// Create CSV row
-					csvContent += `"${formatDateTime(entry.time)}",${entry.temperature?.toFixed(1) || "N/A"
-						},${entry.humidity?.toFixed(1) || "N/A"
-						},"${soilMoistureText}","${waterLevelText}","${lightLevelText}","${rainStatusText}",${entry.plantHeight?.toFixed(1) || "N/A"
-						}\n`;
-				});
-
-				// Download the CSV file
-				downloadCSV(
-					csvContent,
-					`greenhouse_sensor_history_${new Date().toISOString().split("T")[0]
-					}.csv`
-				);
+				const response = await fetch(`${API_BASE_URL}/api/history/export?${params.toString()}`);
+				if (response.ok) {
+					const blob = await response.blob();
+					const url = window.URL.createObjectURL(blob);
+					const link = document.createElement('a');
+					link.href = url;
+					link.download = `greenhouse_${exportType}_history_${new Date().toISOString().split('T')[0]}.csv`;
+					document.body.appendChild(link);
+					link.click();
+					document.body.removeChild(link);
+					window.URL.revokeObjectURL(url);
+				} else {
+					throw new Error('Failed to export from backend');
+				}
 			} else {
-				// Handle device controls export
-				const dataToExport =
-					filteredDeviceControls.length > 0
-						? filteredDeviceControls
-						: deviceControls;
+				// Fallback for mock data
+				if (exportType === "sensors") {
+					const dataToExport = filteredData.length > 0 ? filteredData : data;
 
-				if (dataToExport.length === 0) {
-					alert("No device control data available to export");
-					setIsExporting(false);
-					return;
+					if (dataToExport.length === 0) {
+						alert("No sensor data available to export");
+						setIsExporting(false);
+						return;
+					}
+
+					let csvContent = "Time,Temperature (°C),Humidity (%),Soil Moisture,Water Level,Light Level,Rain Status,Plant Height (cm)\n";
+					dataToExport.forEach((entry: ChartDataPoint) => {
+						const soilMoistureText = entry.soilMoisture === 1 ? "Wet" : entry.soilMoisture === 0 ? "Dry" : "N/A";
+						const waterLevelText = entry.waterLevel === 1 ? "Full" : entry.waterLevel === 0 ? "None" : "N/A";
+						const lightLevelText = entry.lightLevel === 1 ? "Bright" : entry.lightLevel === 0 ? "Dark" : "N/A";
+						const rainStatusText = entry.rainStatus === 1 ? "Raining" : entry.rainStatus === 0 ? "No Rain" : "N/A";
+
+						csvContent += `"${formatDateTime(entry.time)}",${entry.temperature?.toFixed(1) || "N/A"},${entry.humidity?.toFixed(1) || "N/A"},"${soilMoistureText}","${waterLevelText}","${lightLevelText}","${rainStatusText}",${entry.plantHeight?.toFixed(1) || "N/A"}\n`;
+					});
+
+					downloadCSV(csvContent, `greenhouse_sensor_history_${new Date().toISOString().split("T")[0]}.csv`);
+				} else {
+					const dataToExport = filteredDeviceControls.length > 0 ? filteredDeviceControls : deviceControls;
+
+					if (dataToExport.length === 0) {
+						alert("No device control data available to export");
+						setIsExporting(false);
+						return;
+					}
+
+					let csvContent = "Time,Device Type,Device ID,Action,Control Type,Trigger,Status\n";
+					dataToExport.forEach((control: DeviceControl) => {
+						const controlTypeText = control.controlType === "auto" ? "AUTO" : "MANUAL";
+						const statusText = control.success ? "Success" : "Failed";
+
+						csvContent += `"${formatDateTime(control.timestamp)}","${control.deviceType.toUpperCase()}","${control.deviceId}","${control.action.toUpperCase()}","${controlTypeText}","${control.triggeredBy || ""}","${statusText}"\n`;
+					});
+
+					downloadCSV(csvContent, `greenhouse_controls_history_${new Date().toISOString().split("T")[0]}.csv`);
 				}
-
-				// Headers for device controls
-				let csvContent =
-					"Time,Device Type,Device ID,Action,Control Type,Trigger,Status\n";
-
-				// Data rows for device controls
-				dataToExport.forEach((control: DeviceControl) => {
-					// Format control type
-					const controlTypeText =
-						control.controlType === "auto" ? "AUTO" : "MANUAL";
-
-					// Format status
-					const statusText = control.success ? "Success" : "Failed";
-
-					// Create CSV row
-					csvContent += `"${formatDateTime(
-						control.timestamp
-					)}","${control.deviceType.toUpperCase()}","${control.deviceId
-						}","${control.action.toUpperCase()}","${controlTypeText}","${control.triggeredBy || ""
-						}","${statusText}"\n`;
-				});
-
-				// Download the CSV file
-				downloadCSV(
-					csvContent,
-					`greenhouse_controls_history_${new Date().toISOString().split("T")[0]
-					}.csv`
-				);
 			}
 
-			// Add a small delay to give user feedback
 			await new Promise((resolve) => setTimeout(resolve, 500));
 		} catch (error) {
 			console.error("Error exporting CSV:", error);
@@ -587,7 +694,7 @@ const History = () => {
 								<button
 									className={`${styles.actionButton} ${styles.clearButton}`}
 									onClick={resetFilters}
-									disabled={!dateFilter && !monthFilter && !yearFilter}
+									disabled={!dateFilter && !monthFilter && !yearFilter && !tempRange.min && !tempRange.max && !humidityRange.min && !humidityRange.max && !soilRange.min && !soilRange.max && !waterRange.min && !waterRange.max && !lightRange.min && !lightRange.max && !heightRange.min && !heightRange.max && !rainFilter && !deviceTypeFilter && !controlTypeFilter}
 									type="button"
 								>
 									<i className="bi bi-x-circle"></i>
@@ -614,6 +721,313 @@ const History = () => {
 							</div>
 						</Col>
 					</Row>
+
+					{/* Advanced Sensor Range Filters */}
+					{activeTab === "sensors" && (
+						<>
+							<hr className="my-4" />
+							<Row className="g-3">
+								<Col xs={12}>
+									<h6 className="text-secondary mb-3">
+										<i className="bi bi-sliders"></i> Sensor Range Filters
+									</h6>
+								</Col>
+
+								{/* Temperature Range */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-thermometer-half"></i>
+											Temperature (°C)
+										</Form.Label>
+										<div className="d-flex gap-2">
+											<Form.Control
+												type="number"
+												placeholder="Min"
+												value={tempRange.min}
+												onChange={(e) => setTempRange(prev => ({ ...prev, min: e.target.value }))}
+												className={styles.filterInput}
+												step="0.1"
+											/>
+											<Form.Control
+												type="number"
+												placeholder="Max"
+												value={tempRange.max}
+												onChange={(e) => setTempRange(prev => ({ ...prev, max: e.target.value }))}
+												className={styles.filterInput}
+												step="0.1"
+											/>
+										</div>
+										<Form.Text className={styles.filterText}>
+											Range: -10°C to 50°C
+										</Form.Text>
+									</Form.Group>
+								</Col>
+
+								{/* Humidity Range */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-droplet-half"></i>
+											Humidity (%)
+										</Form.Label>
+										<div className="d-flex gap-2">
+											<Form.Control
+												type="number"
+												placeholder="Min"
+												value={humidityRange.min}
+												onChange={(e) => setHumidityRange(prev => ({ ...prev, min: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="100"
+											/>
+											<Form.Control
+												type="number"
+												placeholder="Max"
+												value={humidityRange.max}
+												onChange={(e) => setHumidityRange(prev => ({ ...prev, max: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="100"
+											/>
+										</div>
+										<Form.Text className={styles.filterText}>
+											Range: 0% to 100%
+										</Form.Text>
+									</Form.Group>
+								</Col>
+
+								{/* Soil Moisture Range */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-moisture"></i>
+											Soil Moisture
+										</Form.Label>
+										<div className="d-flex gap-2">
+											<Form.Control
+												type="number"
+												placeholder="Min"
+												value={soilRange.min}
+												onChange={(e) => setSoilRange(prev => ({ ...prev, min: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="1"
+												step="0.1"
+											/>
+											<Form.Control
+												type="number"
+												placeholder="Max"
+												value={soilRange.max}
+												onChange={(e) => setSoilRange(prev => ({ ...prev, max: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="1"
+												step="0.1"
+											/>
+										</div>
+										<Form.Text className={styles.filterText}>
+											0=Dry, 1=Wet
+										</Form.Text>
+									</Form.Group>
+								</Col>
+
+								{/* Water Level Range */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-water"></i>
+											Water Level
+										</Form.Label>
+										<div className="d-flex gap-2">
+											<Form.Control
+												type="number"
+												placeholder="Min"
+												value={waterRange.min}
+												onChange={(e) => setWaterRange(prev => ({ ...prev, min: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="1"
+												step="0.1"
+											/>
+											<Form.Control
+												type="number"
+												placeholder="Max"
+												value={waterRange.max}
+												onChange={(e) => setWaterRange(prev => ({ ...prev, max: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="1"
+												step="0.1"
+											/>
+										</div>
+										<Form.Text className={styles.filterText}>
+											0=Empty, 1=Full
+										</Form.Text>
+									</Form.Group>
+								</Col>
+
+								{/* Light Level Range */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-sun"></i>
+											Light Level
+										</Form.Label>
+										<div className="d-flex gap-2">
+											<Form.Control
+												type="number"
+												placeholder="Min"
+												value={lightRange.min}
+												onChange={(e) => setLightRange(prev => ({ ...prev, min: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="1"
+												step="0.1"
+											/>
+											<Form.Control
+												type="number"
+												placeholder="Max"
+												value={lightRange.max}
+												onChange={(e) => setLightRange(prev => ({ ...prev, max: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												max="1"
+												step="0.1"
+											/>
+										</div>
+										<Form.Text className={styles.filterText}>
+											0=Dark, 1=Bright
+										</Form.Text>
+									</Form.Group>
+								</Col>
+
+								{/* Plant Height Range */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-tree"></i>
+											Plant Height (cm)
+										</Form.Label>
+										<div className="d-flex gap-2">
+											<Form.Control
+												type="number"
+												placeholder="Min"
+												value={heightRange.min}
+												onChange={(e) => setHeightRange(prev => ({ ...prev, min: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												step="0.1"
+											/>
+											<Form.Control
+												type="number"
+												placeholder="Max"
+												value={heightRange.max}
+												onChange={(e) => setHeightRange(prev => ({ ...prev, max: e.target.value }))}
+												className={styles.filterInput}
+												min="0"
+												step="0.1"
+											/>
+										</div>
+										<Form.Text className={styles.filterText}>
+											Height in centimeters
+										</Form.Text>
+									</Form.Group>
+								</Col>
+							</Row>
+
+							{/* Value Filters for Sensors */}
+							<Row className="g-3 mt-2">
+								<Col xs={12}>
+									<h6 className="text-secondary mb-3">
+										<i className="bi bi-toggles"></i> Value Filters
+									</h6>
+								</Col>
+
+								{/* Rain Status Filter */}
+								<Col md={6} lg={4}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-cloud-rain"></i>
+											Rain Status
+										</Form.Label>
+										<Form.Select
+											value={rainFilter}
+											onChange={(e) => setRainFilter(e.target.value)}
+											className={styles.filterInput}
+										>
+											<option value="">All Status</option>
+											<option value="0">No Rain</option>
+											<option value="1">Raining</option>
+										</Form.Select>
+										<Form.Text className={styles.filterText}>
+											Filter by rain detection
+										</Form.Text>
+									</Form.Group>
+								</Col>
+							</Row>
+						</>
+					)}
+
+					{/* Device Control Filters */}
+					{activeTab === "controls" && (
+						<>
+							<hr className="my-4" />
+							<Row className="g-3">
+								<Col xs={12}>
+									<h6 className="text-secondary mb-3">
+										<i className="bi bi-gear"></i> Device Control Filters
+									</h6>
+								</Col>
+
+								{/* Device Type Filter */}
+								<Col md={6}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-cpu"></i>
+											Device Type
+										</Form.Label>
+										<Form.Select
+											value={deviceTypeFilter}
+											onChange={(e) => setDeviceTypeFilter(e.target.value)}
+											className={styles.filterInput}
+										>
+											<option value="">All Devices</option>
+											<option value="light">Light</option>
+											<option value="pump">Pump</option>
+											<option value="door">Door</option>
+											<option value="window">Window</option>
+										</Form.Select>
+										<Form.Text className={styles.filterText}>
+											Filter by device type
+										</Form.Text>
+									</Form.Group>
+								</Col>
+
+								{/* Control Type Filter */}
+								<Col md={6}>
+									<Form.Group>
+										<Form.Label className={styles.filterLabel}>
+											<i className="bi bi-person-gear"></i>
+											Control Type
+										</Form.Label>
+										<Form.Select
+											value={controlTypeFilter}
+											onChange={(e) => setControlTypeFilter(e.target.value)}
+											className={styles.filterInput}
+										>
+											<option value="">All Types</option>
+											<option value="auto">Automatic</option>
+											<option value="manual">Manual</option>
+										</Form.Select>
+										<Form.Text className={styles.filterText}>
+											Filter by control source
+										</Form.Text>
+									</Form.Group>
+								</Col>
+							</Row>
+						</>
+					)}
 
 					{/* Filter Summary */}
 					{(dateFilter || monthFilter || yearFilter) && (

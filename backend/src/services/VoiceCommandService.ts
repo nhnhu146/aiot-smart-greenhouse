@@ -61,44 +61,47 @@ export class VoiceCommandService {
 	private async executeCommand(command: string): Promise<string> {
 		const cmd = command.toLowerCase().trim();
 
-		// Map voice commands to device actions
-		if (cmd.includes('open') && cmd.includes('door')) {
-			mqttService.publishDeviceControl('door', 'open');
-			return 'Door opened';
+		// Exact mapping with embedded voice commands
+		// Embedded mapping: 0="DongCua", 1="DongCuaSap", 2="MoCua", 3="MoCuaSap", 4="MoDen", 5="TatDen"
+
+		if (cmd === 'mocuasap' || cmd.includes('mở cửa sập') || cmd.includes('open window')) {
+			mqttService.publishDeviceControl('window', '1'); // 1 = open
+			return 'Window opened (MoCuaSap command)';
 		}
 
-		if (cmd.includes('close') && cmd.includes('door')) {
-			mqttService.publishDeviceControl('door', 'close');
-			return 'Door closed';
+		if (cmd === 'dongcuasap' || cmd.includes('đóng cửa sập') || cmd.includes('close window')) {
+			mqttService.publishDeviceControl('window', '0'); // 0 = close
+			return 'Window closed (DongCuaSap command)';
 		}
 
-		if (cmd.includes('open') && cmd.includes('window')) {
-			mqttService.publishDeviceControl('window', 'open');
-			return 'Window opened';
+		if (cmd === 'moden' || cmd.includes('mở đèn') || cmd.includes('turn on light')) {
+			mqttService.publishDeviceControl('light', '1'); // 1 = on
+			return 'Light turned on (MoDen command)';
 		}
 
-		if (cmd.includes('close') && cmd.includes('window')) {
-			mqttService.publishDeviceControl('window', 'close');
-			return 'Window closed';
+		if (cmd === 'tatden' || cmd.includes('tắt đèn') || cmd.includes('turn off light')) {
+			mqttService.publishDeviceControl('light', '0'); // 0 = off
+			return 'Light turned off (TatDen command)';
 		}
 
-		if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('light')) {
-			mqttService.publishDeviceControl('light', 'on');
-			return 'Light turned on';
+		if (cmd === 'mocua' || cmd.includes('mở cửa') || cmd.includes('open door')) {
+			mqttService.publishDeviceControl('door', '1'); // 1 = open
+			return 'Door opened (MoCua command)';
 		}
 
-		if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('light')) {
-			mqttService.publishDeviceControl('light', 'off');
-			return 'Light turned off';
+		if (cmd === 'dongcua' || cmd.includes('đóng cửa') || cmd.includes('close door')) {
+			mqttService.publishDeviceControl('door', '0'); // 0 = close
+			return 'Door closed (DongCua command)';
 		}
 
+		// Legacy water pump commands (not in embedded but useful for manual control)
 		if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('pump')) {
-			mqttService.publishDeviceControl('pump', 'on');
+			mqttService.publishDeviceControl('pump', '1');
 			return 'Water pump turned on';
 		}
 
 		if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('pump')) {
-			mqttService.publishDeviceControl('pump', 'off');
+			mqttService.publishDeviceControl('pump', '0');
 			return 'Water pump turned off';
 		}
 
@@ -114,7 +117,8 @@ export class VoiceCommandService {
 		}
 
 		// If no command matches, return a generic response
-		return `Command "${command}" received`;
+		console.log(`⚠️ Unrecognized voice command: "${command}"`);
+		return `Command "${command}" received but not recognized`;
 	}
 
 	async getVoiceCommands(limit: number = 50): Promise<any[]> {
