@@ -16,13 +16,13 @@ COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 # Install dependencies based on the preferred package manager
 RUN \
 	if [ -f yarn.lock ]; then \
-	echo "📦 Installing with yarn (yarn.lock found)..." && yarn install --frozen-lockfile; \
+	echo "Installing with yarn (yarn.lock found)..." && yarn install --frozen-lockfile; \
 	elif [ -f package-lock.json ]; then \
-	echo "📦 Installing with npm (package-lock.json found)..." && npm ci; \
+	echo "Installing with npm (package-lock.json found)..." && npm ci; \
 	elif [ -f pnpm-lock.yaml ]; then \
-	echo "📦 Installing with pnpm (pnpm-lock.yaml found)..." && corepack enable pnpm && pnpm i --frozen-lockfile; \
+	echo "Installing with pnpm (pnpm-lock.yaml found)..." && corepack enable pnpm && pnpm i --frozen-lockfile; \
 	else \
-	echo "📦 No lock file found, defaulting to yarn install..." && yarn install; \
+	echo "No lock file found, defaulting to yarn install..." && yarn install; \
 	fi
 
 # Development stage
@@ -36,13 +36,13 @@ FROM base AS builder
 COPY . .
 RUN \
 	if [ -f yarn.lock ]; then \
-	echo "🔨 Building with yarn (yarn.lock found)..." && yarn build; \
+	echo "Building with yarn (yarn.lock found)..." && yarn build; \
 	elif [ -f package-lock.json ]; then \
-	echo "🔨 Building with npm (package-lock.json found)..." && npm run build; \
+	echo "Building with npm (package-lock.json found)..." && npm run build; \
 	elif [ -f pnpm-lock.yaml ]; then \
-	echo "🔨 Building with pnpm (pnpm-lock.yaml found)..." && corepack enable pnpm && pnpm build; \
+	echo "Building with pnpm (pnpm-lock.yaml found)..." && corepack enable pnpm && pnpm build; \
 	else \
-	echo "🔨 No lock file found, defaulting to yarn build..." && yarn build; \
+	echo "No lock file found, defaulting to yarn build..." && yarn build; \
 	fi
 
 # Production stage

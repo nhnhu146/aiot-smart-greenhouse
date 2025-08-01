@@ -511,29 +511,6 @@ const Dashboard = () => {
 					</Card>
 				</Col>
 			</Row>
-
-			<Row className={`my-3 ${styles.chartRow}`}>
-				<Col md={6}>
-					<Card className={styles.doughnutCard}>
-						<AppSemiDoughnutChart
-							label="Humidity"
-							value={data?.humidity || 0}
-							maxValue={90}
-							unit='%'
-						/>
-					</Card>
-				</Col>
-				<Col md={6}>
-					<Card className={styles.doughnutCard}>
-						<AppSemiDoughnutChart
-							label="Temperature"
-							value={data?.temperature || 0}
-							maxValue={50}
-							unit='°C'
-						/>
-					</Card>
-				</Col>
-			</Row>
 		</Container>
 	);
 }
