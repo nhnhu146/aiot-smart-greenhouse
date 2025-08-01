@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
 	Chart as ChartJS,
@@ -11,10 +11,34 @@ import {
 	Legend,
 } from 'chart.js';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
-import mockDataService, { type ChartDataPoint } from '@/services/mockDataService';
+import { type ChartDataPoint } from '@/services/mockDataService';
 
 // Register the components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+// LocalStorage key for chart data
+const CHART_DATA_KEY = 'greenhouse_chart_data';
+const MAX_CHART_POINTS = 50; // Limit data points for performance
+
+// Save data to localStorage
+const saveChartDataToStorage = (data: ChartDataPoint[]) => {
+	try {
+		localStorage.setItem(CHART_DATA_KEY, JSON.stringify(data));
+	} catch (error) {
+		console.error('Failed to save chart data to localStorage:', error);
+	}
+};
+
+// Load data from localStorage
+const loadChartDataFromStorage = (): ChartDataPoint[] => {
+	try {
+		const stored = localStorage.getItem(CHART_DATA_KEY);
+		return stored ? JSON.parse(stored) : [];
+	} catch (error) {
+		console.error('Failed to load chart data from localStorage:', error);
+		return [];
+	}
+};
 
 // Format time to English format
 const formatTimeEN = (timestamp: string | Date) => {
@@ -35,8 +59,48 @@ const AppLineChart: React.FC = () => {
 	const { persistentSensorData, isConnected } = useWebSocketContext();
 	const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
+	const [highlight, setHighlight] = useState(false);
+	const chartRef = useRef<HTMLDivElement>(null);
 
-	// Create chart data from persistent sensor state
+	// Load data from localStorage on mount
+	useEffect(() => {
+		const storedData = loadChartDataFromStorage();
+		if (storedData.length > 0) {
+			setChartData(storedData);
+			setIsLoading(false);
+		} else {
+			// Fallback to fetching initial data if no localStorage data
+			fetchInitialData();
+		}
+	}, []);
+
+	// Trigger highlight effect when new data arrives
+	const triggerHighlight = useCallback(() => {
+		setHighlight(true);
+		setTimeout(() => setHighlight(false), 1000); // 1 second highlight
+	}, []);
+
+	// Fetch initial data from API
+	const fetchInitialData = async () => {
+		try {
+			const response = await fetch('/api/sensors/chart-data');
+			if (response.ok) {
+				const data = await response.json();
+				const formattedData = data.map((point: any) => ({
+					...point,
+					time: formatTimeEN(point.timestamp || point.time)
+				}));
+				setChartData(formattedData);
+				saveChartDataToStorage(formattedData);
+			}
+		} catch (error) {
+			console.error('Failed to fetch initial chart data:', error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Handle WebSocket data updates
 	useEffect(() => {
 		if (persistentSensorData && isConnected) {
 			const { temperature, humidity, soil } = persistentSensorData;
@@ -53,67 +117,30 @@ const AppLineChart: React.FC = () => {
 				};
 
 				setChartData(prev => {
-					// Add new point and keep only last 24 points
+					// Add new point and keep only last MAX_CHART_POINTS
 					const updated = [...prev, newDataPoint];
-					const latest24 = updated.slice(-24);
+					const latest = updated.slice(-MAX_CHART_POINTS);
 
-					// Sort by actual datetime to ensure chronological order (newest first for display)
-					const sortedData = latest24.sort((a, b) => {
-						// Parse the US time string back to Date for proper comparison
-						const timeA = new Date(a.time).getTime();
-						const timeB = new Date(b.time).getTime();
+					// Save to localStorage
+					saveChartDataToStorage(latest);
 
-						return timeB - timeA;
-					});
+					// Trigger highlight effect
+					triggerHighlight();
 
-					console.log('📈 Chart updated with persistent sensor data:', newDataPoint);
-					return sortedData;
+					return latest;
 				});
 
 				setIsLoading(false);
 			}
 		}
-	}, [persistentSensorData, isConnected]);
-
-	// Initial data fetch as fallback
-	useEffect(() => {
-		const fetchInitialData = async () => {
-			try {
-				const result = await mockDataService.getChartData();
-
-				// Format timestamps to English format
-				const formattedData = result.data.map(point => ({
-					...point,
-					time: formatTimeEN(point.time)
-				}));
-
-				// Only set if we don't have persistent data yet
-				if (chartData.length === 0) {
-					setChartData(formattedData);
-					console.log(result.isMock ? '📊 Initial mock chart data loaded' : '📊 Initial API chart data loaded');
-				}
-
-				setIsLoading(false);
-			} catch (error) {
-				console.error('Failed to fetch initial chart data:', error);
-				setIsLoading(false);
-			}
-		};
-
-		if (isLoading) {
-			fetchInitialData();
-		}
-	}, [isLoading, chartData.length]);
+	}, [persistentSensorData, isConnected, triggerHighlight]);
 
 	if (isLoading) {
 		return (
-			<div style={{
-				display: 'flex',
-				justifyContent: 'center',
-				alignItems: 'center',
-				height: '300px'
-			}}>
-				<div>Loading chart...</div>
+			<div className="d-flex justify-content-center align-items-center" style={{ height: '300px' }}>
+				<div className="spinner-border text-primary" role="status">
+					<span className="visually-hidden">Loading...</span>
+				</div>
 			</div>
 		);
 	}
@@ -121,23 +148,19 @@ const AppLineChart: React.FC = () => {
 	// Check if chartData is empty to prevent accessing undefined properties
 	if (chartData.length === 0) {
 		return (
-			<div style={{
-				display: 'flex',
-				justifyContent: 'center',
-				alignItems: 'center',
-				height: '300px'
-			}}>
-				<div>No data available</div>
+			<div className="d-flex justify-content-center align-items-center" style={{ height: '300px' }}>
+				<div className="text-center">
+					<h6 className="text-muted">No chart data available</h6>
+					<p className="text-muted">Waiting for sensor data...</p>
+				</div>
 			</div>
 		);
 	}
 
 	const data = {
 		labels: [...chartData].reverse().map(point => {
-			// Extract only time part for display on x-axis
-			if (!point || !point.time) return 'Unknown';
-			const timePart = point.time.split(', ')[1] || point.time.split(' ')[1] || point.time;
-			return timePart;
+			if (!point || !point.time) return 'N/A';
+			return point.time;
 		}),
 		datasets: [
 			{
@@ -193,7 +216,6 @@ const AppLineChart: React.FC = () => {
 		scales: {
 			y: {
 				beginAtZero: false,
-				// Dynamic scaling based on actual data
 				suggestedMin: Math.min(...chartData.map(point =>
 					Math.min(point.temperature || 0, point.humidity || 0)
 				)) - 5,
@@ -202,7 +224,6 @@ const AppLineChart: React.FC = () => {
 				)) + 5,
 				ticks: {
 					display: true,
-					// Dynamic step size based on data range
 					stepSize: Math.max(5, Math.round((Math.max(...chartData.map(point =>
 						Math.max(point.temperature || 0, point.humidity || 0)
 					)) - Math.min(...chartData.map(point =>
@@ -239,7 +260,11 @@ const AppLineChart: React.FC = () => {
 	};
 
 	return (
-		<div style={{ width: '100%', minHeight: '450px', minWidth: '700px', overflow: 'auto' }}>
+		<div
+			ref={chartRef}
+			className={`chart-container ${highlight ? 'highlight-effect' : ''}`}
+			style={{ height: '400px', position: 'relative' }}
+		>
 			<Line data={data} options={options} />
 		</div>
 	);

@@ -13,7 +13,6 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 	useEffect(() => {
 		// On mount, check the current mock data status
 		const currentState = mockDataService.isUsingMockData();
-		console.log('MockDataToggle: Current state from service:', currentState);
 		setIsMockEnabled(currentState);
 	}, []);
 
@@ -22,7 +21,6 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 		setIsLoading(true);
 		try {
 			const newState = !isMockEnabled;
-			console.log('MockDataToggle: Changing state from', isMockEnabled, 'to', newState);
 
 			mockDataService.setUseMockData(newState);
 			setIsMockEnabled(newState);
@@ -35,7 +33,6 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 			// Small delay to show loading state, but don't reload page
 			setTimeout(() => {
 				setIsLoading(false);
-				console.log('MockDataToggle: State change complete');
 			}, 300);
 		} catch (error) {
 			console.error('Error toggling mock data:', error);
