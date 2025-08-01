@@ -20,11 +20,10 @@ export class VoiceCommandService {
 			console.log(`💾 Voice command saved to database: ${voiceCommand._id}`);
 
 			// Process the command
-			const response = await this.executeCommand(command.toLowerCase().trim());
+			await this.executeCommand(command.toLowerCase().trim());
 
 			// Update the database record
 			voiceCommand.processed = true;
-			voiceCommand.response = response;
 			await voiceCommand.save();
 
 			// Send via websocket
@@ -33,11 +32,10 @@ export class VoiceCommandService {
 				command: voiceCommand.command,
 				confidence: voiceCommand.confidence,
 				timestamp: voiceCommand.timestamp.toISOString(),
-				processed: true,
-				response
+				processed: true
 			});
 
-			console.log(`✅ Voice command processed successfully: "${command}" -> "${response}"`);
+			console.log(`✅ Voice command processed successfully: "${command}"`);
 
 		} catch (error) {
 			console.error(`❌ Error processing voice command "${command}":`, error);
@@ -58,63 +56,43 @@ export class VoiceCommandService {
 		}
 	}
 
-	private async executeCommand(command: string): Promise<string> {
+	private async executeCommand(command: string): Promise<void> {
 		const cmd = command.toLowerCase().trim();
 
 		// Map voice commands to device actions
 		if (cmd.includes('open') && cmd.includes('door')) {
 			mqttService.publishDeviceControl('door', 'open');
-			return 'Door opened';
 		}
-
-		if (cmd.includes('close') && cmd.includes('door')) {
+		else if (cmd.includes('close') && cmd.includes('door')) {
 			mqttService.publishDeviceControl('door', 'close');
-			return 'Door closed';
 		}
-
-		if (cmd.includes('open') && cmd.includes('window')) {
+		else if (cmd.includes('open') && cmd.includes('window')) {
 			mqttService.publishDeviceControl('window', 'open');
-			return 'Window opened';
 		}
-
-		if (cmd.includes('close') && cmd.includes('window')) {
+		else if (cmd.includes('close') && cmd.includes('window')) {
 			mqttService.publishDeviceControl('window', 'close');
-			return 'Window closed';
 		}
-
-		if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('light')) {
+		else if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('light')) {
 			mqttService.publishDeviceControl('light', 'on');
-			return 'Light turned on';
 		}
-
-		if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('light')) {
+		else if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('light')) {
 			mqttService.publishDeviceControl('light', 'off');
-			return 'Light turned off';
 		}
-
-		if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('pump')) {
+		else if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('pump')) {
 			mqttService.publishDeviceControl('pump', 'on');
-			return 'Water pump turned on';
 		}
-
-		if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('pump')) {
+		else if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('pump')) {
 			mqttService.publishDeviceControl('pump', 'off');
-			return 'Water pump turned off';
 		}
-
 		// Auto mode commands
-		if (cmd.includes('auto') && cmd.includes('mode')) {
+		else if (cmd.includes('auto') && cmd.includes('mode')) {
 			mqttService.publish('greenhouse/system/mode', 'auto');
-			return 'Auto mode activated';
 		}
-
-		if (cmd.includes('manual') && cmd.includes('mode')) {
+		else if (cmd.includes('manual') && cmd.includes('mode')) {
 			mqttService.publish('greenhouse/system/mode', 'manual');
-			return 'Manual mode activated';
 		}
 
-		// If no command matches, return a generic response
-		return `Command "${command}" received`;
+		console.log(`🎤 Voice command executed: "${command}"`);
 	}
 
 	async getVoiceCommands(limit: number = 50): Promise<any[]> {
@@ -130,7 +108,6 @@ export class VoiceCommandService {
 				confidence: cmd.confidence,
 				timestamp: cmd.timestamp,
 				processed: cmd.processed,
-				response: cmd.response,
 				errorMessage: cmd.errorMessage
 			}));
 		} catch (error) {

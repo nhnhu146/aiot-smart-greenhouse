@@ -105,9 +105,9 @@ const ExamplesPage = () => {
 							</ul>
 						</div>
 
-						<div className="bg-dark text-white p-3 rounded">
-							<h6 className="text-white">📄 API Response Format with Pagination</h6>
-							<pre className="text-white mb-0">{`{
+						<div className="bg-dark text-light p-3 rounded">
+							<h6 className="text-light">📄 API Response Format with Pagination</h6>
+							<pre className="text-light mb-0">{`{
   "success": true,
   "message": "Data retrieved successfully",
   "data": {
@@ -162,9 +162,9 @@ const ExamplesPage = () => {
 							</ul>
 						</div>
 
-						<div className="bg-success text-white p-3 rounded mb-4">
-							<h6 className="text-white">📡 Sensor Data Event Format</h6>
-							<pre className="text-white mb-0">{`{
+						<div className="bg-success text-light p-3 rounded mb-4">
+							<h6 className="text-light">📡 Sensor Data Event Format</h6>
+							<pre className="text-light mb-0">{`{
   "topic": "greenhouse/sensors/temperature",
   "sensor": "temperature",
   "data": {
@@ -191,9 +191,9 @@ const ExamplesPage = () => {
 }`}</pre>
 						</div>
 
-						<div className="bg-info text-white p-3 rounded">
-							<h6 className="text-white">🎤 Voice Command Event Format</h6>
-							<pre className="text-white mb-0">{`{
+						<div className="bg-info text-light p-3 rounded">
+							<h6 className="text-light">🎤 Voice Command Event Format</h6>
+							<pre className="text-light mb-0">{`{
   "id": "voice_cmd_123",
   "command": "turn on the pump",
   "confidence": 0.95,

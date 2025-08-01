@@ -166,6 +166,15 @@
 	background-color: #31d2f2;
 }
 
+.run-check-btn {
+	background-color: #6f42c1;
+	color: white;
+}
+
+.run-check-btn:hover:not(:disabled) {
+	background-color: #5a3ab4;
+}
+
 .reset-btn {
 	background-color: #dc3545;
 	color: white;

@@ -649,10 +649,10 @@ router.get('/export/voice-commands', validateQuery(QueryParamsSchema), asyncHand
 		.lean();
 
 	// Convert to CSV
-	const csvHeader = 'Timestamp,Command,Confidence,Processed,Response,Error Message\n';
+	const csvHeader = 'Timestamp,Command,Confidence,Processed,Error Message\n';
 	const csvRows = data.map((item: any) => {
 		const timestamp = new Date(item.timestamp || item.createdAt).toISOString();
-		return `${timestamp},"${item.command}",${item.confidence || 'N/A'},${item.processed},"${item.response || ''}","${item.errorMessage || ''}"`;
+		return `${timestamp},"${item.command}",${item.confidence || 'N/A'},${item.processed},"${item.errorMessage || ''}"`;
 	}).join('\n');
 
 	const csv = csvHeader + csvRows;

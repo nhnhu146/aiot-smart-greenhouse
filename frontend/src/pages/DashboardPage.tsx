@@ -16,7 +16,6 @@ interface VoiceCommand {
 	confidence: number | null;
 	timestamp: string;
 	processed: boolean;
-	response?: string;
 	errorMessage?: string;
 }
 
@@ -342,11 +341,6 @@ const DashboardPage = () => {
 											{latestVoiceCommand.errorMessage ? "Error" : latestVoiceCommand.processed ? "Processed" : "Pending"}
 										</Badge>
 									</div>
-									{latestVoiceCommand.response && (
-										<div className="mb-2">
-											<strong>Response:</strong> <span className="text-success">{latestVoiceCommand.response}</span>
-										</div>
-									)}
 									{latestVoiceCommand.errorMessage && (
 										<div className="mb-2">
 											<strong>Error:</strong> <span className="text-danger">{latestVoiceCommand.errorMessage}</span>

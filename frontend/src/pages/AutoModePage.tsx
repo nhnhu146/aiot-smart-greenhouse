@@ -97,10 +97,11 @@ const AutoModePage = () => {
 	const [saving, setSaving] = useState(false);
 	const [resetting, setResetting] = useState(false);
 	const [reloading, setReloading] = useState(false);
+	const [runningCheck, setRunningCheck] = useState(false);
 	const [message, setMessage] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
 
 	// Check if any action is in progress
-	const isAnyActionInProgress = loading || saving || resetting || reloading || hookUpdating;
+	const isAnyActionInProgress = loading || saving || resetting || reloading || hookUpdating || runningCheck;
 
 	// Sync main automation toggle with the shared hook
 	const autoMode = automationConfig?.enabled ?? false;
@@ -208,6 +209,36 @@ const AutoModePage = () => {
 			showMessage('danger', 'Failed to reset automation settings');
 		} finally {
 			setResetting(false);
+		}
+	};
+
+	const runAutomationCheck = async () => {
+		if (isAnyActionInProgress) return;
+
+		setRunningCheck(true);
+		try {
+			const response = await fetch(`${API_BASE_URL}/api/automation/run-check`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to run automation check');
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				showMessage('success', 'Automation check completed successfully');
+			} else {
+				showMessage('danger', result.message || 'Failed to run automation check');
+			}
+		} catch (error) {
+			console.error('Failed to run automation check:', error);
+			showMessage('danger', 'Failed to run automation check');
+		} finally {
+			setRunningCheck(false);
 		}
 	};
 
@@ -486,6 +517,14 @@ const AutoModePage = () => {
 					className="reload-btn"
 				>
 					{reloading ? 'Reloading...' : 'Reload Settings'}
+				</button>
+
+				<button
+					onClick={runAutomationCheck}
+					disabled={isAnyActionInProgress}
+					className="run-check-btn"
+				>
+					{runningCheck ? 'Running Check...' : '🔍 Run Check'}
 				</button>
 
 				<button

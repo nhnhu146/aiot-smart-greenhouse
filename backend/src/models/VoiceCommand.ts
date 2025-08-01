@@ -5,7 +5,6 @@ export interface IVoiceCommand extends Document {
 	confidence: number | null;
 	timestamp: Date;
 	processed: boolean;
-	response?: string;
 	errorMessage?: string;
 }
 
@@ -29,10 +28,6 @@ const VoiceCommandSchema = new Schema<IVoiceCommand>({
 	processed: {
 		type: Boolean,
 		default: false
-	},
-	response: {
-		type: String,
-		trim: true
 	},
 	errorMessage: {
 		type: String,

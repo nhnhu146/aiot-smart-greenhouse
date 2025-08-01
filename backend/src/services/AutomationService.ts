@@ -1,6 +1,6 @@
 import { AutomationSettings, SensorData } from '../models';
 import { IAutomationSettings } from '../models/AutomationSettings';
-import { mqttService } from './index';
+import { mqttService, webSocketService } from './index';
 import { DeviceHistory } from '../models';
 import logger from '../utils/logger';
 
@@ -53,6 +53,19 @@ class AutomationService {
 			console.log('🛑 Automation has been DISABLED - all automatic control stopped');
 		} else if (this.config && this.config.automationEnabled) {
 			console.log('✅ Automation has been ENABLED - automatic control resumed');
+		}
+
+		// Broadcast automation status change to all connected clients
+		this.broadcastAutomationStatus();
+	}
+
+	// Broadcast automation status to WebSocket clients
+	private broadcastAutomationStatus(): void {
+		try {
+			const automationStatus = this.getAutomationStatus();
+			webSocketService.broadcastAutomationStatus(automationStatus);
+		} catch (error) {
+			console.error('Failed to broadcast automation status:', error);
 		}
 	}
 
@@ -425,6 +438,50 @@ class AutomationService {
 			return await this.enableAutomation();
 		} else {
 			return await this.disableAutomation();
+		}
+	}
+
+	// Run automation check and notify clients via WebSocket
+	async runAutomationCheck(): Promise<{ success: boolean; message: string; automationSettings?: any }> {
+		try {
+			await this.loadConfiguration();
+			if (!this.config?.automationEnabled) {
+				return { success: false, message: 'Automation is disabled' };
+			}
+
+			console.log('🔍 Running automation check...');
+
+			// Get latest sensor data from database
+			const latestSensorData = await SensorData.findOne().sort({ createdAt: -1 });
+
+			if (latestSensorData) {
+				// Process immediate automation check
+				await this.processImmediateAutomationCheck();
+
+				// Broadcast automation status via WebSocket
+				webSocketService.broadcastAutomationStatus({
+					enabled: this.config.automationEnabled,
+					lastUpdate: new Date().toISOString(),
+					activeControls: {
+						light: this.config.lightControlEnabled || false,
+						pump: this.config.pumpControlEnabled || false,
+						door: this.config.doorControlEnabled || false,
+						window: this.config.windowControlEnabled || false
+					}
+				});
+
+				console.log('✅ Automation check completed successfully');
+				return {
+					success: true,
+					message: 'Automation check completed successfully',
+					automationSettings: this.config
+				};
+			} else {
+				return { success: false, message: 'No sensor data available' };
+			}
+		} catch (error) {
+			console.error('❌ Error running automation check:', error);
+			return { success: false, message: 'Error running automation check' };
 		}
 	}
 }

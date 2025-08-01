@@ -244,7 +244,6 @@ class WebSocketService {
 		confidence: number | null;
 		timestamp: string;
 		processed: boolean;
-		response?: string;
 		errorMessage?: string;
 	}) {
 		if (!this.io) {
@@ -300,6 +299,31 @@ class WebSocketService {
 			timestamp: new Date().toISOString()
 		});
 		console.log('⚙️ Configuration update broadcast');
+	}
+
+	// Broadcast automation status updates to all connected clients
+	broadcastAutomationStatus(automationStatus: {
+		enabled: boolean;
+		lastUpdate: string;
+		activeControls: {
+			light: boolean;
+			pump: boolean;
+			door: boolean;
+			window: boolean;
+		};
+	}) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`⚙️ Broadcasting automation status: ${automationStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
+
+		// Emit to all clients
+		this.io.emit('automation-status', automationStatus);
+
+		// Also emit to automation channel
+		this.io.emit('automation-status-update', automationStatus);
 	}
 
 	// Get connection statistics

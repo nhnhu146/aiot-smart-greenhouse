@@ -320,4 +320,51 @@ router.post('/sensor-trigger', asyncHandler(async (req: Request, res: Response) 
 	}
 }));
 
+/**
+ * @route POST /api/automation/run-check - Trigger immediate automation check
+ * @desc Manually trigger an automation check with current sensor data
+ * @access Public
+ */
+router.post('/run-check', asyncHandler(async (req: Request, res: Response) => {
+	try {
+		const { automationService } = await import('../services');
+
+		// Get current automation status
+		const automationStatus = automationService.getAutomationStatus();
+
+		if (!automationStatus.enabled) {
+			const response: APIResponse = {
+				success: false,
+				message: 'Automation is currently disabled',
+				timestamp: new Date().toISOString()
+			};
+			res.status(400).json(response);
+			return;
+		}
+
+		// Trigger immediate automation check
+		await automationService.processImmediateAutomationCheck();
+
+		const response: APIResponse = {
+			success: true,
+			message: 'Automation check triggered successfully',
+			data: {
+				automationStatus: automationStatus,
+				timestamp: new Date().toISOString()
+			},
+			timestamp: new Date().toISOString()
+		};
+
+		res.json(response);
+	} catch (error) {
+		console.error('[AUTOMATION-RUN-CHECK] Error:', error);
+		const response: APIResponse = {
+			success: false,
+			message: 'Failed to run automation check',
+			timestamp: new Date().toISOString()
+		};
+		res.status(500).json(response);
+	}
+}));
+
 export default router;

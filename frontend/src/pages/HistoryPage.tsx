@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { Container, Card, Button, Alert, Tab, Tabs, Badge, Spinner, Form, Row, Col } from "react-bootstrap";
 import mockDataService, {
 	type ChartDataPoint,
 	type DeviceControl,
 } from "@/services/mockDataService";
 import useWebSocket from "@/hooks/useWebSocket";
-import "./HistoryPage.css";
+import './HistoryPage.css';
 
 interface VoiceCommand {
 	id: string;
@@ -12,7 +13,6 @@ interface VoiceCommand {
 	confidence: number | null;
 	timestamp: string;
 	processed: boolean;
-	response?: string;
 	errorMessage?: string;
 }
 
@@ -58,6 +58,7 @@ const HistoryPage = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState<"sensors" | "controls" | "voice">("sensors");
 	const [isExporting, setIsExporting] = useState(false);
+	const [showFilters, setShowFilters] = useState(false);
 
 	// Pagination states
 	const [sensorPagination, setSensorPagination] = useState<PaginationInfo>({
@@ -106,6 +107,11 @@ const HistoryPage = () => {
 
 	// WebSocket integration for real-time updates
 	const { socket } = useWebSocket();
+
+	// Count active filters  
+	const getActiveFilterCount = () => {
+		return Object.values(filters).filter(value => value !== "").length;
+	};
 
 	// Helper function to build query params
 	const buildQueryParams = (pagination: PaginationInfo, filters: FilterState) => {
@@ -221,7 +227,7 @@ const HistoryPage = () => {
 
 			const result = await response.json();
 			if (result.success) {
-				setDeviceControls(result.data.deviceControls || []);
+				setDeviceControls(result.data.controls || []);
 				setDevicePagination(result.data.pagination);
 			}
 		} catch (error) {
@@ -383,408 +389,433 @@ const HistoryPage = () => {
 
 	if (isLoading) {
 		return (
-			<div className="history-container">
-				<div className="loading-container">
-					<div className="loading-spinner"></div>
-					<p>Loading history data...</p>
+			<Container className="py-4">
+				<div className="d-flex justify-content-center align-items-center" style={{ height: '300px' }}>
+					<div className="text-center">
+						<Spinner animation="border" role="status" className="mb-3">
+							<span className="visually-hidden">Loading...</span>
+						</Spinner>
+						<p className="text-muted">Loading history data...</p>
+					</div>
 				</div>
-			</div>
+			</Container>
 		);
 	}
 
 	return (
-		<div className="history-container">
-			{/* Header */}
-			<div className="history-header">
+		<Container className="py-4">
+			<div className="d-flex justify-content-between align-items-center mb-4">
 				<h2>📊 Data History</h2>
 				{isUsingMockData && (
-					<div className="mock-data-notice">
+					<Alert variant="warning" className="mb-0 py-2 px-3">
 						⚠️ Using mock data (API unavailable)
-					</div>
+					</Alert>
 				)}
-				<button
-					className="export-btn"
+			</div>
+
+			{/* Floating Filters */}
+			<div className="d-flex justify-content-between align-items-center mb-4">
+				<div className="floating-filter-container">
+					<button
+						className={`floating-filter-toggle ${showFilters ? 'active' : ''}`}
+						onClick={() => setShowFilters(!showFilters)}
+					>
+						🔍 Filters
+						{getActiveFilterCount() > 0 && (
+							<span className="filter-badge">{getActiveFilterCount()}</span>
+						)}
+					</button>
+
+					<div className={`floating-filter-menu ${showFilters ? 'show' : ''}`}>
+						{/* Date Range Filters */}
+						<div className="filter-section">
+							<div className="filter-section-title">📅 Date Range</div>
+							<Row className="g-2">
+								<Col md={6}>
+									<Form.Group>
+										<Form.Label>From:</Form.Label>
+										<Form.Control
+											type="datetime-local"
+											value={filters.dateFrom}
+											onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+											size="sm"
+										/>
+									</Form.Group>
+								</Col>
+								<Col md={6}>
+									<Form.Group>
+										<Form.Label>To:</Form.Label>
+										<Form.Control
+											type="datetime-local"
+											value={filters.dateTo}
+											onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+											size="sm"
+										/>
+									</Form.Group>
+								</Col>
+							</Row>
+						</div>
+
+						{/* Sensor-specific filters */}
+						{activeTab === "sensors" && (
+							<div className="filter-section">
+								<div className="filter-section-title">🌡️ Sensor Values</div>
+								<Row className="g-2">
+									<Col md={6}>
+										<Form.Group>
+											<Form.Label>🌱 Soil Moisture:</Form.Label>
+											<Form.Select
+												value={filters.soilMoisture}
+												onChange={(e) => setFilters(prev => ({ ...prev, soilMoisture: e.target.value }))}
+												size="sm"
+											>
+												<option value="">All</option>
+												<option value="0">Dry (0)</option>
+												<option value="1">Wet (1)</option>
+											</Form.Select>
+										</Form.Group>
+									</Col>
+									<Col md={6}>
+										<Form.Group>
+											<Form.Label>🌧️ Rain Status:</Form.Label>
+											<Form.Select
+												value={filters.rainStatus}
+												onChange={(e) => setFilters(prev => ({ ...prev, rainStatus: e.target.value }))}
+												size="sm"
+											>
+												<option value="">All</option>
+												<option value="true">Raining</option>
+												<option value="false">Not Raining</option>
+											</Form.Select>
+										</Form.Group>
+									</Col>
+								</Row>
+							</div>
+						)}
+
+						{/* Device Control filters */}
+						{activeTab === "controls" && (
+							<div className="filter-section">
+								<div className="filter-section-title">🎮 Device Controls</div>
+								<Row className="g-2">
+									<Col md={6}>
+										<Form.Group>
+											<Form.Label>Device Type:</Form.Label>
+											<Form.Select
+												value={filters.deviceType}
+												onChange={(e) => setFilters(prev => ({ ...prev, deviceType: e.target.value }))}
+												size="sm"
+											>
+												<option value="">All Devices</option>
+												<option value="light">Light</option>
+												<option value="pump">Pump</option>
+												<option value="door">Door</option>
+												<option value="window">Window</option>
+											</Form.Select>
+										</Form.Group>
+									</Col>
+									<Col md={6}>
+										<Form.Group>
+											<Form.Label>Control Type:</Form.Label>
+											<Form.Select
+												value={filters.controlType}
+												onChange={(e) => setFilters(prev => ({ ...prev, controlType: e.target.value }))}
+												size="sm"
+											>
+												<option value="">All Types</option>
+												<option value="auto">Automatic</option>
+												<option value="manual">Manual</option>
+											</Form.Select>
+										</Form.Group>
+									</Col>
+								</Row>
+							</div>
+						)}
+
+						{/* Filter Actions */}
+						<div className="filter-actions">
+							<Button variant="outline-secondary" size="sm" onClick={clearFilters}>
+								Clear All
+							</Button>
+							<Button variant="primary" size="sm" onClick={() => { applyFilters(); setShowFilters(false); }}>
+								Apply Filters
+							</Button>
+						</div>
+					</div>
+				</div>
+
+				<Button
+					variant="success"
 					onClick={exportToCSV}
 					disabled={isExporting}
+					className="d-flex align-items-center"
 				>
-					{isExporting ? "Exporting..." : "📁 Export CSV"}
-				</button>
-			</div>
-
-			{/* Filters Section */}
-			<div className="filters-section">
-				<div className="filters-header">
-					<h3>🔍 Filters</h3>
-					<button onClick={clearFilters} className="clear-filters-btn">Clear All</button>
-				</div>
-
-				{/* Date Range Filters */}
-				<div className="filter-group">
-					<label>📅 Date Range:</label>
-					<input
-						type="datetime-local"
-						value={filters.dateFrom}
-						onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-						placeholder="From"
-					/>
-					<input
-						type="datetime-local"
-						value={filters.dateTo}
-						onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-						placeholder="To"
-					/>
-				</div>
-
-				{/* Value Range Filters for Sensors */}
-				{activeTab === "sensors" && (
-					<>
-						<div className="filter-group">
-							<label>🌡️ Temperature Range (°C):</label>
-							<input
-								type="number"
-								value={filters.minTemperature}
-								onChange={(e) => setFilters(prev => ({ ...prev, minTemperature: e.target.value }))}
-								placeholder="Min"
-								step="0.1"
-							/>
-							<input
-								type="number"
-								value={filters.maxTemperature}
-								onChange={(e) => setFilters(prev => ({ ...prev, maxTemperature: e.target.value }))}
-								placeholder="Max"
-								step="0.1"
-							/>
-						</div>
-
-						<div className="filter-group">
-							<label>💧 Humidity Range (%):</label>
-							<input
-								type="number"
-								value={filters.minHumidity}
-								onChange={(e) => setFilters(prev => ({ ...prev, minHumidity: e.target.value }))}
-								placeholder="Min"
-								step="0.1"
-							/>
-							<input
-								type="number"
-								value={filters.maxHumidity}
-								onChange={(e) => setFilters(prev => ({ ...prev, maxHumidity: e.target.value }))}
-								placeholder="Max"
-								step="0.1"
-							/>
-						</div>
-
-						<div className="filter-group">
-							<label>🌱 Soil Moisture:</label>
-							<select
-								value={filters.soilMoisture}
-								onChange={(e) => setFilters(prev => ({ ...prev, soilMoisture: e.target.value }))}
-							>
-								<option value="">All</option>
-								<option value="0">Dry (0)</option>
-								<option value="1">Wet (1)</option>
-							</select>
-						</div>
-
-						<div className="filter-group">
-							<label>🌧️ Rain Status:</label>
-							<select
-								value={filters.rainStatus}
-								onChange={(e) => setFilters(prev => ({ ...prev, rainStatus: e.target.value }))}
-							>
-								<option value="">All</option>
-								<option value="true">Raining</option>
-								<option value="false">Not Raining</option>
-							</select>
-						</div>
-					</>
-				)}
-
-				{/* Device Type Filters for Controls */}
-				{activeTab === "controls" && (
-					<>
-						<div className="filter-group">
-							<label>🎮 Device Type:</label>
-							<select
-								value={filters.deviceType}
-								onChange={(e) => setFilters(prev => ({ ...prev, deviceType: e.target.value }))}
-							>
-								<option value="">All Devices</option>
-								<option value="light">Light</option>
-								<option value="pump">Pump</option>
-								<option value="door">Door</option>
-								<option value="window">Window</option>
-							</select>
-						</div>
-
-						<div className="filter-group">
-							<label>⚙️ Control Type:</label>
-							<select
-								value={filters.controlType}
-								onChange={(e) => setFilters(prev => ({ ...prev, controlType: e.target.value }))}
-							>
-								<option value="">All Types</option>
-								<option value="auto">Automatic</option>
-								<option value="manual">Manual</option>
-							</select>
-						</div>
-					</>
-				)}
-
-				<button onClick={applyFilters} className="apply-filters-btn">Apply Filters</button>
-			</div>
-
-			{/* Tab Navigation */}
-			<div className="tab-navigation">
-				<button
-					className={`tab-btn ${activeTab === "sensors" ? "active" : ""}`}
-					onClick={() => setActiveTab("sensors")}
-				>
-					📊 Sensor Data ({data.length})
-				</button>
-				<button
-					className={`tab-btn ${activeTab === "controls" ? "active" : ""}`}
-					onClick={() => setActiveTab("controls")}
-				>
-					🎮 Device Controls ({deviceControls.length})
-				</button>
-				<button
-					className={`tab-btn ${activeTab === "voice" ? "active" : ""}`}
-					onClick={() => setActiveTab("voice")}
-				>
-					🎤 Voice Commands ({voiceCommands.length})
-				</button>
-			</div>
-
-			{/* Content based on active tab */}
-			{activeTab === "sensors" ? (
-				<div className="sensor-data-section">
-					<div className="section-header">
-						<h3>📊 Sensor Data History</h3>
-						<div className="pagination-info">
-							Page {sensorPagination.page} of {sensorPagination.totalPages}
-							({sensorPagination.total} total records)
-						</div>
-					</div>
-
-					{data.length === 0 ? (
-						<div className="no-data">No sensor data available for the selected filters.</div>
-					) : (
+					{isExporting ? (
 						<>
-							<div className="data-table-wrapper">
-								<table className="data-table">
-									<thead>
-										<tr>
-											<th>Time</th>
-											<th>Temperature (°C)</th>
-											<th>Humidity (%)</th>
-											<th>Soil Moisture</th>
-											<th>Water Level</th>
-											<th>Rain Status</th>
-											<th>Plant Height (cm)</th>
-										</tr>
-									</thead>
-									<tbody>
-										{data.map((item, index) => (
-											<tr key={index}>
-												<td>{formatDateTime(item.time)}</td>
-												<td>{item.temperature?.toFixed(1) || "N/A"}</td>
-												<td>{item.humidity?.toFixed(1) || "N/A"}</td>
-												<td>
-													<span className={`soil-moisture ${item.soilMoisture ? 'wet' : 'dry'}`}>
-														{item.soilMoisture ? 'Wet (1)' : 'Dry (0)'}
-													</span>
-												</td>
-												<td>{item.waterLevel?.toFixed(1) || "N/A"}</td>
-												<td>
-													<span className={`rain-status ${item.rainStatus ? 'raining' : 'clear'}`}>
-														{item.rainStatus ? '🌧️ Raining' : '☀️ Clear'}
-													</span>
-												</td>
-												<td>{item.plantHeight?.toFixed(1) || "N/A"}</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
+							<Spinner as="span" animation="border" size="sm" role="status" className="me-2" />
+							Exporting...
+						</>
+					) : (
+						<>📤 Export CSV</>
+					)}
+				</Button>
+			</div>
 
-							{/* Pagination Controls */}
-							<div className="pagination-controls">
-								<button
-									onClick={() => handleSensorPageChange(sensorPagination.page - 1)}
-									disabled={!sensorPagination.hasPrev}
-									className="pagination-btn"
-								>
-									Previous
-								</button>
-								<span className="page-info">
+			<Tabs
+				activeKey={activeTab}
+				onSelect={(k) => setActiveTab(k as "sensors" | "controls" | "voice")}
+				className="mb-4"
+			>
+				<Tab eventKey="sensors" title={`📊 Sensor Data (${data.length})`}>
+					<Card>
+						<Card.Header>
+							<div className="d-flex justify-content-between align-items-center">
+								<h5 className="mb-0">📊 Sensor Data History</h5>
+								<small className="text-muted">
 									Page {sensorPagination.page} of {sensorPagination.totalPages}
-								</span>
-								<button
-									onClick={() => handleSensorPageChange(sensorPagination.page + 1)}
-									disabled={!sensorPagination.hasNext}
-									className="pagination-btn"
-								>
-									Next
-								</button>
+									({sensorPagination.total} total records)
+								</small>
 							</div>
-						</>
-					)}
-				</div>
-			) : activeTab === "controls" ? (
-				<div className="device-controls-section">
-					<div className="section-header">
-						<h3>🎮 Device Control History</h3>
-						<div className="pagination-info">
-							Page {devicePagination.page} of {devicePagination.totalPages}
-							({devicePagination.total} total records)
-						</div>
-					</div>
+						</Card.Header>
+						<Card.Body>
+							{data.length === 0 ? (
+								<div className="text-center py-4 text-muted">
+									<p>No sensor data available for the selected filters.</p>
+								</div>
+							) : (
+								<>
+									<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+										<table className="table table-striped table-hover">
+											<thead className="table-light sticky-top">
+												<tr>
+													<th>Time</th>
+													<th>Temperature (°C)</th>
+													<th>Humidity (%)</th>
+													<th>Soil Moisture</th>
+													<th>Water Level</th>
+													<th>Rain Status</th>
+													<th>Plant Height (cm)</th>
+												</tr>
+											</thead>
+											<tbody>
+												{data.map((item, index) => (
+													<tr key={index}>
+														<td className="text-nowrap">{formatDateTime(item.time)}</td>
+														<td>{item.temperature?.toFixed(1) || "N/A"}</td>
+														<td>{item.humidity?.toFixed(1) || "N/A"}</td>
+														<td>
+															<Badge bg={item.soilMoisture ? 'success' : 'danger'}>
+																{item.soilMoisture ? 'Wet (1)' : 'Dry (0)'}
+															</Badge>
+														</td>
+														<td>{item.waterLevel?.toFixed(1) || "N/A"}</td>
+														<td>
+															<Badge bg={item.rainStatus ? 'primary' : 'warning'}>
+																{item.rainStatus ? '🌧️ Raining' : '☀️ Clear'}
+															</Badge>
+														</td>
+														<td>{item.plantHeight?.toFixed(1) || "N/A"}</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
 
-					{deviceControls.length === 0 ? (
-						<div className="no-data">No device control data available for the selected filters.</div>
-					) : (
-						<>
-							<div className="data-table-wrapper">
-								<table className="data-table">
-									<thead>
-										<tr>
-											<th>Time</th>
-											<th>Device</th>
-											<th>Action</th>
-											<th>Status</th>
-											<th>Control Type</th>
-											<th>Triggered By</th>
-											<th>Success</th>
-										</tr>
-									</thead>
-									<tbody>
-										{deviceControls.map((item, index) => (
-											<tr key={index}>
-												<td>{formatDateTime(item.timestamp)}</td>
-												<td>{item.deviceType}</td>
-												<td>{item.action}</td>
-												<td>
-													<span className={`status-badge ${item.status ? 'on' : 'off'}`}>
-														{item.status ? 'ON' : 'OFF'}
-													</span>
-												</td>
-												<td>
-													<span className={`control-type ${item.controlType}`}>
-														{item.controlType}
-													</span>
-												</td>
-												<td>{item.triggeredBy || 'N/A'}</td>
-												<td>
-													<span className={`success-badge ${item.success ? 'success' : 'failed'}`}>
-														{item.success ? '✓' : '✗'}
-													</span>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
+									{/* Pagination */}
+									<div className="d-flex justify-content-between align-items-center mt-3">
+										<Button
+											variant="outline-primary"
+											onClick={() => handleSensorPageChange(sensorPagination.page - 1)}
+											disabled={!sensorPagination.hasPrev}
+										>
+											Previous
+										</Button>
+										<span className="text-muted">
+											Page {sensorPagination.page} of {sensorPagination.totalPages}
+										</span>
+										<Button
+											variant="outline-primary"
+											onClick={() => handleSensorPageChange(sensorPagination.page + 1)}
+											disabled={!sensorPagination.hasNext}
+										>
+											Next
+										</Button>
+									</div>
+								</>
+							)}
+						</Card.Body>
+					</Card>
+				</Tab>
 
-							{/* Pagination Controls */}
-							<div className="pagination-controls">
-								<button
-									onClick={() => handleDevicePageChange(devicePagination.page - 1)}
-									disabled={!devicePagination.hasPrev}
-									className="pagination-btn"
-								>
-									Previous
-								</button>
-								<span className="page-info">
+				<Tab eventKey="controls" title={`🎮 Device Controls (${deviceControls.length})`}>
+					<Card>
+						<Card.Header>
+							<div className="d-flex justify-content-between align-items-center">
+								<h5 className="mb-0">🎮 Device Control History</h5>
+								<small className="text-muted">
 									Page {devicePagination.page} of {devicePagination.totalPages}
-								</span>
-								<button
-									onClick={() => handleDevicePageChange(devicePagination.page + 1)}
-									disabled={!devicePagination.hasNext}
-									className="pagination-btn"
-								>
-									Next
-								</button>
+									({devicePagination.total} total records)
+								</small>
 							</div>
-						</>
-					)}
-				</div>
-			) : (
-				<div className="voice-commands-section">
-					<div className="section-header">
-						<h3>🎤 Voice Commands History</h3>
-						<div className="pagination-info">
-							Page {voicePagination.page} of {voicePagination.totalPages}
-							({voicePagination.total} total records)
-						</div>
-					</div>
+						</Card.Header>
+						<Card.Body>
+							{deviceControls.length === 0 ? (
+								<div className="text-center py-4 text-muted">
+									<p>No device control data available for the selected filters.</p>
+								</div>
+							) : (
+								<>
+									<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+										<table className="table table-striped table-hover">
+											<thead className="table-light sticky-top">
+												<tr>
+													<th>Time</th>
+													<th>Device</th>
+													<th>Action</th>
+													<th>Status</th>
+													<th>Control Type</th>
+													<th>Triggered By</th>
+													<th>Success</th>
+												</tr>
+											</thead>
+											<tbody>
+												{deviceControls.map((item, index) => (
+													<tr key={index}>
+														<td className="text-nowrap">{formatDateTime(item.timestamp)}</td>
+														<td>{item.deviceType}</td>
+														<td>{item.action}</td>
+														<td>
+															<Badge bg={item.status ? 'success' : 'secondary'}>
+																{item.status ? 'ON' : 'OFF'}
+															</Badge>
+														</td>
+														<td>
+															<Badge bg={item.controlType === 'auto' ? 'info' : 'warning'}>
+																{item.controlType}
+															</Badge>
+														</td>
+														<td>{item.triggeredBy || 'N/A'}</td>
+														<td>
+															<Badge bg={item.success ? 'success' : 'danger'}>
+																{item.success ? '✓' : '✗'}
+															</Badge>
+														</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
 
-					{voiceCommands.length === 0 ? (
-						<div className="no-data">No voice command data available.</div>
-					) : (
-						<>
-							<div className="data-table-wrapper">
-								<table className="data-table">
-									<thead>
-										<tr>
-											<th>Time</th>
-											<th>Command</th>
-											<th>Confidence</th>
-											<th>Status</th>
-											<th>Response</th>
-										</tr>
-									</thead>
-									<tbody>
-										{voiceCommands.map((command, index) => (
-											<tr key={command.id || index}>
-												<td>{formatDateTime(command.timestamp)}</td>
-												<td>{command.command}</td>
-												<td>
-													{command.confidence !== null ? (
-														<span className={`confidence-badge ${getConfidenceBadge(command.confidence)}`}>
-															{(command.confidence * 100).toFixed(1)}%
-														</span>
-													) : (
-														<span className="confidence-badge secondary">N/A</span>
-													)}
-												</td>
-												<td>
-													<span className={`status-badge ${getVoiceStatusBadge(command)}`}>
-														{command.errorMessage ? 'Error' : command.processed ? 'Processed' : 'Pending'}
-													</span>
-												</td>
-												<td>{command.response || command.errorMessage || 'N/A'}</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
+									{/* Pagination */}
+									<div className="d-flex justify-content-between align-items-center mt-3">
+										<Button
+											variant="outline-primary"
+											onClick={() => handleDevicePageChange(devicePagination.page - 1)}
+											disabled={!devicePagination.hasPrev}
+										>
+											Previous
+										</Button>
+										<span className="text-muted">
+											Page {devicePagination.page} of {devicePagination.totalPages}
+										</span>
+										<Button
+											variant="outline-primary"
+											onClick={() => handleDevicePageChange(devicePagination.page + 1)}
+											disabled={!devicePagination.hasNext}
+										>
+											Next
+										</Button>
+									</div>
+								</>
+							)}
+						</Card.Body>
+					</Card>
+				</Tab>
 
-							{/* Pagination Controls */}
-							<div className="pagination-controls">
-								<button
-									onClick={() => handleVoicePageChange(voicePagination.page - 1)}
-									disabled={!voicePagination.hasPrev}
-									className="pagination-btn"
-								>
-									Previous
-								</button>
-								<span className="page-info">
+				<Tab eventKey="voice" title={`🎤 Voice Commands (${voiceCommands.length})`}>
+					<Card>
+						<Card.Header>
+							<div className="d-flex justify-content-between align-items-center">
+								<h5 className="mb-0">🎤 Voice Commands History</h5>
+								<small className="text-muted">
 									Page {voicePagination.page} of {voicePagination.totalPages}
-								</span>
-								<button
-									onClick={() => handleVoicePageChange(voicePagination.page + 1)}
-									disabled={!voicePagination.hasNext}
-									className="pagination-btn"
-								>
-									Next
-								</button>
+									({voicePagination.total} total records)
+								</small>
 							</div>
-						</>
-					)}
-				</div>
-			)}
-		</div>
+						</Card.Header>
+						<Card.Body>
+							{voiceCommands.length === 0 ? (
+								<div className="text-center py-4 text-muted">
+									<p>No voice command data available.</p>
+								</div>
+							) : (
+								<>
+									<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+										<table className="table table-striped table-hover">
+											<thead className="table-light sticky-top">
+												<tr>
+													<th>Time</th>
+													<th>Command</th>
+													<th>Confidence</th>
+													<th>Status</th>
+													<th>Error</th>
+												</tr>
+											</thead>
+											<tbody>
+												{voiceCommands.map((command, index) => (
+													<tr key={command.id || index}>
+														<td className="text-nowrap">{formatDateTime(command.timestamp)}</td>
+														<td>
+															<code className="text-break">{command.command}</code>
+														</td>
+														<td>
+															{command.confidence !== null ? (
+																<Badge bg={getConfidenceBadge(command.confidence)}>
+																	{(command.confidence * 100).toFixed(1)}%
+																</Badge>
+															) : (
+																<Badge bg="secondary">N/A</Badge>
+															)}
+														</td>
+														<td>
+															<Badge bg={getVoiceStatusBadge(command)}>
+																{command.errorMessage ? 'Error' : command.processed ? 'Processed' : 'Pending'}
+															</Badge>
+														</td>
+														<td className="text-break">{command.errorMessage || 'N/A'}</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
+
+									{/* Pagination */}
+									<div className="d-flex justify-content-between align-items-center mt-3">
+										<Button
+											variant="outline-primary"
+											onClick={() => handleVoicePageChange(voicePagination.page - 1)}
+											disabled={!voicePagination.hasPrev}
+										>
+											Previous
+										</Button>
+										<span className="text-muted">
+											Page {voicePagination.page} of {voicePagination.totalPages}
+										</span>
+										<Button
+											variant="outline-primary"
+											onClick={() => handleVoicePageChange(voicePagination.page + 1)}
+											disabled={!voicePagination.hasNext}
+										>
+											Next
+										</Button>
+									</div>
+								</>
+							)}
+						</Card.Body>
+					</Card>
+				</Tab>
+			</Tabs>
+		</Container>
 	);
 };
 
