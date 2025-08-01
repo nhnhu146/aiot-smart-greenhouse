@@ -72,8 +72,8 @@ services:
   # Frontend Application  
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: aiot_greenhouse_frontend
     restart: unless-stopped
     depends_on:
