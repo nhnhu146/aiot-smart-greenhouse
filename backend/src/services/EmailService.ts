@@ -323,18 +323,6 @@ export class EmailService {
 		}
 	}
 
-	public async sendMotionDetectedAlert(recipients: string[]): Promise<void> {
-		for (const recipient of recipients) {
-			await this.sendAlertEmail(
-				recipient,
-				`🚶 Motion Detected Alert`,
-				'Motion Detection',
-				'Motion detected in greenhouse',
-				'Security monitoring'
-			);
-		}
-	}
-
 	// Utility method để đóng connection pool
 	public async closeConnection(): Promise<void> {
 		if (this.transporter && this.isConfigured) {

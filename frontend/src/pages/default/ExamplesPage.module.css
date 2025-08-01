@@ -98,6 +98,15 @@ pre {
 	word-wrap: break-word;
 }
 
+/* Override pre background for dark themes */
+.bg-dark pre,
+.bg-success pre,
+.bg-warning pre,
+.bg-primary pre {
+	background-color: transparent !important;
+	border: none !important;
+}
+
 pre code {
 	background: none;
 	border: none;

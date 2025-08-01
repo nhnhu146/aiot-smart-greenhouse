@@ -173,7 +173,7 @@ export class DataMergerService {
 	 * Calculate completeness score for a document
 	 */
 	private calculateCompletenessScore(doc: any): number {
-		const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'plantHeight', 'lightLevel', 'rainStatus', 'motionDetected'];
+		const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'plantHeight', 'lightLevel', 'rainStatus'];
 		let score = 0;
 
 		for (const field of sensorFields) {
@@ -194,7 +194,7 @@ export class DataMergerService {
 		// Sensor fields to merge (use first non-null value found)
 		const sensorFields = [
 			'temperature', 'humidity', 'soilMoisture', 'waterLevel',
-			'plantHeight', 'lightLevel', 'rainStatus', 'motionDetected'
+			'plantHeight', 'lightLevel', 'rainStatus'
 		];
 
 		for (const field of sensorFields) {
@@ -299,7 +299,7 @@ export class DataMergerService {
 		// Sensor fields to merge (use first non-null value found)
 		const sensorFields = [
 			'temperature', 'humidity', 'soilMoisture', 'waterLevel',
-			'plantHeight', 'lightLevel', 'rainStatus', 'motionDetected'
+			'plantHeight', 'lightLevel', 'rainStatus'
 		];
 
 		for (const field of sensorFields) {
@@ -523,9 +523,6 @@ export class DataMergerService {
 			}
 			if (newData.rainStatus !== undefined) {
 				affectedSensors.push({ type: 'rainStatus', value: newData.rainStatus });
-			}
-			if (newData.motionDetected !== undefined) {
-				affectedSensors.push({ type: 'motion', value: newData.motionDetected });
 			}
 
 			console.log(`🤖 Triggering automation for ${affectedSensors.length} sensor(s) after merge...`);

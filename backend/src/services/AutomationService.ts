@@ -127,10 +127,6 @@ class AutomationService {
 				case 'temperature':
 					await this.handleTemperatureAutomation(value, now);
 					break;
-				case 'motion':
-				case 'motionDetected':
-					await this.handleMotionAutomation(value, now);
-					break;
 				case 'rainStatus':
 				case 'rain':
 					await this.handleRainAutomation(value, now);
@@ -221,18 +217,6 @@ class AutomationService {
 				await this.controlDevice('door', '0', `Auto: Temperature normal (${temperature}°C)`);
 				this.lastDoorAutomation = now;
 			}
-		}
-	}
-
-	// Handle motion detection automation
-	private async handleMotionAutomation(motionDetected: number, now: number): Promise<void> {
-		if (!this.config!.doorControlEnabled || !this.config!.motionSettings.autoOpenDoorOnMotion) {
-			return;
-		}
-
-		if (motionDetected === 1 && (now - this.lastDoorAutomation) >= this.AUTOMATION_COOLDOWN) {
-			await this.controlDevice('door', '1', 'Auto: Motion detected');
-			this.lastDoorAutomation = now;
 		}
 	}
 
@@ -333,8 +317,7 @@ class AutomationService {
 				{ type: 'soilMoisture', value: latestSensorData.soilMoisture },
 				{ type: 'temperature', value: latestSensorData.temperature },
 				{ type: 'rainStatus', value: latestSensorData.rainStatus },
-				{ type: 'waterLevel', value: latestSensorData.waterLevel },
-				{ type: 'motion', value: latestSensorData.motionDetected }
+				{ type: 'waterLevel', value: latestSensorData.waterLevel }
 			];
 
 			// Process each sensor that has data

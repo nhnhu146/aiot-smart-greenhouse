@@ -196,7 +196,6 @@ const HistoryPage = () => {
 					plantHeight: item.plantHeight || 0,
 					rainStatus: item.rainStatus || false,
 					lightLevel: item.lightLevel || 0,
-					motionDetected: item.motionDetected || false,
 				})) || [];
 
 				setData(transformedData);

@@ -54,13 +54,6 @@ const SensorDataSchema: Schema = new Schema({
 		max: 1, // Binary: 0 = dark, 1 = bright (based on embedded.ino)
 		default: null
 	},
-	motionDetected: {
-		type: Number,
-		required: false,
-		min: 0,
-		max: 1, // Binary: 0 = no motion, 1 = motion detected (based on embedded.ino)
-		default: null
-	},
 	// Device identifier for tracking data source
 	deviceId: {
 		type: String,
@@ -90,6 +83,5 @@ SensorDataSchema.index({
 	sparse: true, // Only index documents with these fields
 	name: "sensor_data_composite"
 });
-SensorDataSchema.index({ motionDetected: 1, createdAt: -1 }, { sparse: true }); // Motion detection queries
 
 export default mongoose.model<ISensorData>('SensorData', SensorDataSchema);

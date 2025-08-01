@@ -93,7 +93,7 @@ docker compose ps
 - **Light Control**: Auto-on when light level = 0 (dark)
 - **Pump Control**: Auto-on when soil moisture = 0 (dry)  
 - **Temperature Control**: Fan/ventilation at high temps
-- **Door/Window**: Optional motion-based automation
+- **Door/Window**: Temperature-based automation
 
 #### MQTT Topics
 ```bash

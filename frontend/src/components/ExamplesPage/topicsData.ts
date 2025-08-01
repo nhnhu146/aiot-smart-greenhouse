@@ -78,17 +78,6 @@ export const sensorTopicsData = [
 			{ description: "Medium plant", value: 25 },
 			{ description: "Large plant", value: 35 }
 		]
-	},
-	{
-		name: "Motion Detection",
-		topic: "greenhouse/sensors/motion",
-		dataType: "Binary",
-		unit: "0/1",
-		description: "PIR motion sensor (0=no motion, 1=motion detected)",
-		examples: [
-			{ description: "No motion", value: 0 },
-			{ description: "Motion detected", value: 1 }
-		]
 	}
 ];
 

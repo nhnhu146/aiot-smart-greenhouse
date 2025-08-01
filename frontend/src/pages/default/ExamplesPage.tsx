@@ -107,7 +107,7 @@ const ExamplesPage = () => {
 
 						<div className="bg-dark text-light p-3 rounded">
 							<h6 className="text-light">📄 API Response Format with Pagination</h6>
-							<pre className="text-light mb-0">{`{
+							<pre className="text-light mb-0" style={{ backgroundColor: 'transparent', border: 'none' }}>{`{
   "success": true,
   "message": "Data retrieved successfully",
   "data": {
@@ -120,7 +120,6 @@ const ExamplesPage = () => {
         "lightLevel": 1,
         "rainStatus": false,
         "plantHeight": 25,
-        "motionDetected": false,
         "createdAt": "2025-08-02T..."
       }
     ],
@@ -164,7 +163,7 @@ const ExamplesPage = () => {
 
 						<div className="bg-success text-light p-3 rounded mb-4">
 							<h6 className="text-light">📡 Sensor Data Event Format</h6>
-							<pre className="text-light mb-0">{`{
+							<pre className="text-light mb-0" style={{ backgroundColor: 'transparent', border: 'none' }}>{`{
   "topic": "greenhouse/sensors/temperature",
   "sensor": "temperature",
   "data": {
@@ -179,7 +178,7 @@ const ExamplesPage = () => {
 
 						<div className="bg-warning text-dark p-3 rounded mb-4">
 							<h6 className="text-dark">🎮 Device Status Event Format</h6>
-							<pre className="text-dark mb-0">{`{
+							<pre className="text-dark mb-0" style={{ backgroundColor: 'transparent', border: 'none' }}>{`{
   "device": "light",
   "status": {
     "status": true,

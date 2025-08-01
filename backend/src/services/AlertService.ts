@@ -547,50 +547,6 @@ class AlertService {
 		this.startBatchAlertTimer();
 	}
 
-	// Handle motion detection alert
-	async handleMotionDetected(): Promise<void> {
-		try {
-			await notificationService.triggerAlert({
-				type: 'motion',
-				level: 'medium',
-				message: 'Motion detected in greenhouse - Door automatically opened',
-				currentValue: 1,
-				threshold: { min: 0, max: 1 }
-			});
-
-			// Send email alert if enabled
-			if (this.emailRecipients.length > 0) {
-				const alert = {
-					type: 'motion',
-					level: 'medium',
-					message: 'Motion detected in greenhouse - Door automatically opened',
-					currentValue: 1,
-					threshold: { min: 0, max: 1 },
-					timestamp: new Date().toISOString()
-				};
-
-				// Add to pending alerts if batching enabled
-				if (this.batchAlerts) {
-					this.pendingAlerts.push(alert);
-					console.log(`🔄 Motion alert added to batch (${this.pendingAlerts.length} pending)`);
-				} else {
-					// Send immediately if not batching
-					for (const recipient of this.emailRecipients) {
-						await emailService.sendAlertEmail(
-							recipient,
-							'👁️ Smart Greenhouse - Motion Detected',
-							'Motion Sensor',
-							'Motion Detected',
-							'Security Alert'
-						);
-					}
-				}
-			}
-		} catch (error) {
-			console.error('Error handling motion detection alert:', error);
-		}
-	}
-
 	// Handle system errors
 	async handleSystemError(error: string, component: string): Promise<void> {
 		try {

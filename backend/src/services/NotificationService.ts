@@ -3,7 +3,7 @@ import { Alert, Settings, UserSettings } from '../models';
 import { sendPushNotification } from './PushNotificationService';
 
 export interface AlertData {
-	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'motion' | 'system';
+	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'system';
 	level: 'low' | 'medium' | 'high' | 'critical';
 	message: string;
 	currentValue?: number;

@@ -120,9 +120,6 @@ class WebSocketService {
 				case 'rain':
 					mergedValue = latestData.rainStatus ?? data.value;
 					break;
-				case 'motion':
-					mergedValue = latestData.motionDetected ?? data.value;
-					break;
 			}
 
 			const sensorUpdate = {

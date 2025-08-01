@@ -84,7 +84,6 @@ class MQTTService {
 			'greenhouse/sensors/light',
 			'greenhouse/sensors/rain',
 			'greenhouse/sensors/height',
-			'greenhouse/sensors/motion',
 			'greenhouse/devices/+/control',
 			'greenhouse/devices/+/status',
 			'greenhouse/system/mode',

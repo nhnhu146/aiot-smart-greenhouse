@@ -30,13 +30,6 @@ export interface IAutomationSettings extends Document {
 		doorCloseTemp: number; // Temperature to close door
 	};
 
-	// Motion detection settings
-	motionSettings: {
-		autoOpenDoorOnMotion: boolean; // Whether to open door when motion detected
-		autoCloseAfterMotion: boolean; // Auto close door after no motion
-		motionTimeoutMinutes: number; // Minutes to wait before auto-closing
-	};
-
 	// Rain detection settings
 	rainSettings: {
 		autoCloseWindowOnRain: boolean; // Close window when rain detected
@@ -123,23 +116,6 @@ const AutomationSettingsSchema: Schema = new Schema({
 			type: Number,
 			required: true,
 			default: 30 // Close door when temp <= 30°C
-		}
-	},
-	motionSettings: {
-		autoOpenDoorOnMotion: {
-			type: Boolean,
-			required: true,
-			default: true
-		},
-		autoCloseAfterMotion: {
-			type: Boolean,
-			required: true,
-			default: false
-		},
-		motionTimeoutMinutes: {
-			type: Number,
-			required: true,
-			default: 5
 		}
 	},
 	rainSettings: {

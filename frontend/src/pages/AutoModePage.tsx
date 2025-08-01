@@ -22,12 +22,6 @@ interface TemperatureThresholds {
 	doorCloseTemp: number;
 }
 
-interface MotionSettings {
-	autoOpenDoorOnMotion: boolean;
-	autoCloseAfterMotion: boolean;
-	motionTimeoutMinutes: number;
-}
-
 interface RainSettings {
 	autoCloseWindowOnRain: boolean;
 	autoOpenAfterRain: boolean;
@@ -48,7 +42,6 @@ interface AutomationSettings {
 	lightThresholds: LightThresholds;
 	pumpThresholds: PumpThresholds;
 	temperatureThresholds: TemperatureThresholds;
-	motionSettings: MotionSettings;
 	rainSettings: RainSettings;
 	waterLevelSettings: WaterLevelSettings;
 	createdAt?: string;
@@ -77,11 +70,6 @@ const AutoModePage = () => {
 			windowCloseTemp: 25,
 			doorOpenTemp: 35,
 			doorCloseTemp: 30
-		},
-		motionSettings: {
-			autoOpenDoorOnMotion: true,
-			autoCloseAfterMotion: false,
-			motionTimeoutMinutes: 5
 		},
 		rainSettings: {
 			autoCloseWindowOnRain: true,

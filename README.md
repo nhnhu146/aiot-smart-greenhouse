@@ -170,7 +170,7 @@ For detailed setup instructions, see [Deployment Guide](docs/DEPLOYMENT.md).
 ```
 
 ## 📡 MQTT Topics
-- **Sensors**: `greenhouse/sensors/{type}` (temperature, humidity, soil, water, motion, rain, light)
+- **Sensors**: `greenhouse/sensors/{type}` (temperature, humidity, soil, water, rain, light)
 - **Control**: `greenhouse/devices/{device}/control` (light, pump, door, window)
 
 ## � Documentation

@@ -8,7 +8,6 @@ export interface SensorData {
 	plantHeight?: number | null;
 	rainStatus?: number | null; // Binary: 0 = no rain, 1 = raining
 	lightLevel?: number | null; // Binary: 0 = dark, 1 = bright
-	motionDetected?: number | null; // Binary: 0 = no motion, 1 = motion detected
 	deviceId?: string;
 	dataQuality?: 'complete' | 'partial' | 'error';
 	createdAt?: Date;
@@ -72,9 +71,6 @@ export interface Settings {
 			windowOpen: number; // Temperature to open window
 			doorOpen: number; // Temperature to open door (emergency)
 		};
-		motionThreshold: {
-			doorOpen: boolean; // Whether to open door on motion
-		};
 		updatedAt: Date;
 	};
 	updatedAt?: Date;
@@ -102,7 +98,6 @@ export interface MQTTTopics {
 		HEIGHT: 'greenhouse/sensors/height';
 		RAIN: 'greenhouse/sensors/rain';
 		LIGHT: 'greenhouse/sensors/light';
-		MOTION: 'greenhouse/sensors/motion';
 	};
 	DEVICES: {
 		LIGHT_CONTROL: 'greenhouse/devices/light/control';

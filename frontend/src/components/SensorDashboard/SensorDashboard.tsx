@@ -122,8 +122,7 @@ const SensorDashboard: React.FC = () => {
 		water: { value: '--', timestamp: null },
 		light: { value: '--', timestamp: null },
 		rain: { value: '--', timestamp: null },
-		height: { value: '--', timestamp: null }, // Plant height
-		motion: { value: '--', timestamp: null } // Motion detection
+		height: { value: '--', timestamp: null } // Plant height
 	});
 	const [lastUpdateTime, setLastUpdateTime] = React.useState<string>('');
 
@@ -139,9 +138,9 @@ const SensorDashboard: React.FC = () => {
 					// Only update with valid numeric values
 					const numericValue = parseFloat(sensorInfo.value);
 					if (!isNaN(numericValue)) {
-						// Special handling for binary sensors (soil, water, light, rain, motion)
+						// Special handling for binary sensors (soil, water, light, rain)
 						let formattedValue: string;
-						if (['soil', 'water', 'light', 'rain', 'motion'].includes(sensorType)) {
+						if (['soil', 'water', 'light', 'rain'].includes(sensorType)) {
 							// For binary sensors, show status text instead of numbers
 							if (sensorType === 'soil') {
 								formattedValue = numericValue === 1 ? 'Wet' : 'Dry';
@@ -151,8 +150,6 @@ const SensorDashboard: React.FC = () => {
 								formattedValue = numericValue === 1 ? 'Bright' : 'Dark';
 							} else if (sensorType === 'rain') {
 								formattedValue = numericValue === 1 ? 'Raining' : 'Clear';
-							} else if (sensorType === 'motion') {
-								formattedValue = numericValue === 1 ? 'Detected' : 'None';
 							} else {
 								formattedValue = numericValue.toString();
 							}
@@ -234,13 +231,6 @@ const SensorDashboard: React.FC = () => {
 			unit: 'cm',
 			icon: '📏',
 			color: 'info'
-		},
-		{
-			key: 'motion',
-			title: 'Motion Detection',
-			unit: '', // Binary: No Motion/Motion Detected
-			icon: '👁️',
-			color: 'dark'
 		}
 	];
 

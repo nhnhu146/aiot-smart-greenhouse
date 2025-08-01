@@ -156,12 +156,6 @@ const SettingsSchema: Schema = new Schema({
 				max: 50
 			}
 		},
-		motionThreshold: {
-			doorOpen: {
-				type: Boolean,
-				default: true, // Open door when motion detected
-			}
-		},
 		updatedAt: {
 			type: Date,
 			default: Date.now

@@ -332,23 +332,6 @@ router.post('/reload', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 /**
- * @route POST /api/alerts/motion
- * @desc Manually trigger motion detection alert (for testing)
- * @access Private
- */
-router.post('/motion', asyncHandler(async (req: Request, res: Response) => {
-	await alertService.handleMotionDetected();
-
-	const response: APIResponse = {
-		success: true,
-		message: 'Motion detection alert triggered successfully',
-		timestamp: new Date().toISOString()
-	};
-
-	res.json(response);
-}));
-
-/**
  * @route POST /api/alerts/system-error
  * @desc Manually trigger system error alert (for testing)
  * @access Private

@@ -175,8 +175,8 @@ const AppLineChart: React.FC = () => {
 				position: 'top' as const,
 			},
 			title: {
-				display: true,
-				text: 'Sensor Data Trends (Last 24 Hours)',
+				display: false,
+				text: 'Sensor Data Trends',
 			},
 			tooltip: {
 				enabled: true,
@@ -239,7 +239,7 @@ const AppLineChart: React.FC = () => {
 	};
 
 	return (
-		<div style={{ width: '100%', height: '400px', minWidth: '700px', overflow: 'auto' }}>
+		<div style={{ width: '100%', minHeight: '450px', minWidth: '700px', overflow: 'auto' }}>
 			<Line data={data} options={options} />
 		</div>
 	);

@@ -642,9 +642,6 @@ async function saveSensorDataToDatabase(sensorType: string, value: number) {
 			case 'rain':
 				newData.rainStatus = value;
 				break;
-			case 'motion':
-				newData.motionDetected = value;
-				break;
 			default:
 				console.warn(`🔍 Unknown sensor type: ${sensorType}`);
 				return;

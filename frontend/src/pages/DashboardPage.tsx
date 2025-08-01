@@ -439,7 +439,7 @@ const DashboardPage = () => {
 			<Row className="my-3 align-items-center justify-content-center chart-row">
 				<Col sm={12}>
 					<Card className="chart-card">
-						<Card.Body className="chart-title">Development Prediction Chart</Card.Body>
+						<Card.Body className="chart-title">Sensor Data Trends</Card.Body>
 						<div className="my-3">
 							<AppLineChart />
 						</div>

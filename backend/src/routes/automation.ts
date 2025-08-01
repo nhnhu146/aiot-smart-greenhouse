@@ -28,11 +28,6 @@ const AutomationConfigSchema = z.object({
 		doorOpenTemp: z.number(),
 		doorCloseTemp: z.number()
 	}).optional(),
-	motionSettings: z.object({
-		autoOpenDoorOnMotion: z.boolean(),
-		autoCloseAfterMotion: z.boolean(),
-		motionTimeoutMinutes: z.number().min(1).max(60)
-	}).optional(),
 	rainSettings: z.object({
 		autoCloseWindowOnRain: z.boolean(),
 		autoOpenAfterRain: z.boolean()
