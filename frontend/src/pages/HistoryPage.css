@@ -4,6 +4,30 @@
 	display: inline-block;
 }
 
+/* Fix for sticky table header z-index issues */
+.table-responsive {
+	position: relative;
+}
+
+.table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 10 !important;
+	background-color: #f8f9fa !important;
+	border-bottom: 2px solid #dee2e6;
+}
+
+/* Sortable column headers */
+.sortable-header {
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+	background-color: #e9ecef !important;
+}
+
 .floating-filter-toggle {
 	position: relative;
 	z-index: 1000;

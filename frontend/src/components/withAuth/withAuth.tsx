@@ -11,12 +11,10 @@ const withAuth = <P extends object>(Component: React.ComponentType<P>) => {
 		useEffect(() => {
 			const checkAuth = () => {
 				const authenticated = authService.isAuthenticated();
-				console.log('withAuth - authentication check:', authenticated);
 
 				setIsAuthenticated(authenticated);
 
 				if (!authenticated) {
-					console.log('withAuth - redirecting to signin');
 					navigate('/signin');
 				} else {
 					setIsLoading(false);

@@ -168,8 +168,7 @@ class FrontendAutomationService {
 				throw new Error(`HTTP ${response.status}`);
 			}
 
-			const result = await response.json();
-			console.log('✅ Immediate automation check triggered:', result);
+			await response.json();
 			return true;
 		} catch (error) {
 			console.error('Error triggering immediate automation check:', error);
@@ -192,8 +191,7 @@ class FrontendAutomationService {
 				throw new Error(`HTTP ${response.status}`);
 			}
 
-			const result = await response.json();
-			console.log(`✅ Automation triggered for ${sensorType}:`, result);
+			await response.json();
 			return true;
 		} catch (error) {
 			console.error(`Error triggering automation for ${sensorType}:`, error);

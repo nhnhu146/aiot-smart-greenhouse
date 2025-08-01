@@ -99,7 +99,7 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			deviceType,
 			action,
 			status,
-			controlType: 'manual', // Use 'manual' instead of 'api'
+			controlType: 'manual',
 			userId: 'api-user',
 			timestamp: new Date(),
 			success: true

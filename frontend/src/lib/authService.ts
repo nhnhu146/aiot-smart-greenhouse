@@ -34,8 +34,6 @@ class AuthService {
 
 	async signIn(email: string, password: string): Promise<AuthResponse> {
 		try {
-			console.log('🔐 AuthService signin attempt for:', email.trim());
-
 			const response = await fetch(`${this.API_BASE_URL}/api/auth/signin`, {
 				method: 'POST',
 				headers: {
@@ -45,14 +43,10 @@ class AuthService {
 			});
 
 			const data = await response.json();
-			console.log('🔐 Signin response:', { success: data.success, hasToken: !!data.token, hasUser: !!data.user });
 
 			if (data.success && data.user && data.token) {
 				this.currentUser = { ...data.user, token: data.token };
 				this.saveToStorage(data.user, data.token);
-				console.log('✅ User authenticated and stored');
-			} else {
-				console.log('❌ Signin failed:', data.message);
 			}
 
 			return data;
@@ -157,7 +151,6 @@ class AuthService {
 		}
 
 		document.cookie = cookieString;
-		console.log('💾 Token saved to localStorage and cookie');
 	}
 
 	private clearStorage(): void {

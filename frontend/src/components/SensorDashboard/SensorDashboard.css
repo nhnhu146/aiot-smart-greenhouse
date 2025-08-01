@@ -1,5 +1,11 @@
 .sensor-dashboard {
 	outline: none;
+	transition: all 0.3s ease;
+}
+
+.sensor-dashboard.highlight {
+	box-shadow: 0 0 20px rgba(40, 167, 69, 0.6);
+	transform: scale(1.01);
 }
 
 .dashboard-header {

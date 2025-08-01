@@ -125,12 +125,18 @@ const SensorDashboard: React.FC = () => {
 		height: { value: '--', timestamp: null } // Plant height
 	});
 	const [lastUpdateTime, setLastUpdateTime] = React.useState<string>('');
+	const [highlight, setHighlight] = React.useState(false);
 
-	// Update sensors from persistent data
+	// Trigger highlight effect when data changes
+	const triggerHighlight = React.useCallback(() => {
+		setHighlight(true);
+		setTimeout(() => setHighlight(false), 1000);
+	}, []);
 	React.useEffect(() => {
 		if (persistentSensorData && isConnected) {
 			const updatedSensors = { ...sensors };
 			let latestTimestamp = '';
+			let hasUpdates = false;
 
 			// Update each sensor that has data
 			Object.entries(persistentSensorData).forEach(([sensorType, sensorInfo]: [string, any]) => {
@@ -157,6 +163,12 @@ const SensorDashboard: React.FC = () => {
 							formattedValue = numericValue.toFixed(1); // Format other sensors with 1 decimal
 						}
 
+						// Check if this is a new value
+						const currentValue = sensors[sensorType as keyof typeof sensors]?.value;
+						if (currentValue !== formattedValue) {
+							hasUpdates = true;
+						}
+
 						updatedSensors[sensorType as keyof typeof sensors] = {
 							value: formattedValue,
 							timestamp: sensorInfo.timestamp
@@ -175,12 +187,15 @@ const SensorDashboard: React.FC = () => {
 				setLastUpdateTime(formatTimeEN(latestTimestamp));
 			}
 
-			console.log('📊 SensorDashboard updated with persistent data');
+			// Trigger highlight effect when new data arrives
+			if (hasUpdates) {
+				triggerHighlight();
+			}
+
 		} else if (!isConnected) {
 			// Show loading when disconnected but don't clear existing data immediately
-			console.log('📡 WebSocket disconnected - keeping last known data');
 		}
-	}, [persistentSensorData, isConnected]);
+	}, [persistentSensorData, isConnected, sensors, triggerHighlight]);
 
 	const sensorCards = [
 		{
@@ -235,7 +250,7 @@ const SensorDashboard: React.FC = () => {
 	];
 
 	return (
-		<div className="sensor-dashboard">
+		<div className={`sensor-dashboard ${highlight ? 'highlight' : ''}`}>
 			<div className="dashboard-header">
 				<h2 className="dashboard-title">Sensor Dashboard</h2>
 				<div className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>

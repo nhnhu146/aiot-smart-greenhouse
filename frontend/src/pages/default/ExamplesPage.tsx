@@ -190,9 +190,9 @@ const ExamplesPage = () => {
 }`}</pre>
 						</div>
 
-						<div className="bg-info text-light p-3 rounded">
-							<h6 className="text-light">🎤 Voice Command Event Format</h6>
-							<pre className="text-light mb-0">{`{
+						<div className="bg-info text-white p-3 rounded">
+							<h6 className="text-white">🎤 Voice Command Event Format</h6>
+							<pre className="text-white mb-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '10px', borderRadius: '4px' }}>{`{
   "id": "voice_cmd_123",
   "command": "turn on the pump",
   "confidence": 0.95,

@@ -82,9 +82,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 					}
 				}));
 
-				console.log(`📊 Sensor ${data.sensor} updated: ${value} (persistent state maintained)`);
 			} else {
-				console.warn(`⚠️ Invalid sensor value received for ${data.sensor}:`, data);
 			}
 		});
 	}, []);
@@ -109,7 +107,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 		// Log connection information for debugging
 		logConnectionInfo(serverUrl);
 
-		console.log('🔌 Connecting to WebSocket server:', serverUrl);
 
 		const newSocket = io(serverUrl, config);
 
@@ -118,7 +115,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		// Connection events
 		newSocket.on('connect', () => {
-			console.log('✅ Connected to WebSocket server');
 			setIsConnected(true);
 
 			// Subscribe to sensor data
@@ -131,13 +127,11 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		newSocket.on('disconnect', (reason) => {
-			console.log('🔌 Disconnected from WebSocket server:', reason);
 			setIsConnected(false);
 
 			// Attempt to reconnect after a delay if not manually disconnected
 			if (reason !== 'io client disconnect') {
 				reconnectTimeoutRef.current = setTimeout(() => {
-					console.log('🔄 Attempting to reconnect...');
 					newSocket.connect();
 				}, 3000);
 			}
@@ -149,7 +143,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 			// Don't spam error logs, just warn once per connection attempt
 			if (!newSocket.recovered) {
-				console.info('💡 Tip: Make sure the backend server is running on port 5000');
 			}
 		});
 
@@ -158,7 +151,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		newSocket.on('reconnect_failed', () => {
-			console.warn('⚠️ WebSocket reconnection attempts exhausted. Will retry in 10 seconds...');
 			// Longer delay before trying again
 			setTimeout(() => {
 				newSocket.connect();
@@ -173,8 +165,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts); // Legacy compatibility
 
-		newSocket.on('notification', (notification: any) => {
-			console.log('🔔 Notification:', notification);
+		newSocket.on('notification', (_notification: any) => {
 			// Handle notifications here (could show toast, etc.)
 		});
 
@@ -200,10 +191,8 @@ export default function useWebSocket(): UseWebSocketReturn {
 				action: action as any
 			};
 
-			console.log('🎮 Sending device control via API:', request);
 
 			const result = await deviceControlService.sendDeviceControl(request);
-			console.log('✅ Device control response:', result);
 			return result;
 		} catch (error) {
 			console.error('❌ Device control failed:', error);

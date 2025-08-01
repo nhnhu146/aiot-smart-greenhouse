@@ -48,6 +48,9 @@ interface FilterState {
 	// Device filters
 	deviceType: string;
 	controlType: string;
+
+	// Pagination options
+	pageSize: string;
 }
 
 const HistoryPage = () => {
@@ -86,6 +89,14 @@ const HistoryPage = () => {
 		hasPrev: false
 	});
 
+
+	// Data counts for nav tabs
+	const [dataCounts, setDataCounts] = useState({
+		sensors: 0,
+		devices: 0,
+		voice: 0
+	});
+
 	// Filter states
 	const [filters, setFilters] = useState<FilterState>({
 		dateFrom: "",
@@ -102,8 +113,15 @@ const HistoryPage = () => {
 		waterLevel: "",
 		rainStatus: "",
 		deviceType: "",
-		controlType: ""
+		controlType: "",
+		pageSize: "20"
 	});
+
+
+	// Sorting states
+	const [sensorSort, setSensorSort] = useState({ field: 'time', direction: 'desc' });
+	const [deviceSort, setDeviceSort] = useState({ field: 'timestamp', direction: 'desc' });
+	const [voiceSort, setVoiceSort] = useState({ field: 'timestamp', direction: 'desc' });
 
 	// WebSocket integration for real-time updates
 	const { socket } = useWebSocket();
@@ -113,11 +131,43 @@ const HistoryPage = () => {
 		return Object.values(filters).filter(value => value !== "").length;
 	};
 
+
+	// Handle column sorting
+	const handleSort = (field: string, tabType: string) => {
+		if (tabType === 'sensors') {
+			const newDirection = sensorSort.field === field && sensorSort.direction === 'desc' ? 'asc' : 'desc';
+			setSensorSort({ field, direction: newDirection });
+			// Trigger data refetch with new sort
+			fetchSensorData(1);
+		} else if (tabType === 'devices') {
+			const newDirection = deviceSort.field === field && deviceSort.direction === 'desc' ? 'asc' : 'desc';
+			setDeviceSort({ field, direction: newDirection });
+			fetchDeviceControls(1);
+		} else if (tabType === 'voice') {
+			const newDirection = voiceSort.field === field && voiceSort.direction === 'desc' ? 'asc' : 'desc';
+			setVoiceSort({ field, direction: newDirection });
+			fetchVoiceCommands(1);
+		}
+	};
+
+	// Get sort icon for table headers
+	const getSortIcon = (field: string, tabType: string) => {
+		const sortState = tabType === 'sensors' ? sensorSort :
+			tabType === 'devices' ? deviceSort : voiceSort;
+
+		if (sortState.field !== field) return ' ↕️';
+		return sortState.direction === 'asc' ? ' ⬆️' : ' ⬇️';
+	};
+
 	// Helper function to build query params
-	const buildQueryParams = (pagination: PaginationInfo, filters: FilterState) => {
+	const buildQueryParams = (pagination: PaginationInfo, filters: FilterState, sortField?: string, sortDirection?: string) => {
 		const params = new URLSearchParams();
 		params.append('page', pagination.page.toString());
 		params.append('limit', pagination.limit.toString());
+
+		// Add sorting parameters
+		if (sortField) params.append('sortField', sortField);
+		if (sortDirection) params.append('sortDirection', sortDirection);
 
 		if (filters.dateFrom) params.append('from', filters.dateFrom);
 		if (filters.dateTo) params.append('to', filters.dateTo);
@@ -173,11 +223,37 @@ const HistoryPage = () => {
 		return "secondary";
 	};
 
+
+	// Fetch data counts for navigation tabs
+	const fetchDataCounts = async () => {
+		try {
+			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+			const [sensorsRes, devicesRes, voiceRes] = await Promise.all([
+				fetch(`${API_BASE_URL}/api/sensors/count`),
+				fetch(`${API_BASE_URL}/api/history/device-controls/count`),
+				fetch(`${API_BASE_URL}/api/voice-commands/count`)
+			]);
+
+			const sensorsData = await sensorsRes.json();
+			const devicesData = await devicesRes.json();
+			const voiceData = await voiceRes.json();
+
+			setDataCounts({
+				sensors: sensorsData.count || 0,
+				devices: devicesData.count || 0,
+				voice: voiceData.count || 0
+			});
+		} catch (error) {
+			console.error('Failed to fetch data counts:', error);
+		}
+	};
+
 	// Fetch sensor data from backend API
 	const fetchSensorData = async (page: number = 1) => {
 		try {
 			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-			const queryParams = buildQueryParams({ ...sensorPagination, page }, filters);
+			const queryParams = buildQueryParams({ ...sensorPagination, page }, filters, sensorSort.field, sensorSort.direction);
 			const response = await fetch(`${API_BASE_URL}/api/sensors?${queryParams}`);
 
 			if (!response.ok) {
@@ -217,7 +293,7 @@ const HistoryPage = () => {
 	const fetchDeviceControls = async (page: number = 1) => {
 		try {
 			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-			const queryParams = buildQueryParams({ ...devicePagination, page }, filters);
+			const queryParams = buildQueryParams({ ...devicePagination, page }, filters, deviceSort.field, deviceSort.direction);
 			const response = await fetch(`${API_BASE_URL}/api/history/device-controls?${queryParams}`);
 
 			if (!response.ok) {
@@ -238,7 +314,7 @@ const HistoryPage = () => {
 	const fetchVoiceCommands = async (page: number = 1) => {
 		try {
 			const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-			const queryParams = buildQueryParams({ ...voicePagination, page }, filters);
+			const queryParams = buildQueryParams({ ...voicePagination, page }, filters, voiceSort.field, voiceSort.direction);
 			const response = await fetch(`${API_BASE_URL}/api/voice-commands?${queryParams}`);
 
 			if (!response.ok) {
@@ -284,7 +360,8 @@ const HistoryPage = () => {
 			waterLevel: "",
 			rainStatus: "",
 			deviceType: "",
-			controlType: ""
+			controlType: "",
+			pageSize: "20"
 		});
 	};
 
@@ -360,7 +437,8 @@ const HistoryPage = () => {
 				await Promise.all([
 					fetchSensorData(),
 					fetchDeviceControls(),
-					fetchVoiceCommands()
+					fetchVoiceCommands(),
+					fetchDataCounts()
 				]);
 			} catch (error) {
 				console.error("Failed to fetch history data:", error);
@@ -457,39 +535,123 @@ const HistoryPage = () => {
 
 						{/* Sensor-specific filters */}
 						{activeTab === "sensors" && (
-							<div className="filter-section">
-								<div className="filter-section-title">🌡️ Sensor Values</div>
-								<Row className="g-2">
-									<Col md={6}>
-										<Form.Group>
-											<Form.Label>🌱 Soil Moisture:</Form.Label>
-											<Form.Select
-												value={filters.soilMoisture}
-												onChange={(e) => setFilters(prev => ({ ...prev, soilMoisture: e.target.value }))}
-												size="sm"
-											>
-												<option value="">All</option>
-												<option value="0">Dry (0)</option>
-												<option value="1">Wet (1)</option>
-											</Form.Select>
-										</Form.Group>
-									</Col>
-									<Col md={6}>
-										<Form.Group>
-											<Form.Label>🌧️ Rain Status:</Form.Label>
-											<Form.Select
-												value={filters.rainStatus}
-												onChange={(e) => setFilters(prev => ({ ...prev, rainStatus: e.target.value }))}
-												size="sm"
-											>
-												<option value="">All</option>
-												<option value="true">Raining</option>
-												<option value="false">Not Raining</option>
-											</Form.Select>
-										</Form.Group>
-									</Col>
-								</Row>
-							</div>
+							<>
+								<div className="filter-section">
+									<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
+									<Row className="g-2">
+										<Col md={6}>
+											<Form.Group>
+												<Form.Label>Min Temperature:</Form.Label>
+												<Form.Control
+													type="number"
+													value={filters.minTemperature}
+													onChange={(e) => setFilters(prev => ({ ...prev, minTemperature: e.target.value }))}
+													size="sm"
+													step="0.1"
+													placeholder="e.g. 20.0"
+												/>
+											</Form.Group>
+										</Col>
+										<Col md={6}>
+											<Form.Group>
+												<Form.Label>Max Temperature:</Form.Label>
+												<Form.Control
+													type="number"
+													value={filters.maxTemperature}
+													onChange={(e) => setFilters(prev => ({ ...prev, maxTemperature: e.target.value }))}
+													size="sm"
+													step="0.1"
+													placeholder="e.g. 35.0"
+												/>
+											</Form.Group>
+										</Col>
+									</Row>
+								</div>
+
+								<div className="filter-section">
+									<div className="filter-section-title">💧 Humidity Range (%)</div>
+									<Row className="g-2">
+										<Col md={6}>
+											<Form.Group>
+												<Form.Label>Min Humidity:</Form.Label>
+												<Form.Control
+													type="number"
+													value={filters.minHumidity}
+													onChange={(e) => setFilters(prev => ({ ...prev, minHumidity: e.target.value }))}
+													size="sm"
+													step="0.1"
+													min="0"
+													max="100"
+													placeholder="e.g. 40.0"
+												/>
+											</Form.Group>
+										</Col>
+										<Col md={6}>
+											<Form.Group>
+												<Form.Label>Max Humidity:</Form.Label>
+												<Form.Control
+													type="number"
+													value={filters.maxHumidity}
+													onChange={(e) => setFilters(prev => ({ ...prev, maxHumidity: e.target.value }))}
+													size="sm"
+													step="0.1"
+													min="0"
+													max="100"
+													placeholder="e.g. 80.0"
+												/>
+											</Form.Group>
+										</Col>
+									</Row>
+								</div>
+
+								<div className="filter-section">
+									<div className="filter-section-title">🌱 Binary Sensors</div>
+									<Row className="g-2">
+										<Col md={4}>
+											<Form.Group>
+												<Form.Label>Soil Moisture:</Form.Label>
+												<Form.Select
+													value={filters.soilMoisture}
+													onChange={(e) => setFilters(prev => ({ ...prev, soilMoisture: e.target.value }))}
+													size="sm"
+												>
+													<option value="">All</option>
+													<option value="0">Dry (0)</option>
+													<option value="1">Wet (1)</option>
+												</Form.Select>
+											</Form.Group>
+										</Col>
+										<Col md={4}>
+											<Form.Group>
+												<Form.Label>Water Level:</Form.Label>
+												<Form.Select
+													value={filters.waterLevel}
+													onChange={(e) => setFilters(prev => ({ ...prev, waterLevel: e.target.value }))}
+													size="sm"
+												>
+													<option value="">All</option>
+													<option value="0">Low (0)</option>
+													<option value="1">Full (1)</option>
+												</Form.Select>
+											</Form.Group>
+										</Col>
+										<Col md={4}>
+											<Form.Group>
+												<Form.Label>Rain Status:</Form.Label>
+												<Form.Select
+													value={filters.rainStatus}
+													onChange={(e) => setFilters(prev => ({ ...prev, rainStatus: e.target.value }))}
+													size="sm"
+												>
+													<option value="">All</option>
+													<option value="true">Raining</option>
+													<option value="false">Not Raining</option>
+												</Form.Select>
+											</Form.Group>
+										</Col>
+									</Row>
+								</div>
+							</>
 						)}
 
 						{/* Device Control filters */}
@@ -531,6 +693,34 @@ const HistoryPage = () => {
 							</div>
 						)}
 
+						{/* Page Size Selector */}
+						<Row className="mb-3">
+							<Col md={4}>
+								<Form.Group>
+									<Form.Label>Records per page:</Form.Label>
+									<Form.Select
+										value={filters.pageSize}
+										onChange={(e) => {
+											setFilters(prev => ({ ...prev, pageSize: e.target.value }));
+											// Update pagination limits for all tabs
+											const newLimit = parseInt(e.target.value);
+											setSensorPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+											setDevicePagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+											setVoicePagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+											// Refetch data with new page size
+											applyFilters();
+										}}
+										size="sm"
+									>
+										<option value="10">10</option>
+										<option value="20">20</option>
+										<option value="50">50</option>
+										<option value="100">100</option>
+									</Form.Select>
+								</Form.Group>
+							</Col>
+						</Row>
+
 						{/* Filter Actions */}
 						<div className="filter-actions">
 							<Button variant="outline-secondary" size="sm" onClick={clearFilters}>
@@ -565,7 +755,7 @@ const HistoryPage = () => {
 				onSelect={(k) => setActiveTab(k as "sensors" | "controls" | "voice")}
 				className="mb-4"
 			>
-				<Tab eventKey="sensors" title={`📊 Sensor Data (${data.length})`}>
+				<Tab eventKey="sensors" title={`📊 Sensor Data (${dataCounts.sensors})`}>
 					<Card>
 						<Card.Header>
 							<div className="d-flex justify-content-between align-items-center">
@@ -587,13 +777,27 @@ const HistoryPage = () => {
 										<table className="table table-striped table-hover">
 											<thead className="table-light sticky-top">
 												<tr>
-													<th>Time</th>
-													<th>Temperature (°C)</th>
-													<th>Humidity (%)</th>
-													<th>Soil Moisture</th>
-													<th>Water Level</th>
-													<th>Rain Status</th>
-													<th>Plant Height (cm)</th>
+													<th className="sortable-header" onClick={() => handleSort('time', 'sensors')}>
+														Time{getSortIcon('time', 'sensors')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('temperature', 'sensors')}>
+														Temperature (°C){getSortIcon('temperature', 'sensors')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('humidity', 'sensors')}>
+														Humidity (%){getSortIcon('humidity', 'sensors')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('soilMoisture', 'sensors')}>
+														Soil Moisture{getSortIcon('soilMoisture', 'sensors')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('waterLevel', 'sensors')}>
+														Water Level{getSortIcon('waterLevel', 'sensors')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('rainStatus', 'sensors')}>
+														Rain Status{getSortIcon('rainStatus', 'sensors')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('plantHeight', 'sensors')}>
+														Plant Height (cm){getSortIcon('plantHeight', 'sensors')}
+													</th>
 												</tr>
 											</thead>
 											<tbody>
@@ -646,7 +850,7 @@ const HistoryPage = () => {
 					</Card>
 				</Tab>
 
-				<Tab eventKey="controls" title={`🎮 Device Controls (${deviceControls.length})`}>
+				<Tab eventKey="controls" title={`🎮 Device Controls (${dataCounts.devices})`}>
 					<Card>
 						<Card.Header>
 							<div className="d-flex justify-content-between align-items-center">
@@ -668,13 +872,27 @@ const HistoryPage = () => {
 										<table className="table table-striped table-hover">
 											<thead className="table-light sticky-top">
 												<tr>
-													<th>Time</th>
-													<th>Device</th>
-													<th>Action</th>
-													<th>Status</th>
-													<th>Control Type</th>
-													<th>Triggered By</th>
-													<th>Success</th>
+													<th className="sortable-header" onClick={() => handleSort('timestamp', 'devices')}>
+														Time{getSortIcon('timestamp', 'devices')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('deviceType', 'devices')}>
+														Device{getSortIcon('deviceType', 'devices')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('action', 'devices')}>
+														Action{getSortIcon('action', 'devices')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('status', 'devices')}>
+														Status{getSortIcon('status', 'devices')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('controlType', 'devices')}>
+														Control Type{getSortIcon('controlType', 'devices')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('userId', 'devices')}>
+														Triggered By{getSortIcon('userId', 'devices')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('success', 'devices')}>
+														Success{getSortIcon('success', 'devices')}
+													</th>
 												</tr>
 											</thead>
 											<tbody>
@@ -731,7 +949,7 @@ const HistoryPage = () => {
 					</Card>
 				</Tab>
 
-				<Tab eventKey="voice" title={`🎤 Voice Commands (${voiceCommands.length})`}>
+				<Tab eventKey="voice" title={`🎤 Voice Commands (${dataCounts.voice})`}>
 					<Card>
 						<Card.Header>
 							<div className="d-flex justify-content-between align-items-center">
@@ -753,11 +971,21 @@ const HistoryPage = () => {
 										<table className="table table-striped table-hover">
 											<thead className="table-light sticky-top">
 												<tr>
-													<th>Time</th>
-													<th>Command</th>
-													<th>Confidence</th>
-													<th>Status</th>
-													<th>Error</th>
+													<th className="sortable-header" onClick={() => handleSort('timestamp', 'voice')}>
+														Time{getSortIcon('timestamp', 'voice')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('command', 'voice')}>
+														Command{getSortIcon('command', 'voice')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('confidence', 'voice')}>
+														Confidence{getSortIcon('confidence', 'voice')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('processed', 'voice')}>
+														Status{getSortIcon('processed', 'voice')}
+													</th>
+													<th className="sortable-header" onClick={() => handleSort('errorMessage', 'voice')}>
+														Error{getSortIcon('errorMessage', 'voice')}
+													</th>
 												</tr>
 											</thead>
 											<tbody>

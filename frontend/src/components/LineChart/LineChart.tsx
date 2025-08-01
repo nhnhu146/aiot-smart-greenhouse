@@ -36,7 +36,88 @@ const AppLineChart: React.FC = () => {
 	const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
-	// Create chart data from persistent sensor state
+	// Load data from localStorage on mount
+	useEffect(() => {
+		const savedData = localStorage.getItem('chartData');
+		if (savedData) {
+			try {
+				const parsedData = JSON.parse(savedData);
+				setChartData(parsedData);
+				setIsLoading(false);
+			} catch (error) {
+				console.error('Error loading chart data from localStorage:', error);
+			}
+		}
+	}, []);
+
+	// Save data to localStorage whenever chartData changes
+	useEffect(() => {
+		if (chartData.length > 0) {
+			localStorage.setItem('chartData', JSON.stringify(chartData));
+		}
+	}, [chartData]);
+
+	// Fetch initial data from API if localStorage is empty
+	useEffect(() => {
+		const fetchInitialData = async () => {
+			if (chartData.length > 0) return; // Skip if we already have data
+
+			try {
+				const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+				const response = await fetch(`${API_BASE_URL}/api/sensors?limit=100`);
+
+				if (response.ok) {
+					const result = await response.json();
+					if (result.success && result.data && result.data.sensors) {
+						const formattedData = result.data.sensors.map((sensor: any) => ({
+							time: formatTimeEN(sensor.time || sensor.timestamp),
+							temperature: parseFloat(sensor.temperature) || 0,
+							humidity: parseFloat(sensor.humidity) || 0,
+							soilMoisture: parseInt(sensor.soilMoisture) || 0,
+						}));
+
+						// Sort by timestamp descending (newest first for display)
+						const sortedData = formattedData.sort((a: ChartDataPoint, b: ChartDataPoint) => {
+							const timeA = new Date(a.time).getTime();
+							const timeB = new Date(b.time).getTime();
+							return timeB - timeA;
+						}).slice(0, 24); // Keep only last 24 points
+
+						setChartData(sortedData);
+					}
+				} else {
+					// Fallback to mock data if API fails
+					const result = await mockDataService.getChartData();
+					const formattedData = result.data.map(point => ({
+						...point,
+						time: formatTimeEN(point.time)
+					}));
+					setChartData(formattedData);
+				}
+			} catch (error) {
+				console.error('Failed to fetch initial chart data:', error);
+				// Fallback to mock data on error
+				try {
+					const result = await mockDataService.getChartData();
+					const formattedData = result.data.map(point => ({
+						...point,
+						time: formatTimeEN(point.time)
+					}));
+					setChartData(formattedData);
+				} catch (mockError) {
+					console.error('Failed to fetch mock data:', mockError);
+				}
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		if (isLoading && chartData.length === 0) {
+			fetchInitialData();
+		}
+	}, [isLoading, chartData.length]);
+
+	// Listen to WebSocket signals and update chart data
 	useEffect(() => {
 		if (persistentSensorData && isConnected) {
 			const { temperature, humidity, soil } = persistentSensorData;
@@ -66,7 +147,6 @@ const AppLineChart: React.FC = () => {
 						return timeB - timeA;
 					});
 
-					console.log('📈 Chart updated with persistent sensor data:', newDataPoint);
 					return sortedData;
 				});
 
@@ -74,36 +154,6 @@ const AppLineChart: React.FC = () => {
 			}
 		}
 	}, [persistentSensorData, isConnected]);
-
-	// Initial data fetch as fallback
-	useEffect(() => {
-		const fetchInitialData = async () => {
-			try {
-				const result = await mockDataService.getChartData();
-
-				// Format timestamps to English format
-				const formattedData = result.data.map(point => ({
-					...point,
-					time: formatTimeEN(point.time)
-				}));
-
-				// Only set if we don't have persistent data yet
-				if (chartData.length === 0) {
-					setChartData(formattedData);
-					console.log(result.isMock ? '📊 Initial mock chart data loaded' : '📊 Initial API chart data loaded');
-				}
-
-				setIsLoading(false);
-			} catch (error) {
-				console.error('Failed to fetch initial chart data:', error);
-				setIsLoading(false);
-			}
-		};
-
-		if (isLoading) {
-			fetchInitialData();
-		}
-	}, [isLoading, chartData.length]);
 
 	if (isLoading) {
 		return (

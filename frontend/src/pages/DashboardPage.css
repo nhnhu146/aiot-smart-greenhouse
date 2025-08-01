@@ -35,6 +35,12 @@
 	border-radius: 12px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	border: none;
+	transition: all 0.3s ease;
+}
+
+.control-card.highlight {
+	box-shadow: 0 0 20px rgba(13, 110, 253, 0.6);
+	transform: scale(1.01);
 }
 
 .control-card .card-header {
