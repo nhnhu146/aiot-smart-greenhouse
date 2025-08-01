@@ -45,7 +45,6 @@ export const logConnectionInfo = (serverUrl: string) => {
 	console.log(`\n🔗 WebSocket Connection Info
 		- Server URL: ${serverUrl}
 		- Environment: ${import.meta.env.MODE}
-		- WebSocket Config: ${JSON.stringify(getWebSocketConfig(), null, 2)}
 		- Timestamp: ${new Date().toISOString()}`);
 	
 	if (import.meta.env.MODE === 'development') {
