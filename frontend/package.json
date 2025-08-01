@@ -1,40 +1,39 @@
 {
 	"name": "aiot-smart-greenhouse-frontend",
 	"version": "0.1.0",
-	"private": true,
+	"type": "module",
 	"scripts": {
-		"dev": "next dev -p 3000",
-		"build": "next build",
-		"start": "next start -p 3000",
-		"lint": "next lint",
-		"setup-env": "cp .env.example .env"
+		"dev": "vite",
+		"build": "tsc && vite build",
+		"lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@types/node": "20.1.7",
-		"@types/react": "18.2.6",
-		"@types/react-dom": "18.2.4",
-		"axios": "^1.7.8",
-		"bootstrap": "5.3.0",
-		"bufferutil": "^4.0.9",
-		"chart.js": "4.4.6",
-		"chartjs-plugin-datalabels": "^2.2.0",
-		"eslint": "8.40.0",
-		"eslint-config-next": "13.4.2",
-		"moment": "^2.30.1",
-		"next": "^13.4.12",
-		"pushsafer-notifications": "^0.2.0",
 		"react": "^18.3.1",
-		"react-bootstrap": "2.8.0",
-		"react-chartjs-2": "5.2.0",
 		"react-dom": "^18.3.1",
-		"react-switch": "^7.0.0",
-		"sass": "^1.89.2",
+		"react-router-dom": "^6.26.1",
+		"axios": "^1.7.8",
+		"bootstrap": "^5.3.0",
+		"react-bootstrap": "^2.8.0",
+		"chart.js": "^4.4.6",
+		"chartjs-plugin-datalabels": "^2.2.0",
+		"react-chartjs-2": "^5.2.0",
+		"moment": "^2.30.1",
 		"socket.io-client": "^4.8.1",
-		"typescript": "5.0.4",
-		"utf-8-validate": "^6.0.5"
+		"lucide-react": "^0.445.0",
+		"react-switch": "^7.0.0",
+		"sass": "^1.89.2"
 	},
 	"devDependencies": {
-		"@types/nodemailer": "^6.4.17"
-	},
-	"packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+		"@types/react": "^18.3.3",
+		"@types/react-dom": "^18.3.0",
+		"@typescript-eslint/eslint-plugin": "^7.15.0",
+		"@typescript-eslint/parser": "^7.15.0",
+		"@vitejs/plugin-react": "^4.3.1",
+		"eslint": "^8.57.0",
+		"eslint-plugin-react-hooks": "^4.6.2",
+		"eslint-plugin-react-refresh": "^0.4.7",
+		"typescript": "^5.2.2",
+		"vite": "^5.3.4"
+	}
 }

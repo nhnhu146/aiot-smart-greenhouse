@@ -140,7 +140,7 @@ class MockDataService {
 
 		// Fetch real merged data from backend API (backend handles all merge logic)
 		try {
-			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+			const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 			const response = await fetch(`${API_BASE_URL}/api/sensors/latest`);
 
 			if (!response.ok) {
@@ -179,7 +179,7 @@ class MockDataService {
 
 		// Fetch real merged data from backend API (backend handles all merge logic)
 		try {
-			const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+			const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 			const response = await fetch(`${API_BASE_URL}/api/history`);
 
 			if (!response.ok) {

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import {
@@ -9,7 +7,7 @@ import {
 	Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import styles from './SemiDoughnutChart.module.scss';
+import './SemiDoughnutChart.css';
 
 // Register necessary components
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
@@ -65,8 +63,8 @@ const AppSemiDoughnutChart: React.FC<AppSemiDoughnutChartProps> = ({ label, valu
 	};
 
 	return (
-		<div className={styles.chartCard}>
-			<p className={styles.label}>{label}</p>
+		<div className="chart-card">
+			<p className="chart-label">{label}</p>
 			<Doughnut data={data} options={options} />
 		</div>
 	);

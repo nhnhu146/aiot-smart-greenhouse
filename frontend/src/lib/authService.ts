@@ -12,7 +12,7 @@ interface AuthResponse {
 }
 
 class AuthService {
-	private API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+	private API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 	private currentUser: User | null = null;
 
 	constructor() {

@@ -1,9 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-// Mock Data Toggle Component for Settings
-'use client'
 import { useEffect, useState } from 'react';
-import { Form, Alert, Button } from 'react-bootstrap';
 import mockDataService from '@/services/mockDataService';
+import './MockDataToggle.css';
 
 interface MockDataToggleProps {
 	onToggle?: (isMockEnabled: boolean) => void;
@@ -48,33 +45,34 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 
 	return (
 		<div>
-			<div className="d-flex align-items-center justify-content-between mb-3">
+			<div className="mock-toggle-header">
 				<div>
 					<strong>Data Source Mode</strong>
-					<div className="text-muted small">
+					<div className="mock-toggle-description">
 						Choose between mock data for testing or real sensor data
 						<br />
-						<span className="text-info">
+						<span className="mock-toggle-info">
 							🌐 This setting is saved locally in your browser only
 						</span>
 					</div>
 				</div>
-				<div className="d-flex align-items-center gap-3">
-					<span className={`badge ${isMockEnabled ? 'bg-warning' : 'bg-success'}`}>
+				<div className="mock-toggle-controls">
+					<span className={`mock-toggle-badge ${isMockEnabled ? 'mock' : 'real'}`}>
 						{isMockEnabled ? '🎭 Mock Data' : '📊 Real Data'}
 					</span>
-					<Form.Check
-						type="switch"
-						id="mock-data-setting-toggle"
-						checked={isMockEnabled}
-						onChange={handleToggle}
-						disabled={isLoading}
-						style={{ margin: 0 }}
-					/>
+					<label className="switch">
+						<input
+							type="checkbox"
+							checked={isMockEnabled}
+							onChange={handleToggle}
+							disabled={isLoading}
+						/>
+						<span className="slider round"></span>
+					</label>
 				</div>
 			</div>
 
-			<Alert variant={isMockEnabled ? 'warning' : 'success'} className="mb-0">
+			<div className={`mock-toggle-alert ${isMockEnabled ? 'warning' : 'success'}`}>
 				{isMockEnabled ? (
 					<>
 						<strong>🎭 Mock Data Mode Active</strong><br />
@@ -88,13 +86,11 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 						Data reflects real-time conditions from connected sensors.
 					</>
 				)}
-			</Alert>
+			</div>
 
 			{isLoading && (
-				<div className="text-center mt-2">
-					<div className="spinner-border spinner-border-sm me-2" role="status">
-						<span className="visually-hidden">Loading...</span>
-					</div>
+				<div className="mock-toggle-loading">
+					<div className="spinner"></div>
 					Applying changes...
 				</div>
 			)}

@@ -15,16 +15,16 @@ interface AutomationConfig {
 	};
 }
 
-interface AutomationStatus {
-	enabled: boolean;
-	lastUpdate: string;
-	activeControls: {
-		light: boolean;
-		pump: boolean;
-		door: boolean;
-		window: boolean;
-	};
-}
+// interface AutomationStatus {
+// 	enabled: boolean;
+// 	lastUpdate: string;
+// 	activeControls: {
+// 		light: boolean;
+// 		pump: boolean;
+// 		door: boolean;
+// 		window: boolean;
+// 	};
+// }
 
 class FrontendAutomationService {
 	private config: AutomationConfig | null = null;
@@ -203,7 +203,7 @@ class FrontendAutomationService {
 
 	// Get API base URL
 	private getApiBaseUrl(): string {
-		return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+		return import.meta.env.VITE_API_URL || 'http://localhost:5000';
 	}
 }
 

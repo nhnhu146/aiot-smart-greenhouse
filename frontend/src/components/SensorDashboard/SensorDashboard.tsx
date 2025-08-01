@@ -1,9 +1,6 @@
-"use client";
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import React from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
-import { Card, Row, Col, Badge } from 'react-bootstrap';
+import './SensorDashboard.css';
 
 // Format time to UTC+7 (Vietnam timezone)
 const formatTimeVN = (timestamp?: string | Date) => {
@@ -96,19 +93,19 @@ const SensorCard: React.FC<SensorCardProps> = ({ title, value, unit, icon, color
 	const isValidValue = displayValue !== 'N/A';
 
 	return (
-		<Card className="h-100 shadow-sm" style={{ outline: 'none', border: 'none', borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.08)' }}>
-			<Card.Body className="d-flex align-items-center">
-				<div className={`me-3 fs-1 text-${color}`} style={{ opacity: isValidValue ? 1 : 0.5 }}>
+		<div className="sensor-card">
+			<div className="sensor-card-body">
+				<div className={`sensor-icon ${color}`} style={{ opacity: isValidValue ? 1 : 0.5 }}>
 					{icon}
 				</div>
-				<div>
-					<Card.Title className="mb-1 fs-6">{title}</Card.Title>
-					<Card.Text className="mb-0 fs-4 fw-bold" style={{ color: isValidValue ? 'inherit' : '#6c757d' }}>
-						{displayValue} {isValidValue && displayUnit && <small className="text-muted">{displayUnit}</small>}
-					</Card.Text>
+				<div className="sensor-content">
+					<div className="sensor-title">{title}</div>
+					<div className="sensor-value" style={{ color: isValidValue ? 'inherit' : '#6c757d' }}>
+						{displayValue} {isValidValue && displayUnit && <small className="sensor-unit">{displayUnit}</small>}
+					</div>
 				</div>
-			</Card.Body>
-		</Card>
+			</div>
+		</div>
 	);
 };
 
@@ -230,36 +227,31 @@ const SensorDashboard: React.FC = () => {
 		}
 	];
 
-	const containerStyle = {
-		outline: 'none'
-	};
-
 	return (
-		<div style={containerStyle}>
-			<div className="d-flex justify-content-between align-items-center mb-4">
-				<h2 style={{ color: '#2b512b', fontSize: '1.6rem', outline: 'none' }}>Sensor Dashboard</h2>
-				<Badge bg={isConnected ? 'success' : 'danger'} style={{ outline: 'none' }}>
+		<div className="sensor-dashboard">
+			<div className="dashboard-header">
+				<h2 className="dashboard-title">Sensor Dashboard</h2>
+				<div className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
 					{isConnected ? '🟢 Live Data' : '🔴 Disconnected'}
-				</Badge>
+				</div>
 			</div>
 
-			<Row className="g-3" style={{ outline: 'none' }}>
+			<div className="sensor-grid">
 				{sensorCards.map(({ key, title, unit, icon, color }) => (
-					<Col key={key} xs={12} sm={6} lg={4} style={{ outline: 'none' }}>
-						<SensorCard
-							title={title}
-							value={sensors[key as keyof typeof sensors].value}
-							unit={unit}
-							icon={icon}
-							color={color}
-						/>
-					</Col>
+					<SensorCard
+						key={key}
+						title={title}
+						value={sensors[key as keyof typeof sensors].value}
+						unit={unit}
+						icon={icon}
+						color={color}
+					/>
 				))}
-			</Row>
+			</div>
 
 			{lastUpdateTime && (
-				<div className="mt-3" style={{ outline: 'none' }}>
-					<small className="text-muted">
+				<div className="last-update">
+					<small>
 						Last update: {lastUpdateTime} (UTC+7)
 					</small>
 				</div>

@@ -1,23 +1,28 @@
-.sidebarWrapper {
+.sidebar-wrapper {
 	width: 100%;
 	height: 100vh;
 	background-color: #fff;
 	color: #333333;
 }
 
-.sidebarContent {
+.sidebar-content {
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
 	width: 100%;
 }
 
-.logo {
+.sidebar-logo {
 	margin: 0.5rem 1rem 0.5rem 1rem;
 	padding-left: 1.5rem;
 }
 
-.navItem {
+.sidebar-nav {
+	display: flex;
+	flex-direction: column;
+}
+
+.nav-item {
 	cursor: pointer;
 	padding: 0.5rem 1rem;
 	border-radius: 10px;
@@ -28,19 +33,19 @@
 	margin-left: 0.5rem;
 	margin-right: 0.5rem;
 	transition: background-color 0.2s ease;
-
-	&:hover {
-		background-color: #eaf5dc;
-		color: #085404;
-	}
-
-	&.active {
-		background-color: #DCEECB;
-		color: #085404;
-	}
 }
 
-.signOut {
+.nav-item:hover {
+	background-color: #eaf5dc;
+	color: #085404;
+}
+
+.nav-item.active {
+	background-color: #DCEECB;
+	color: #085404;
+}
+
+.sign-out {
 	color: #000000;
 	cursor: pointer;
 	padding: 0.5rem 1rem;
@@ -51,31 +56,31 @@
 	margin-left: 0.5rem;
 	margin-right: 0.5rem;
 	transition: background-color 0.2s ease;
-
-	&:hover {
-		background-color: #fdecea;
-		color: #b02a2a;
-	}
 }
 
+.sign-out:hover {
+	background-color: #fdecea;
+	color: #b02a2a;
+}
 
-.avatarWrapper {
+.avatar-wrapper {
 	margin-top: auto;
 	display: flex;
 	align-items: center;
 	padding: 0.5rem;
 }
 
-.icon {
+.nav-icon {
 	margin: 0 0.5rem;
 	align-self: center;
 }
 
-.avatarWrapper p {
+.user-email {
 	max-width: 150px;
 	word-wrap: break-word;
 	white-space: normal;
 	overflow: visible;
 	margin-bottom: 0.5rem;
 	line-height: 1.3;
+	margin: 0.5rem 0;
 }

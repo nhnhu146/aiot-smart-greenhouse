@@ -1,14 +1,12 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-'use client'
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import authService from '@/lib/authService';
 
 const withAuth = <P extends object>(Component: React.ComponentType<P>) => {
 	const AuthenticatedComponent = (props: P) => {
 		const [isLoading, setIsLoading] = useState(true);
 		const [isAuthenticated, setIsAuthenticated] = useState(false);
-		const router = useRouter();
+		const navigate = useNavigate();
 
 		useEffect(() => {
 			const checkAuth = () => {
@@ -19,14 +17,14 @@ const withAuth = <P extends object>(Component: React.ComponentType<P>) => {
 
 				if (!authenticated) {
 					console.log('withAuth - redirecting to signin');
-					router.push('/signin');
+					navigate('/signin');
 				} else {
 					setIsLoading(false);
 				}
 			};
 
 			checkAuth();
-		}, [router]);
+		}, [navigate]);
 
 		if (isLoading) {
 			return (

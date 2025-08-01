@@ -1,0 +1,235 @@
+.voiceCommands {
+	padding: 1.5rem;
+	min-height: 100vh;
+	background: #DCEECB;
+}
+
+.pageTitle {
+	color: #2b512b;
+	font-weight: 600;
+	font-size: 1.8rem;
+	margin-bottom: 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.voiceIcon {
+	font-size: 1.8rem;
+}
+
+.titleText {
+	color: #2b512b;
+	font-size: 1.8rem;
+}
+
+.titleAccent {
+	font-size: 0.9rem;
+	background-color: #57AE09;
+	color: white;
+	padding: 0.25rem 0.5rem;
+	border-radius: 12px;
+	font-weight: 500;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.pageDescription {
+	color: #495057;
+	font-size: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.testCard,
+.statusCard,
+.historyCard {
+	border: none;
+	border-radius: 20px;
+	box-shadow: 0 6px 25px rgba(87, 174, 9, 0.15);
+	background: #ffffff;
+	margin-bottom: 1.5rem;
+	transition: box-shadow 0.3s ease;
+}
+
+.testCard:hover,
+.statusCard:hover,
+.historyCard:hover {
+	box-shadow: 0 8px 30px rgba(87, 174, 9, 0.2);
+}
+
+.testCard .card-header,
+.statusCard .card-header,
+.historyCard .card-header {
+	background-color: #f8f9fa;
+	border-bottom: 1px solid #e9ecef;
+	border-radius: 20px 20px 0 0 !important;
+	font-weight: 600;
+}
+
+.testCard .card-header h5,
+.statusCard .card-header h5,
+.historyCard .card-header h5 {
+	color: #2b512b;
+	margin: 0;
+}
+
+.statusGrid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.statusItem {
+	text-align: center;
+	padding: 1rem;
+	background: #f8f9fa;
+	border-radius: 12px;
+	border: 1px solid #e9ecef;
+}
+
+.statusValue {
+	font-size: 1.8rem;
+	font-weight: 600;
+	color: #2b512b;
+	margin-bottom: 0.5rem;
+}
+
+.statusLabel {
+	font-size: 0.85rem;
+	color: #6c757d;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.tableContainer {
+	max-height: 500px;
+	overflow-y: auto;
+	border-radius: 12px;
+	border: 1px solid #dee2e6;
+}
+
+.timeCell {
+	font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+	font-size: 0.8rem;
+	color: #6c757d;
+	white-space: nowrap;
+	min-width: 140px;
+}
+
+.commandCell {
+	max-width: 250px;
+	word-break: break-word;
+}
+
+.commandCell code {
+	background-color: #f8f9fa;
+	padding: 0.2rem 0.4rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	color: #2b512b;
+}
+
+.responseCell {
+	max-width: 200px;
+	word-wrap: break-word;
+	font-size: 0.85rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.pageTitle {
+		font-size: 1.5rem;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.statusGrid {
+		grid-template-columns: 1fr;
+		gap: 0.5rem;
+	}
+
+	.statusItem {
+		padding: 0.75rem;
+	}
+
+	.statusValue {
+		font-size: 1.5rem;
+	}
+
+	.tableContainer {
+		font-size: 0.85rem;
+	}
+
+	.timeCell {
+		font-size: 0.75rem;
+		min-width: 120px;
+	}
+}
+
+/* Enhanced scrollbar for webkit browsers */
+.tableContainer::-webkit-scrollbar {
+	width: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+	background: #c1c1c1;
+	border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+	background: #a8a8a8;
+}
+
+/* Loading animation */
+.spinner-border {
+	animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Badge customizations */
+.badge {
+	font-size: 0.75rem;
+	padding: 0.35em 0.65em;
+}
+
+/* Form enhancements */
+.form-control:focus {
+	border-color: #57AE09;
+	box-shadow: 0 0 0 0.2rem rgba(87, 174, 9, 0.25);
+}
+
+.btn-primary {
+	background-color: #57AE09;
+	border-color: #57AE09;
+}
+
+.btn-primary:hover {
+	background-color: #4a9308;
+	border-color: #4a9308;
+}
+
+.btn-outline-primary {
+	color: #57AE09;
+	border-color: #57AE09;
+}
+
+.btn-outline-primary:hover {
+	background-color: #57AE09;
+	border-color: #57AE09;
+}

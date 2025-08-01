@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Card } from 'react-bootstrap';
-import styles from './ActivityCard.module.scss';
+import './ActivityCard.css';
 
 type ActivityCardProps = {
 	title: string;
@@ -34,19 +33,19 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ title, icon, switchState, o
 	}, [switchState]);
 
 	return (
-		<Card
-			className={`${styles.card} ${localActive ? styles.active : ''} ${disabled ? styles.disabled : ''}`}
+		<div
+			className={`activity-card ${localActive ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
 			onClick={handleCardClick}
 			style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
 		>
-			<Card.Body className={styles.cardBody}>
-				<div className={styles.icon}>{icon}</div>
-				<div className={styles.title}>
+			<div className="activity-card-body">
+				<div className="activity-icon">{icon}</div>
+				<div className="activity-title">
 					{title}
-					{disabled && <small className="text-muted d-block">Auto Mode Active</small>}
+					{disabled && <small className="auto-mode-text">Auto Mode Active</small>}
 				</div>
-			</Card.Body>
-		</Card>
+			</div>
+		</div>
 	);
 };
 

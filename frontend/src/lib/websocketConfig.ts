@@ -5,10 +5,10 @@
 
 export const getWebSocketUrl = (): string => {
 	// Check if we're in development mode
-	const isDevelopment = process.env.NODE_ENV === 'development';
+	const isDevelopment = import.meta.env.MODE === 'development';
 
 	// Get the API URL from environment
-	let serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+	let serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 	// In development, provide helpful fallbacks
 	if (isDevelopment) {
@@ -46,10 +46,10 @@ export const getWebSocketConfig = () => ({
 export const logConnectionInfo = (serverUrl: string) => {
 	console.log('🔌 WebSocket Configuration:');
 	console.log(`   Server URL: ${serverUrl}`);
-	console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+	console.log(`   Environment: ${import.meta.env.MODE || 'development'}`);
 	console.log(`   Transport: WebSocket + Polling fallback`);
 
-	if (process.env.NODE_ENV === 'development') {
+	if (import.meta.env.MODE === 'development') {
 		console.log('💡 Development Tips:');
 		console.log('   - Make sure backend server is running: npm run dev (in backend folder)');
 		console.log('   - Backend should be accessible at: http://localhost:5000');

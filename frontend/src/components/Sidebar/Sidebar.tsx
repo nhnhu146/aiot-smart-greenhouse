@@ -1,75 +1,79 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-'use client';
-import React, { useEffect, useState } from 'react';
-import { Nav, Image } from 'react-bootstrap';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+	LayoutDashboard,
+	Mic,
+	History,
+	Settings,
+	Cog,
+	Globe,
+	LogOut,
+	User as UserIcon
+} from 'lucide-react';
 import authService, { User } from '@/lib/authService';
-import styles from './Sidebar.module.scss';
+import './Sidebar.css';
 
 const navItems = [
-	{ label: 'Dashboard', icon: '/dashboard.svg', path: '/dashboard' },
-	// { label: 'Green bot', icon: '/chatbot.svg', path: '/chatbot' }, // Hidden for now
-	{ label: 'Voice Received', icon: '/bot.svg', path: '/voice-commands' },
-	{ label: 'History', icon: '/cloud.svg', path: '/history' },
-	{ label: 'AutoMode', icon: '/settings.svg', path: '/automode' },
-	{ label: 'Settings', icon: '/settings.svg', path: '/settings' },
-	{ label: 'API Examples', icon: '/globe.svg', path: '/examples' },
+	{ label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+	{ label: 'Voice Received', icon: Mic, path: '/voice-commands' },
+	{ label: 'History', icon: History, path: '/history' },
+	{ label: 'AutoMode', icon: Cog, path: '/automode' },
+	{ label: 'Settings', icon: Settings, path: '/settings' },
+	{ label: 'API Examples', icon: Globe, path: '/examples' },
 ];
 
-const AppSidebar = () => {
-	const router = useRouter();
+const Sidebar = () => {
+	const navigate = useNavigate();
+	const location = useLocation();
 	const [user, setUser] = useState<User | null>(null);
-	const [currentPath, setCurrentPath] = useState('');
 
 	useEffect(() => {
 		const currentUser = authService.getCurrentUser();
 		setUser(currentUser);
-
-		// Get current path on client side only
-		if (typeof window !== 'undefined') {
-			setCurrentPath(window.location.pathname);
-		}
 	}, []);
 
 	const handleSignOut = async () => {
 		await authService.signOut();
 		setUser(null);
-		router.push('/signin');
+		navigate('/signin');
 	};
 
 	return (
-		<div className={styles.sidebarWrapper}>
-			<div className={styles.sidebarContent}>
-				<Image className={styles.logo} src="/logo.svg" alt="GreenHouse Logo" width={170} height={100} />
+		<div className="sidebar-wrapper">
+			<div className="sidebar-content">
+				<img className="sidebar-logo" src="/logo.svg" alt="GreenHouse Logo" width={170} height={100} />
 
-				<Nav className="flex-column d-flex">
-					{navItems.map((item, index) => (
-						<div
-							key={index}
-							className={`${styles.navItem} ${currentPath === item.path ? styles.active : ''}`}
-							onClick={() => router.push(item.path)}
-						>
-							<Image src={item.icon} alt={`${item.label} Icon`} width={20} height={20} className={styles.icon} />
-							{item.label}
-						</div>
-					))}
-				</Nav>
+				<nav className="sidebar-nav">
+					{navItems.map((item, index) => {
+						const IconComponent = item.icon;
+						return (
+							<div
+								key={index}
+								className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+								onClick={() => navigate(item.path)}
+							>
+								<IconComponent size={20} className="nav-icon" />
+								{item.label}
+							</div>
+						);
+					})}
+				</nav>
 
 				<div
-					className={styles.signOut}
+					className="sign-out"
 					onClick={handleSignOut}
 				>
-					<Image src='/logout.svg' alt='Logout Icon' width={20} height={20} className={styles.icon} />
+					<LogOut size={20} className="nav-icon" />
 					Sign out
 				</div>
 
-				<div className={styles.avatarWrapper}>
-					<Image src="/avatar.svg" alt="Avatar" width={30} height={30} className={styles.icon} />
-					<p className='my-2'>{user?.email || 'User'}</p>
+				<div className="avatar-wrapper">
+					<UserIcon size={30} className="nav-icon" />
+					<p className="user-email">{user?.email || 'User'}</p>
 				</div>
 			</div>
 		</div>
 	);
 };
 
-export default AppSidebar;
+export default Sidebar;

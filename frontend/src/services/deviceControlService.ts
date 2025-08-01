@@ -20,7 +20,7 @@ class DeviceControlService {
 	private apiBaseUrl: string;
 
 	constructor() {
-		this.apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+		this.apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 	}
 
 	/**

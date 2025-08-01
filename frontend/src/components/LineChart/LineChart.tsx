@@ -1,6 +1,4 @@
-"use client";
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
 	Chart as ChartJS,
@@ -79,6 +77,7 @@ const AppLineChart: React.FC = () => {
 			}
 		}
 	}, [persistentSensorData, isConnected]);
+
 	// Initial data fetch as fallback
 	useEffect(() => {
 		const fetchInitialData = async () => {
@@ -90,14 +89,6 @@ const AppLineChart: React.FC = () => {
 					...point,
 					time: formatTimeVN(point.time)
 				}));
-
-				// // Sort by original timestamp to ensure chronological order (oldest to newest)
-				// const sortedData = formattedData.sort((a, b) => {
-				// 	// Parse full datetime string for proper comparison
-				// 	const dateTimeA = new Date(a.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
-				// 	const dateTimeB = new Date(b.time.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')).getTime();
-				// 	return dateTimeA - dateTimeB;
-				// }).reverse(); // Reverse to have oldest first
 
 				// Only set if we don't have persistent data yet
 				if (chartData.length === 0) {
