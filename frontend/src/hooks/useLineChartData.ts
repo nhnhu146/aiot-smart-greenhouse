@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 interface SensorData {
@@ -22,12 +22,35 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 	const [data, setData] = useState<SensorData[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [cachedData, setCachedData] = useState<SensorData[]>([]);
 
 	const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-	const { persistentSensorData } = useWebSocketContext(); // Listen for WebSocket updates
+	const { persistentSensorData } = useWebSocketContext();
+
+	// Debouncing refs
+	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const lastFetchTimeRef = useRef<number>(0);
+	const isInitialLoadRef = useRef<boolean>(true);
 
 	const fetchData = async (timeRange: '1h' | '24h' | '7d' | '30d' = '24h') => {
+		// Debounce: prevent multiple rapid calls
+		const now = Date.now();
+		if (now - lastFetchTimeRef.current < 1000 && !isInitialLoadRef.current) {
+			return;
+		}
+		lastFetchTimeRef.current = now;
+
+		// Clear any pending timeout
+		if (fetchTimeoutRef.current) {
+			clearTimeout(fetchTimeoutRef.current);
+		}
+
 		try {
+			// Show cached data immediately for better UX
+			if (cachedData.length > 0 && !isInitialLoadRef.current) {
+				setData(cachedData);
+			}
+
 			setLoading(true);
 			setError(null);
 
@@ -61,12 +84,19 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 				const validData = rawData
 					.filter((item: SensorData) => {
 						const timestamp = item.createdAt || item.timestamp;
-						return timestamp && timestamp !== null;
+						return timestamp && timestamp !== null && timestamp !== 'Invalid Date';
 					})
+					.map((item: SensorData) => ({
+						...item,
+						// Ensure proper timestamp format
+						timestamp: item.createdAt || item.timestamp,
+						createdAt: item.createdAt
+					}))
 					.slice(0, 20) // Ensure maximum 20 data points
 					.reverse(); // Reverse to get chronological order
 
 				setData(validData);
+				setCachedData(validData); // Cache for next fetch
 			} else {
 				throw new Error(`Invalid response format: ${JSON.stringify(result)}`);
 			}
@@ -74,10 +104,15 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 			console.error('Error fetching line chart data:', err);
 			setError(err instanceof Error ? err.message : 'Unknown error');
 
-			// Don't use mock data - show empty chart if API fails
-			setData([]);
+			// Keep cached data on error for better UX
+			if (cachedData.length > 0) {
+				setData(cachedData);
+			} else {
+				setData([]);
+			}
 		} finally {
 			setLoading(false);
+			isInitialLoadRef.current = false;
 		}
 	};
 
@@ -86,13 +121,26 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 		fetchData();
 	}, []);
 
-	// Listen for WebSocket updates and refresh chart data to avoid duplicate timestamps
+	// Debounced WebSocket updates - only refresh every 3 seconds
 	useEffect(() => {
-		if (persistentSensorData) {
-			// When new sensor data comes via WebSocket, refresh chart data from API
-			// This ensures no duplicate timestamps and maintains data integrity
-			fetchData();
+		if (persistentSensorData && !isInitialLoadRef.current) {
+			// Clear existing timeout
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current);
+			}
+
+			// Set new timeout for debounced refresh
+			fetchTimeoutRef.current = setTimeout(() => {
+				fetchData();
+			}, 3000); // 3 second debounce
 		}
+
+		// Cleanup timeout on unmount
+		return () => {
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current);
+			}
+		};
 	}, [persistentSensorData]);
 
 	return {

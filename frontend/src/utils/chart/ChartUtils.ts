@@ -27,7 +27,7 @@ export class ChartUtils {
 	} as const;
 
 	/**
-	 * Normalize timestamp to prevent duplicate Date keywords
+	 * Normalize timestamp to prevent duplicate Date keywords and ensure HH:mm:ss format
 	 */
 	static normalizeTimestamp(timestamp: string | Date): string {
 		if (!timestamp) return new Date().toISOString();
@@ -35,24 +35,37 @@ export class ChartUtils {
 		try {
 			const date = new Date(timestamp);
 			if (isNaN(date.getTime())) {
+				console.warn('Invalid timestamp detected:', timestamp);
 				return new Date().toISOString();
 			}
 			return date.toISOString();
 		} catch (error) {
-			console.warn('Invalid timestamp:', timestamp, 'Error:', error);
+			console.warn('Error parsing timestamp:', timestamp, 'Error:', error);
 			return new Date().toISOString();
 		}
 	}
 
 	/**
-	 * Filter out invalid data points (missing timestamps)
+	 * Filter out invalid data points (missing timestamps or invalid dates)
 	 */
 	static filterValidData(data: ChartDataPoint[]): ChartDataPoint[] {
 		return data.filter(item => {
 			if (!item.timestamp) return false;
 
+			// Check for common invalid date strings
+			if (typeof item.timestamp === 'string' && item.timestamp.includes('Invalid Date')) {
+				console.warn('Filtered out invalid date:', item.timestamp);
+				return false;
+			}
+
 			const date = new Date(item.timestamp);
-			return !isNaN(date.getTime());
+			const isValid = !isNaN(date.getTime());
+
+			if (!isValid) {
+				console.warn('Filtered out invalid timestamp:', item.timestamp);
+			}
+
+			return isValid;
 		});
 	}
 

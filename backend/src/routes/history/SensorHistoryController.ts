@@ -103,13 +103,22 @@ export class SensorHistoryController {
 			.limit(limit)
 			.lean();
 
+		// Format dates to ensure proper HH:mm:ss format
+		const formattedSensorData = sensorData.map(sensor => ({
+			...sensor,
+			createdAt: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString(),
+			updatedAt: sensor.updatedAt ? new Date(sensor.updatedAt).toISOString() : new Date().toISOString(),
+			// Add formatted timestamp for display
+			timestamp: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString()
+		}));
+
 		const total = await SensorData.countDocuments(query);
 
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor history retrieved successfully',
 			data: {
-				sensors: sensorData,
+				sensors: formattedSensorData,
 				pagination: {
 					page,
 					limit,

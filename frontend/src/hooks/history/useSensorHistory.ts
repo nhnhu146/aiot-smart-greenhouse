@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FilterState, SortState, PaginationInfo } from '@/types/history';
 import apiClient from '@/lib/apiClient';
 
@@ -10,6 +10,11 @@ export const useSensorHistory = (
 ) => {
 	const [data, setData] = useState<any[]>([]);
 	const [loading, setLoading] = useState(false);
+	const [cachedData, setCachedData] = useState<any[]>([]);
+
+	// Debouncing refs
+	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const lastFetchTimeRef = useRef<number>(0);
 
 	const buildParams = () => {
 		const params: any = {
@@ -38,6 +43,23 @@ export const useSensorHistory = (
 	};
 
 	const fetchData = async () => {
+		// Debounce: prevent multiple rapid calls
+		const now = Date.now();
+		if (now - lastFetchTimeRef.current < 500) {
+			return;
+		}
+		lastFetchTimeRef.current = now;
+
+		// Clear any pending timeout
+		if (fetchTimeoutRef.current) {
+			clearTimeout(fetchTimeoutRef.current);
+		}
+
+		// Show cached data immediately for better UX
+		if (cachedData.length > 0) {
+			setData(cachedData);
+		}
+
 		setLoading(true);
 		try {
 			const params = buildParams();
@@ -45,18 +67,42 @@ export const useSensorHistory = (
 
 			// Handle both possible response formats
 			const responseData = response.data || response;
-			setData(responseData.sensors || responseData.data?.sensors || []);
+			const newData = responseData.sensors || responseData.data?.sensors || [];
+
+			setData(newData);
+			setCachedData(newData); // Cache for next fetch
 			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
 		} catch (error) {
 			console.error('Error fetching sensor data:', error);
-			setData([]);
+			// Keep cached data on error for better UX
+			if (cachedData.length > 0) {
+				setData(cachedData);
+			} else {
+				setData([]);
+			}
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	// Debounced useEffect to prevent excessive API calls
 	useEffect(() => {
-		fetchData();
+		// Clear existing timeout
+		if (fetchTimeoutRef.current) {
+			clearTimeout(fetchTimeoutRef.current);
+		}
+
+		// Set new timeout for debounced fetch
+		fetchTimeoutRef.current = setTimeout(() => {
+			fetchData();
+		}, 300); // 300ms debounce
+
+		// Cleanup timeout on unmount
+		return () => {
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current);
+			}
+		};
 	}, [filters, sort, pagination.page, pagination.limit]);
 
 	return {

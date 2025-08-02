@@ -77,6 +77,8 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 
 		return {
 			...baseOptions,
+			responsive: true,
+			maintainAspectRatio: false,
 			plugins: {
 				...baseOptions.plugins,
 				tooltip: {
@@ -84,12 +86,12 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 						title: (context: any) => {
 							if (context[0]?.label) {
 								const date = new Date(context[0].label);
+								// Format as HH:mm:ss for better readability
 								return date.toLocaleString('en-US', {
-									year: 'numeric',
-									month: '2-digit',
-									day: '2-digit',
 									hour: '2-digit',
 									minute: '2-digit',
+									second: '2-digit',
+									hour12: false,
 									timeZone: 'Asia/Ho_Chi_Minh'
 								});
 							}
@@ -116,21 +118,33 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 					...baseOptions.scales?.x,
 					title: {
 						display: true,
-						text: 'Time (UTC+7)',
+						text: 'Time (HH:mm:ss)',
 					},
 				}
 			}
 		};
 	};
 
-	if (loading) {
+	// Skeleton loading for better UX
+	if (loading && (!data || data.length === 0)) {
 		return (
-			<div className="chart-loading">
-				<div className="d-flex justify-content-center align-items-center" style={{ height: '300px' }}>
-					<div className="spinner-border text-primary me-2" role="status">
-						<span className="sr-only">Loading chart...</span>
+			<div className="chart-container" style={{ height: '400px', width: '100%' }}>
+				<div className="chart-skeleton">
+					<div className="skeleton-bars">
+						{[...Array(8)].map((_, i) => (
+							<div
+								key={i}
+								className="skeleton-bar"
+								style={{
+									height: `${Math.random() * 200 + 50}px`,
+									animationDelay: `${i * 0.1}s`
+								}}
+							/>
+						))}
 					</div>
-					<span>Loading chart data...</span>
+					<div className="skeleton-loading-text">
+						<span>📊 Loading chart data...</span>
+					</div>
 				</div>
 			</div>
 		);
@@ -139,7 +153,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 	if (!data || data.length === 0) {
 		return (
 			<div className="chart-empty">
-				<div className="d-flex justify-content-center align-items-center flex-column" style={{ height: '300px' }}>
+				<div className="d-flex justify-content-center align-items-center flex-column" style={{ height: '400px' }}>
 					<div className="text-muted mb-2" style={{ fontSize: '3rem' }}>📊</div>
 					<h5 className="text-muted">No Data Available</h5>
 					<p className="text-muted">Try selecting a different time range or check your connection.</p>
@@ -149,7 +163,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 	}
 
 	return (
-		<div className="chart-container" style={{ minHeight: '450px', width: '100%' }}>
+		<div className="chart-container" style={{ height: '400px', width: '100%' }}>
 			<Line data={formatChartData()} options={getChartOptions()} />
 		</div>
 	);
