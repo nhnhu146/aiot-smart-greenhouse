@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Col, Button } from 'react-bootstrap';
+import { Col, Card, Button } from 'react-bootstrap';
 
 interface ControlTopicCardProps {
 	topic: any;
@@ -13,8 +13,7 @@ const ControlTopicCard: React.FC<ControlTopicCardProps> = ({
 	topic,
 	index,
 	copiedItem,
-	copyToClipboard,
-	getValueForMQTT
+	copyToClipboard
 }) => {
 	return (
 		<Col key={index} md={6} lg={4} className="mb-4">
@@ -44,14 +43,14 @@ const ControlTopicCard: React.FC<ControlTopicCardProps> = ({
 							<div className="d-flex justify-content-between align-items-start">
 								<div>
 									<small className="text-muted d-block">{example.description}</small>
-									<code>{getValueForMQTT(example.value, topic.dataType)}</code>
+									<code>{example.command}</code>
 								</div>
 								<Button
 									size="sm"
 									variant="outline-success"
-									onClick={() => copyToClipboard(getValueForMQTT(example.value, topic.dataType), `${topic.topic}_${exampleIndex}`)}
+									onClick={() => copyToClipboard(example.command, `${topic.topic}_cmd_${exampleIndex}`)}
 								>
-									{copiedItem === `${topic.topic}_${exampleIndex}` ? '✓' : 'Copy'}
+									{copiedItem === `${topic.topic}_cmd_${exampleIndex}` ? '✓' : 'Copy'}
 								</Button>
 							</div>
 						</div>

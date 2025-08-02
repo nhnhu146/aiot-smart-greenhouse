@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Col, Button, Badge } from 'react-bootstrap';
+import { Col, Card, Badge, Button } from 'react-bootstrap';
 
 interface SensorTopicCardProps {
 	topic: any;
@@ -41,8 +41,8 @@ const SensorTopicCard: React.FC<SensorTopicCardProps> = ({
 
 					{topic.unit && (
 						<div className="mb-3">
-							<small className="text-muted">Unit:</small>
-							<Badge bg="secondary">{topic.unit}</Badge>
+							<small className="text-muted">Unit:</small> 
+							<Badge bg="secondary" className="ms-2">{topic.unit}</Badge>
 						</div>
 					)}
 

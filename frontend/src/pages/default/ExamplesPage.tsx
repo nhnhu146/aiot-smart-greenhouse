@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Container, Row, Tab, Tabs } from 'react-bootstrap';
+import { Container, Row, Tab, Tabs, Card, Badge, Button, Alert } from 'react-bootstrap';
 import SensorTopicCard from '@/components/ExamplesPage/SensorTopicCard';
 import ControlTopicCard from '@/components/ExamplesPage/ControlTopicCard';
-import { sensorTopicsData, controlTopicsData } from '@/components/ExamplesPage/topicsData';
+import { sensorTopics, controlTopics, apiEndpoints, websocketEvents } from '@/components/ExamplesPage/topicsData';
 import styles from './ExamplesPage.module.css';
 
 const ExamplesPage = () => {
@@ -40,7 +40,7 @@ const ExamplesPage = () => {
 			<Tabs defaultActiveKey="sensors" id="examples-tabs" className="mb-4">
 				<Tab eventKey="sensors" title="📊 Sensor Topics">
 					<Row>
-						{sensorTopicsData.map((topic, index) => (
+						{sensorTopics.map((topic, index) => (
 							<SensorTopicCard
 								key={index}
 								topic={topic}
@@ -55,7 +55,7 @@ const ExamplesPage = () => {
 
 				<Tab eventKey="controls" title="🎮 Device Control">
 					<Row>
-						{controlTopicsData.map((topic, index) => (
+						{controlTopics.map((topic, index) => (
 							<ControlTopicCard
 								key={index}
 								topic={topic}
@@ -70,138 +70,78 @@ const ExamplesPage = () => {
 
 				<Tab eventKey="api" title="🌐 REST API">
 					<div className="mt-4">
-						<h5>📊 Backend API Endpoints</h5>
-						<div className="bg-light p-3 rounded mb-4 border">
-							<h6 className="text-dark">Sensor Data APIs</h6>
-							<ul className="mb-0 text-dark">
-								<li><code className="bg-white p-1 rounded border">GET /api/sensors/latest</code> - Get latest sensor data</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/sensors?page=1&limit=20&from=2025-01-01&to=2025-12-31</code> - Get paginated sensor data with filters</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/sensors/stats</code> - Get sensor data statistics</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/sensors/export</code> - Export sensor data as CSV</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/history</code> - Get history data for sensors, devices, alerts</li>
-							</ul>
-						</div>
-
-						<div className="bg-light p-3 rounded mb-4 border">
-							<h6 className="text-dark">Device Control APIs</h6>
-							<ul className="mb-0 text-dark">
-								<li><code className="bg-white p-1 rounded border">GET /api/devices/status</code> - Get all device status</li>
-								<li><code className="bg-white p-1 rounded border">POST /api/devices/control</code> - Control devices (body: &#123;deviceType, action, duration&#125;)</li>
-								<li><code className="bg-white p-1 rounded border">POST /api/devices/schedule</code> - Schedule device control</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/history/device-controls?page=1&deviceType=pump</code> - Get device control history with filters</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/history/export/device-controls</code> - Export device controls as CSV</li>
-							</ul>
-						</div>
-
-						<div className="bg-light p-3 rounded mb-4 border">
-							<h6 className="text-dark">Voice Commands & Advanced APIs</h6>
-							<ul className="mb-0 text-dark">
-								<li><code className="bg-white p-1 rounded border">GET /api/voice-commands?page=1&limit=20</code> - Get voice commands history with pagination</li>
-								<li><code className="bg-white p-1 rounded border">POST /api/voice-commands/process</code> - Process voice command (body: &#123;command, confidence&#125;)</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/history/export/voice-commands</code> - Export voice commands as CSV</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/dashboard</code> - Get dashboard overview data</li>
-								<li><code className="bg-white p-1 rounded border">GET /api/automation</code> - Get automation configuration</li>
-								<li><code className="bg-white p-1 rounded border">PUT /api/automation</code> - Update automation configuration</li>
-							</ul>
-						</div>
-
-						<div className="bg-dark text-light p-3 rounded">
-							<h6 className="text-light">📄 API Response Format with Pagination</h6>
-							<pre className="text-light mb-0" style={{ backgroundColor: 'transparent', border: 'none' }}>{`{
-  "success": true,
-  "message": "Data retrieved successfully",
-  "data": {
-    "sensors": [
-      {
-        "temperature": 25.5,
-        "humidity": 65.0,
-        "soilMoisture": 1,
-        "waterLevel": 0,
-        "lightLevel": 1,
-        "rainStatus": false,
-        "plantHeight": 25,
-        "createdAt": "2025-08-02T..."
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 500,
-      "totalPages": 25,
-      "hasNext": true,
-      "hasPrev": false
-    },
-    "filters": {
-      "dateRange": {"from": "2025-01-01", "to": "2025-12-31"},
-      "valueRanges": {"temperature": {"min": 20, "max": 30}},
-      "specificValues": {"soilMoisture": 1, "rainStatus": false}
-    }
-  },
-  "timestamp": "2025-08-02T..."
-}`}</pre>
-						</div>
+						{apiEndpoints.map((group, groupIndex) => (
+							<Card key={groupIndex} className="mb-4">
+								<Card.Header>
+									<h5 className="mb-0">{group.title}</h5>
+								</Card.Header>
+								<Card.Body>
+									{group.endpoints.map((endpoint, endpointIndex) => (
+										<div key={endpointIndex} className="mb-3 p-3 bg-light rounded">
+											<div className="d-flex justify-content-between align-items-start mb-2">
+												<div>
+													<Badge bg={endpoint.method === 'GET' ? 'primary' : 'success'} className="me-2">
+														{endpoint.method}
+													</Badge>
+													<code>{endpoint.path}</code>
+												</div>
+												<Button
+													size="sm"
+													variant="outline-secondary"
+													onClick={() => copyToClipboard(endpoint.path, `api_${groupIndex}_${endpointIndex}`)}
+												>
+													{copiedItem === `api_${groupIndex}_${endpointIndex}` ? '✓' : 'Copy'}
+												</Button>
+											</div>
+											<p className="text-muted mb-2">{endpoint.description}</p>
+											<pre className="bg-dark text-light p-2 rounded">
+												<code>{JSON.stringify(endpoint.example, null, 2)}</code>
+											</pre>
+										</div>
+									))}
+								</Card.Body>
+							</Card>
+						))}
 					</div>
 				</Tab>
 
 				<Tab eventKey="websocket" title="⚡ WebSocket">
 					<div className="mt-4">
-						<h5>🔌 WebSocket Connection</h5>
-						<div className="bg-light p-3 rounded mb-4 border">
-							<p className="text-dark"><strong>URL:</strong> <code className="bg-white p-1 rounded border">ws://localhost:5000</code></p>
-							<p className="text-dark"><strong>Events:</strong></p>
-							<ul className="text-dark">
-								<li><code className="bg-white p-1 rounded border">sensor-data</code> - Real-time sensor data</li>
-								<li><code className="bg-white p-1 rounded border">sensor:data</code> - General sensor data channel</li>
-								<li><code className="bg-white p-1 rounded border">sensor:temperature</code> - Specific temperature data</li>
-								<li><code className="bg-white p-1 rounded border">sensor:humidity</code> - Specific humidity data</li>
-								<li><code className="bg-white p-1 rounded border">device-status</code> - Device status updates</li>
-								<li><code className="bg-white p-1 rounded border">alert</code> - System alerts</li>
-								<li><code className="bg-white p-1 rounded border">connection-status</code> - Connection status</li>
-								<li><code className="bg-white p-1 rounded border">voice-command</code> - Voice command updates</li>
-							</ul>
-						</div>
+						{websocketEvents.map((group, groupIndex) => (
+							<Card key={groupIndex} className="mb-4">
+								<Card.Header>
+									<h5 className="mb-0">{group.title}</h5>
+								</Card.Header>
+								<Card.Body>
+									{group.events.map((event, eventIndex) => (
+										<div key={eventIndex} className="mb-3 p-3 bg-light rounded">
+											<div className="d-flex justify-content-between align-items-start mb-2">
+												<div>
+													<Badge bg="info" className="me-2">EVENT</Badge>
+													<code>{event.event}</code>
+												</div>
+												<Button
+													size="sm"
+													variant="outline-secondary"
+													onClick={() => copyToClipboard(event.event, `ws_${groupIndex}_${eventIndex}`)}
+												>
+													{copiedItem === `ws_${groupIndex}_${eventIndex}` ? '✓' : 'Copy'}
+												</Button>
+											</div>
+											<p className="text-muted mb-2">{event.description}</p>
+											<pre className="bg-dark text-light p-2 rounded">
+												<code>{JSON.stringify(event.example, null, 2)}</code>
+											</pre>
+										</div>
+									))}
+								</Card.Body>
+							</Card>
+						))}
 
-						<div className="bg-success text-light p-3 rounded mb-4">
-							<h6 className="text-light">📡 Sensor Data Event Format</h6>
-							<pre className="text-light mb-0" style={{ backgroundColor: 'transparent', border: 'none' }}>{`{
-  "topic": "greenhouse/sensors/temperature",
-  "sensor": "temperature",
-  "data": {
-    "value": 25.5,
-    "timestamp": "2025-08-02T...",
-    "quality": "merged",
-    "merged": true
-  },
-  "timestamp": "2025-08-02T..."
-}`}</pre>
-						</div>
-
-						<div className="bg-warning text-dark p-3 rounded mb-4">
-							<h6 className="text-dark">🎮 Device Status Event Format</h6>
-							<pre className="text-dark mb-0" style={{ backgroundColor: 'transparent', border: 'none' }}>{`{
-  "device": "light",
-  "status": {
-    "status": true,
-    "updatedAt": "2025-08-02T...",
-    "deviceType": "light",
-    "isOnline": true
-  },
-  "timestamp": "2025-08-02T..."
-}`}</pre>
-						</div>
-
-						<div className="bg-info text-white p-3 rounded">
-							<h6 className="text-white">🎤 Voice Command Event Format</h6>
-							<pre className="text-white mb-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '10px', borderRadius: '4px' }}>{`{
-  "id": "voice_cmd_123",
-  "command": "turn on the pump",
-  "confidence": 0.95,
-  "timestamp": "2025-08-02T...",
-  "processed": true,
-  "response": "Pump turned on successfully",
-  "errorMessage": null
-}`}</pre>
-						</div>
+						<Alert variant="info" className="mt-4">
+							<strong>WebSocket Connection:</strong> Connect to <code>ws://localhost:3001</code> for real-time updates.
+							The server broadcasts sensor data, device status changes, and voice command events automatically.
+						</Alert>
 					</div>
 				</Tab>
 			</Tabs>

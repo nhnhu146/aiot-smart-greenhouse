@@ -11,10 +11,21 @@ const VoiceCommandDisplay: React.FC<VoiceCommandDisplayProps> = ({
 	latestVoiceCommand,
 	formatDateTime
 }) => {
+	// if (!latestVoiceCommand) {
+	// 	return null;
+	// }
 	if (!latestVoiceCommand) {
-		return null;
+		return (
+			<Card className="control-card">
+				<Card.Header>
+					<h6 className="mb-0">🎤 Latest Voice Command</h6>
+				</Card.Header>
+				<Card.Body>
+					<div className="text-muted">No voice commands recorded yet.</div>
+				</Card.Body>
+			</Card>
+		);
 	}
-
 	return (
 		<Card className="control-card">
 			<Card.Header>

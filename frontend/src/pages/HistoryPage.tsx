@@ -4,7 +4,6 @@ import { useHistoryData } from "@/hooks/useHistoryData";
 import { useHistoryFilters } from "@/hooks/useHistoryFilters";
 import { useHistorySort } from "@/hooks/useHistorySort";
 import { useHistoryExport } from "@/hooks/useHistoryExport";
-import HistoryFilters from "@/components/History/HistoryFilters";
 import SensorDataTable from "@/components/History/SensorDataTable";
 import DeviceControlTable from "@/components/History/DeviceControlTable";
 import VoiceCommandTable from "@/components/History/VoiceCommandTable";
@@ -18,12 +17,7 @@ const HistoryPage: React.FC = () => {
 
 	// Custom hooks for state management
 	const {
-		filters,
-		showFilters,
 		appliedFilters,
-		updateFilter,
-		applyFilters,
-		clearFilters,
 		toggleFilters,
 		hasActiveFilters
 	} = useHistoryFilters();
@@ -136,15 +130,7 @@ const HistoryPage: React.FC = () => {
 					</Alert>
 				)}
 
-				<HistoryFilters
-					filters={filters}
-					showFilters={showFilters}
-					onFilterChange={updateFilter}
-					onApplyFilters={applyFilters}
-					onClearFilters={clearFilters}
-					onToggleFilters={toggleFilters}
-					hasActiveFilters={hasActiveFilters}
-				/>
+
 
 				<Tabs
 					activeKey={activeTab}
@@ -156,7 +142,7 @@ const HistoryPage: React.FC = () => {
 						title={
 							<span>
 								📊 Sensors
-								<span className="tab-count">{sensorData.length}</span>
+								<span className="tab-count">{sensorPagination.total}</span>
 							</span>
 						}
 					/>
@@ -165,7 +151,7 @@ const HistoryPage: React.FC = () => {
 						title={
 							<span>
 								🎛️ Controls
-								<span className="tab-count">{deviceControls.length}</span>
+								<span className="tab-count">{devicePagination.total}</span>
 							</span>
 						}
 					/>
@@ -174,7 +160,7 @@ const HistoryPage: React.FC = () => {
 						title={
 							<span>
 								🎤 Voice
-								<span className="tab-count">{voiceCommands.length}</span>
+								<span className="tab-count">{voicePagination.total}</span>
 							</span>
 						}
 					/>

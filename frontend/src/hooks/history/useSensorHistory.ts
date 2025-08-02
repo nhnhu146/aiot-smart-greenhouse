@@ -38,8 +38,8 @@ export const useSensorHistory = (
 		try {
 			const params = buildParams();
 			const response = await apiClient.get('/api/history/sensors', { params });
-			setData(response.data.data || []);
-			setPagination(response.data.pagination || pagination);
+			setData(response.data.data?.sensors || []);
+			setPagination(response.data.data?.pagination || pagination);
 		} catch (error) {
 			console.error('Error fetching sensor data:', error);
 			setData([]);
