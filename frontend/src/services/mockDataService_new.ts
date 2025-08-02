@@ -19,15 +19,6 @@ class MockDataService {
 		MockDataConfig.setEnabled(enabled);
 	}
 
-	// Legacy method names for backward compatibility
-	isUsingMockData(): boolean {
-		return this.enabled;
-	}
-
-	setUseMockData(enabled: boolean): void {
-		this.setEnabled(enabled);
-	}
-
 	generateSensorData = (): SensorData => {
 		return this.enabled ? MockDataGenerator.generateSensorData() : { temperature: 0, humidity: 0, soilMoisture: 0 };
 	};
@@ -48,23 +39,6 @@ class MockDataService {
 		}, interval);
 
 		return () => clearInterval(intervalId);
-	}
-
-	// Legacy method for backward compatibility
-	async getSensorData(): Promise<{ data: SensorData | null; isMock: boolean }> {
-		if (!this.enabled) {
-			return { data: null, isMock: false };
-		}
-
-		return {
-			data: MockDataGenerator.generateSensorData(),
-			isMock: true
-		};
-	}
-
-	// Legacy method for backward compatibility  
-	startMockDataUpdates(intervalMs: number = 5000): () => void {
-		return this.startRealTimeData(() => { }, intervalMs);
 	}
 }
 
