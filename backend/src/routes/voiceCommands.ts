@@ -15,22 +15,37 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 	try {
 		const page = parseInt(req.query.page as string) || 1;
 		const limit = parseInt(req.query.limit as string) || 50;
-		const { from, to } = req.query as any;
+		const {
+			dateFrom,
+			dateTo,
+			from,
+			to,
+			sortBy = 'timestamp',
+			sortOrder = 'desc'
+		} = req.query as any;
 
 		const query: any = {};
 
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		const fromDate = dateFrom || from;
+		const toDate = dateTo || to;
+
 		// Filter by date range if provided
-		if (from || to) {
+		if (fromDate || toDate) {
 			query.timestamp = {};
-			if (from) query.timestamp.$gte = new Date(from);
-			if (to) query.timestamp.$lte = new Date(to);
+			if (fromDate) query.timestamp.$gte = new Date(fromDate);
+			if (toDate) query.timestamp.$lte = new Date(toDate);
 		}
 
 		const skip = (page - 1) * limit;
 
+		// Build sort object
+		const sortObj: any = {};
+		sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
 		const [commands, total] = await Promise.all([
 			VoiceCommand.find(query)
-				.sort({ timestamp: -1 })
+				.sort(sortObj)
 				.skip(skip)
 				.limit(limit)
 				.lean(),

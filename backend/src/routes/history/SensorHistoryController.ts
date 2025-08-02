@@ -5,22 +5,73 @@ import { DataMergerService } from '../../services/DataMergerService';
 
 export class SensorHistoryController {
 	async getSensorHistory(req: Request, res: Response): Promise<void> {
-		const { page = 1, limit = 100, from, to } = req.query as any;
+		const {
+			page = 1,
+			limit = 100,
+			dateFrom,
+			dateTo,
+			from,
+			to,
+			minTemperature,
+			maxTemperature,
+			minHumidity,
+			maxHumidity,
+			minSoilMoisture,
+			maxSoilMoisture,
+			minWaterLevel,
+			maxWaterLevel,
+			sortBy = 'createdAt',
+			sortOrder = 'desc'
+		} = req.query as any;
 
 		const query: any = {};
 
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		const fromDate = dateFrom || from;
+		const toDate = dateTo || to;
+
 		// Default to last 24 hours if no date range specified
-		if (!from && !to) {
+		if (!fromDate && !toDate) {
 			const last24Hours = new Date();
 			last24Hours.setHours(last24Hours.getHours() - 24);
 			query.createdAt = { $gte: last24Hours };
-		} else if (from || to) {
+		} else if (fromDate || toDate) {
 			query.createdAt = {};
-			if (from) query.createdAt.$gte = from;
-			if (to) query.createdAt.$lte = to;
+			if (fromDate) query.createdAt.$gte = new Date(fromDate);
+			if (toDate) query.createdAt.$lte = new Date(toDate);
+		}
+
+		// Add range filters
+		if (minTemperature && !isNaN(parseFloat(minTemperature))) {
+			query.temperature = { ...query.temperature, $gte: parseFloat(minTemperature) };
+		}
+		if (maxTemperature && !isNaN(parseFloat(maxTemperature))) {
+			query.temperature = { ...query.temperature, $lte: parseFloat(maxTemperature) };
+		}
+		if (minHumidity && !isNaN(parseFloat(minHumidity))) {
+			query.humidity = { ...query.humidity, $gte: parseFloat(minHumidity) };
+		}
+		if (maxHumidity && !isNaN(parseFloat(maxHumidity))) {
+			query.humidity = { ...query.humidity, $lte: parseFloat(maxHumidity) };
+		}
+		if (minSoilMoisture && !isNaN(parseFloat(minSoilMoisture))) {
+			query.soilMoisture = { ...query.soilMoisture, $gte: parseFloat(minSoilMoisture) };
+		}
+		if (maxSoilMoisture && !isNaN(parseFloat(maxSoilMoisture))) {
+			query.soilMoisture = { ...query.soilMoisture, $lte: parseFloat(maxSoilMoisture) };
+		}
+		if (minWaterLevel && !isNaN(parseFloat(minWaterLevel))) {
+			query.waterLevel = { ...query.waterLevel, $gte: parseFloat(minWaterLevel) };
+		}
+		if (maxWaterLevel && !isNaN(parseFloat(maxWaterLevel))) {
+			query.waterLevel = { ...query.waterLevel, $lte: parseFloat(maxWaterLevel) };
 		}
 
 		const skip = (page - 1) * limit;
+
+		// Build sort object
+		const sortObj: any = {};
+		sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
 		// Smart merge for sensors: only if duplicates exist
 		const mergerService = DataMergerService.getInstance();
@@ -47,7 +98,7 @@ export class SensorHistoryController {
 		}
 
 		const sensorData = await SensorData.find(query)
-			.sort({ createdAt: -1 })
+			.sort(sortObj)
 			.skip(skip)
 			.limit(limit)
 			.lean();

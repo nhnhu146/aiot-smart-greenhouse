@@ -45,19 +45,49 @@ export class DeviceHistoryController {
 	}
 
 	async getDeviceControlHistory(req: Request, res: Response): Promise<void> {
-		const { page = 1, limit = 50, from, to } = req.query as any;
+		const {
+			page = 1,
+			limit = 50,
+			dateFrom,
+			dateTo,
+			from,
+			to,
+			deviceType,
+			action,
+			sortBy = 'timestamp',
+			sortOrder = 'desc'
+		} = req.query as any;
 
 		const query: any = {};
-		if (from || to) {
+
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		const fromDate = dateFrom || from;
+		const toDate = dateTo || to;
+
+		if (fromDate || toDate) {
 			query.timestamp = {};
-			if (from) query.timestamp.$gte = from;
-			if (to) query.timestamp.$lte = to;
+			if (fromDate) query.timestamp.$gte = new Date(fromDate);
+			if (toDate) query.timestamp.$lte = new Date(toDate);
+		}
+
+		// Add device type filter
+		if (deviceType && deviceType.trim()) {
+			query.deviceType = deviceType;
+		}
+
+		// Add action filter
+		if (action && action.trim()) {
+			query.action = action;
 		}
 
 		const skip = (page - 1) * limit;
 
+		// Build sort object
+		const sortObj: any = {};
+		sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
 		const deviceControls = await DeviceHistory.find(query)
-			.sort({ timestamp: -1 })
+			.sort(sortObj)
 			.skip(skip)
 			.limit(limit)
 			.lean();

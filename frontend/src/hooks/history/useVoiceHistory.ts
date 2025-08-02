@@ -40,8 +40,11 @@ export const useVoiceHistory = (
 		try {
 			const params = buildParams();
 			const response = await apiClient.get('/api/voice-commands', { params });
-			setData(response.data.data?.voiceCommands || response.data.data || []);
-			setPagination(response.data.data?.pagination || response.data.pagination || pagination);
+
+			// Handle both possible response formats
+			const responseData = response.data || response;
+			setData(responseData.voiceCommands || responseData.data?.voiceCommands || responseData.data || []);
+			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
 		} catch (error) {
 			console.error('Error fetching voice commands:', error);
 			setData([]);

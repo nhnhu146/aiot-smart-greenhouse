@@ -32,9 +32,12 @@ export const useDeviceHistory = (
 		setLoading(true);
 		try {
 			const params = buildParams();
-			const response = await apiClient.get('/api/history/devices', { params });
-			setData(response.data.data?.devices || []);
-			setPagination(response.data.data?.pagination || pagination);
+			const response = await apiClient.get('/api/history/device-controls', { params });
+
+			// Handle both possible response formats
+			const responseData = response.data || response;
+			setData(responseData.deviceControls || responseData.data?.deviceControls || []);
+			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
 		} catch (error) {
 			console.error('Error fetching device controls:', error);
 			setData([]);

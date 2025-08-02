@@ -26,6 +26,10 @@ export const useSensorHistory = (
 		if (filters.maxTemperature && filters.maxTemperature.trim()) params.maxTemperature = parseFloat(filters.maxTemperature);
 		if (filters.minHumidity && filters.minHumidity.trim()) params.minHumidity = parseFloat(filters.minHumidity);
 		if (filters.maxHumidity && filters.maxHumidity.trim()) params.maxHumidity = parseFloat(filters.maxHumidity);
+		if (filters.minSoilMoisture && filters.minSoilMoisture.trim()) params.minSoilMoisture = parseFloat(filters.minSoilMoisture);
+		if (filters.maxSoilMoisture && filters.maxSoilMoisture.trim()) params.maxSoilMoisture = parseFloat(filters.maxSoilMoisture);
+		if (filters.minWaterLevel && filters.minWaterLevel.trim()) params.minWaterLevel = parseFloat(filters.minWaterLevel);
+		if (filters.maxWaterLevel && filters.maxWaterLevel.trim()) params.maxWaterLevel = parseFloat(filters.maxWaterLevel);
 		if (filters.soilMoisture !== '' && filters.soilMoisture.trim()) params.soilMoisture = parseInt(filters.soilMoisture);
 		if (filters.waterLevel !== '' && filters.waterLevel.trim()) params.waterLevel = parseInt(filters.waterLevel);
 		if (filters.rainStatus !== '' && filters.rainStatus.trim()) params.rainStatus = filters.rainStatus === 'true';
@@ -38,8 +42,11 @@ export const useSensorHistory = (
 		try {
 			const params = buildParams();
 			const response = await apiClient.get('/api/history/sensors', { params });
-			setData(response.data.data?.sensors || []);
-			setPagination(response.data.data?.pagination || pagination);
+
+			// Handle both possible response formats
+			const responseData = response.data || response;
+			setData(responseData.sensors || responseData.data?.sensors || []);
+			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
 		} catch (error) {
 			console.error('Error fetching sensor data:', error);
 			setData([]);
