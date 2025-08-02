@@ -64,21 +64,54 @@ export default function useWebSocket(): UseWebSocketReturn {
 	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
 	// Use requestAnimationFrame to prevent UI blocking
-	const updateSensorData = useCallback((data: SensorData) => {
+	const updateSensorData = useCallback((data: any) => {
 		requestAnimationFrame(() => {
-			setSensorData(data);
+			// Normalize sensor data format to handle both formats:
+			// Backend format: { topic, sensor, data: { value, timestamp, quality, merged }, timestamp }
+			// Legacy format: { sensor, data, timestamp, value }
 
-			// Update persistent sensor state
-			const value = typeof data.data === 'object' ? data.data.value :
-				data.data !== undefined ? parseFloat(data.data) :
-					data.value !== undefined ? data.value : 0;
+			let normalizedData: SensorData;
 
-			if (!isNaN(value)) {
+			if (data.sensor && data.data && typeof data.data === 'object' && data.data.value !== undefined) {
+				// New backend format
+				normalizedData = {
+					sensor: data.sensor,
+					data: data.data,
+					timestamp: data.timestamp || new Date().toISOString(),
+					topic: data.topic,
+					value: data.data.value
+				};
+			} else if (data.type && data.value !== undefined) {
+				// Direct backend format from MQTT handler
+				normalizedData = {
+					sensor: data.type,
+					data: { value: data.value, quality: data.quality || 'good' },
+					timestamp: data.timestamp || new Date().toISOString(),
+					topic: data.topic,
+					value: data.value
+				};
+			} else {
+				// Legacy format or unknown format
+				normalizedData = {
+					sensor: data.sensor || data.type || 'unknown',
+					data: data.data || data,
+					timestamp: data.timestamp || new Date().toISOString(),
+					topic: data.topic,
+					value: data.value || (typeof data.data === 'number' ? data.data : 0)
+				};
+			}
+
+			setSensorData(normalizedData);
+
+			// Update persistent sensor state with the extracted value
+			const value = normalizedData.value;
+
+			if (value !== undefined && !isNaN(value)) {
 				setPersistentSensorData(prev => ({
 					...prev,
-					[data.sensor]: {
+					[normalizedData.sensor]: {
 						value,
-						timestamp: data.timestamp || new Date().toISOString()
+						timestamp: normalizedData.timestamp
 					}
 				}));
 

@@ -4,8 +4,10 @@
  */
 
 export const getWebSocketUrl = (): string => {
-	// Check if we're in development mode
-	const isDevelopment = import.meta.env.MODE === 'development';
+	// Check if we're in development mode using multiple indicators
+	const isDevelopment = import.meta.env.MODE === 'development' ||
+		import.meta.env.DEV === true ||
+		(typeof window !== 'undefined' && window.location.hostname === 'localhost');
 
 	// Get the API URL from environment
 	let serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -42,12 +44,19 @@ export const getWebSocketConfig = () => ({
 });
 
 export const logConnectionInfo = (serverUrl: string) => {
+	// More accurate environment detection
+	const isDev = import.meta.env.MODE === 'development' ||
+		import.meta.env.DEV === true ||
+		(typeof window !== 'undefined' && window.location.hostname === 'localhost');
+
+	const environment = isDev ? 'development' : 'production';
+
 	console.log(`\n🔗 WebSocket Connection Info
 		- Server URL: ${serverUrl}
-		- Environment: ${import.meta.env.MODE}
+		- Environment: ${environment}
 		- Timestamp: ${new Date().toISOString()}`);
-	
-	if (import.meta.env.MODE === 'development') {
+
+	if (environment === 'development') {
 		console.log('   - Make sure backend server is running: npm run dev (in backend folder)');
 	}
 };

@@ -28,7 +28,7 @@ export const useHistoryExport = () => {
 					filename = `all-data-${new Date().toISOString().split('T')[0]}`;
 			}
 
-			const response = await apiClient.get(`${endpoint}?format=${format}`);
+			const response = await apiClient.get(`${endpoint}?format=${format}&sortBy=timestamp&sortOrder=desc&limit=1000`);
 
 			// Create and download file
 			const blob = new Blob([
@@ -48,7 +48,7 @@ export const useHistoryExport = () => {
 
 		} catch (error) {
 			console.error('Export failed:', error);
-			// Could add toast notification here
+			alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		} finally {
 			setIsExporting(false);
 		}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 interface SensorData {
 	temperature?: number;
@@ -23,6 +24,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 	const [error, setError] = useState<string | null>(null);
 
 	const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+	const { persistentSensorData } = useWebSocketContext(); // Listen for WebSocket updates
 
 	const fetchData = async (timeRange: '1h' | '24h' | '7d' | '30d' = '24h') => {
 		try {
@@ -42,7 +44,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 			const to = now.toISOString();
 
 			const response = await fetch(
-				`${API_BASE_URL}/api/sensors?from=${from}&to=${to}&limit=1000&sortBy=createdAt&sortOrder=asc`
+				`${API_BASE_URL}/api/sensors?from=${from}&to=${to}&limit=20&sortBy=createdAt&sortOrder=desc`
 			);
 
 			if (!response.ok) {
@@ -51,16 +53,22 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 
 			const result = await response.json();
 
-			if (result.success && result.data?.sensors) {
-				// Filter out data with null timestamps
-				const validData = result.data.sensors.filter((item: SensorData) => {
-					const timestamp = item.createdAt || item.timestamp;
-					return timestamp && timestamp !== null;
-				});
+			if (result.success && result.data) {
+				// The API returns data directly in result.data, not result.data.sensors
+				const rawData = Array.isArray(result.data) ? result.data : [result.data];
+
+				// Filter out data with null timestamps and limit to 20 points
+				const validData = rawData
+					.filter((item: SensorData) => {
+						const timestamp = item.createdAt || item.timestamp;
+						return timestamp && timestamp !== null;
+					})
+					.slice(0, 20) // Ensure maximum 20 data points
+					.reverse(); // Reverse to get chronological order
 
 				setData(validData);
 			} else {
-				throw new Error('Invalid response format');
+				throw new Error(`Invalid response format: ${JSON.stringify(result)}`);
 			}
 		} catch (err) {
 			console.error('Error fetching line chart data:', err);
@@ -77,6 +85,15 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 	useEffect(() => {
 		fetchData();
 	}, []);
+
+	// Listen for WebSocket updates and refresh chart data to avoid duplicate timestamps
+	useEffect(() => {
+		if (persistentSensorData) {
+			// When new sensor data comes via WebSocket, refresh chart data from API
+			// This ensures no duplicate timestamps and maintains data integrity
+			fetchData();
+		}
+	}, [persistentSensorData]);
 
 	return {
 		data,

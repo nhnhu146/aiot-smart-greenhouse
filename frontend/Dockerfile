@@ -11,6 +11,10 @@ RUN yarn install --frozen-lockfile
 # Copy source code
 COPY . .
 
+# Set build-time environment variables
+ARG VITE_API_URL=http://localhost:5000
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build the application
 RUN yarn build
 

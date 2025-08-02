@@ -23,18 +23,58 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 }) => {
 	return (
 		<>
+			{/* Floating Filter Toggle Button */}
 			<Button
-				className={`floating-filter-toggle ${showFilters ? 'active' : ''}`}
+				className={`floating-filter-toggle ${showFilters ? 'active' : ''} ${hasActiveFilters ? 'has-filters' : ''}`}
 				onClick={onToggleFilters}
+				style={{
+					position: 'fixed',
+					top: '50%',
+					right: '20px',
+					zIndex: 1050,
+					borderRadius: '25px',
+					padding: '10px 20px',
+					boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+					border: 'none',
+					fontWeight: '600',
+					transform: 'translateY(-50%)',
+					transition: 'all 0.3s ease'
+				}}
 			>
-				🔍 {showFilters ? 'Hide' : 'Show'} Filters
-				{hasActiveFilters && <span className="badge bg-warning ms-2">Active</span>}
+				🔍  Filters
+				{hasActiveFilters && <span className="badge bg-warning ms-2">{Object.values(filters).filter(v => v).length}</span>}
 			</Button>
 
+			{/* Floating Filter Panel */}
 			{showFilters && (
-				<div className="filters-section">
-					<div className="filters-header">
-						<h4 className="filters-title">🔍 Data Filters</h4>
+				<div
+					className="floating-filters-panel"
+					style={{
+						position: 'fixed',
+						top: '50%',
+						right: '20px',
+						transform: 'translateY(-50%)',
+						width: '400px',
+						maxHeight: '80vh',
+						overflowY: 'auto',
+						backgroundColor: 'white',
+						borderRadius: '12px',
+						boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+						border: '1px solid #e9ecef',
+						zIndex: 1040,
+						padding: '20px'
+					}}
+				>
+					<div className="d-flex justify-content-between align-items-center mb-3">
+						<h5 className="mb-0">🔍 Data Filters</h5>
+						<Button
+							variant="outline-secondary"
+							size="sm"
+							onClick={onToggleFilters}
+							style={{ borderRadius: '20px' }}
+						>
+							✕
+						</Button>
 					</div>
 
 					<Row className="g-3">
@@ -198,11 +238,21 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 						</Col>
 					</Row>
 
-					<div className="filter-actions mt-3">
-						<Button variant="outline-secondary" onClick={onClearFilters}>
+					<div className="filter-actions d-flex gap-2 mt-3">
+						<Button
+							variant="outline-secondary"
+							size="sm"
+							onClick={onClearFilters}
+							style={{ borderRadius: '20px' }}
+						>
 							Clear All
 						</Button>
-						<Button variant="primary" onClick={onApplyFilters} className="ms-2">
+						<Button
+							variant="primary"
+							size="sm"
+							onClick={onApplyFilters}
+							style={{ borderRadius: '20px' }}
+						>
 							Apply Filters
 						</Button>
 					</div>

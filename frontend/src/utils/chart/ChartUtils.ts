@@ -17,13 +17,13 @@ export interface ChartDataPoint {
 export class ChartUtils {
 
 	private static readonly CHART_COLORS = {
-		temperature: '#dc3545',
-		humidity: '#17a2b8',
-		soilMoisture: '#28a745',
-		waterLevel: '#007bff',
-		lightLevel: '#ffc107',
-		rainStatus: '#6c757d',
-		plantHeight: '#e83e8c'
+		temperature: '#dc2626', // Red with higher contrast
+		humidity: '#2563eb', // Blue with higher contrast
+		soilMoisture: '#16a34a', // Green with higher contrast
+		waterLevel: '#0f172a', // Dark blue with higher contrast
+		lightLevel: '#d97706', // Orange with higher contrast
+		rainStatus: '#4b5563', // Gray with higher contrast
+		plantHeight: '#7c2d12' // Brown with higher contrast
 	} as const;
 
 	/**

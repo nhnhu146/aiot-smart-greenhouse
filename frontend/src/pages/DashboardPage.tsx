@@ -3,7 +3,6 @@ import AppLineChart from '@/components/LineChart/LineChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
 import DeviceControlCenter from '@/components/DeviceControl/DeviceControlCenter';
 import withAuth from '@/components/withAuth/withAuth';
-import DashboardAlerts from '@/components/Dashboard/DashboardAlerts';
 import AutoModeControl from '@/components/Dashboard/AutoModeControl';
 import VoiceCommandDisplay from '@/components/Dashboard/VoiceCommandDisplay';
 import DashboardLoading from '@/components/Dashboard/DashboardLoading';
@@ -41,43 +40,23 @@ const DashboardPage = () => {
 				</div>
 			)}
 
-			{/* Main Dashboard Content */}
+			{/* Row 1: Sensor Dashboard */}
 			<Row className="mb-4">
-				{/* Sensor Dashboard */}
-				<Col lg={8} className="mb-3">
+				<Col xs={12}>
 					<SensorDashboard />
-				</Col>
-
-				{/* Device Controls */}
-				<Col lg={4} className="mb-3">
-					<DeviceControlCenter
-						activities={activities}
-						switchStates={switchStates}
-						onDeviceToggle={handleDeviceToggle}
-					/>
 				</Col>
 			</Row>
 
-			{/* Control Panel Row */}
+			{/* Row 2: 🤖 Automation Control | Latest Voice Command */}
 			<Row className="mb-4">
-				{/* Auto Mode Control */}
-				<Col md={6} className="mb-3">
+				<Col lg={6} className="mb-3">
 					<AutoModeControl
 						autoMode={autoMode}
 						userInteraction={userInteraction}
 						onToggle={toggleAutoMode}
 					/>
-					<div className="mt-3">
-						<DashboardAlerts
-							isConnected={isConnected}
-							autoMode={autoMode}
-							userInteraction={userInteraction}
-						/>
-					</div>
 				</Col>
-
-				{/* Voice Command Display */}
-				<Col md={6} className="mb-3">
+				<Col lg={6} className="mb-3">
 					<VoiceCommandDisplay
 						latestVoiceCommand={latestVoiceCommand}
 						formatDateTime={formatDateTime}
@@ -85,14 +64,28 @@ const DashboardPage = () => {
 				</Col>
 			</Row>
 
-			{/* Charts Section - API data only, NO doughnut cards */}
-			<Row className="my-3 align-items-center justify-content-center chart-row">
-				<Col sm={12}>
+			{/* Row 3: Device Control Center */}
+			<Row className="mb-4">
+				<Col xs={12}>
+					<DeviceControlCenter
+						activities={activities}
+						switchStates={switchStates}
+						onDeviceToggle={handleDeviceToggle}
+						voiceCommandTrigger={latestVoiceCommand}
+					/>
+				</Col>
+			</Row>
+
+			{/* Row 4: Full Width Line Chart */}
+			<Row className="mb-4">
+				<Col xs={12}>
 					<Card className="chart-card">
-						<Card.Body className="chart-title">Sensor Data Trends</Card.Body>
-						<div className="my-3">
+						<Card.Header className="bg-light">
+							<h5 className="mb-0">📈 Sensor Data Trends (20 Latest Points)</h5>
+						</Card.Header>
+						<Card.Body>
 							<AppLineChart />
-						</div>
+						</Card.Body>
 					</Card>
 				</Col>
 			</Row>

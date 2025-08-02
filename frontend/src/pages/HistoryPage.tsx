@@ -3,6 +3,7 @@ import { Container, Alert, Tab, Tabs } from "react-bootstrap";
 import { useHistoryData } from "@/hooks/useHistoryData";
 import { useHistoryFilters } from "@/hooks/useHistoryFilters";
 import { useHistorySort } from "@/hooks/useHistorySort";
+import { useHistoryExport } from "@/hooks/useHistoryExport";
 import HistoryFilters from "@/components/History/HistoryFilters";
 import SensorDataTable from "@/components/History/SensorDataTable";
 import DeviceControlTable from "@/components/History/DeviceControlTable";
@@ -34,6 +35,8 @@ const HistoryPage: React.FC = () => {
 		handleSort
 	} = useHistorySort();
 
+	const { isExporting, exportData } = useHistoryExport();
+
 	const {
 		sensorData,
 		deviceControls,
@@ -49,9 +52,8 @@ const HistoryPage: React.FC = () => {
 		hookHandlePageChange(activeTab, page);
 	};
 
-	const exportData = () => {
-		// Placeholder for export functionality
-		console.log('Export data for', activeTab);
+	const handleExportData = (format: 'json' | 'csv') => {
+		exportData(format, activeTab);
 	};
 
 	const renderTabContent = () => {
@@ -122,8 +124,8 @@ const HistoryPage: React.FC = () => {
 			<Container fluid>
 				<HistoryHeader
 					onToggleFilters={toggleFilters}
-					onExportData={exportData}
-					isExporting={false}
+					onExportData={handleExportData}
+					isExporting={isExporting}
 					hasActiveFilters={hasActiveFilters}
 				/>
 
@@ -147,7 +149,7 @@ const HistoryPage: React.FC = () => {
 				<Tabs
 					activeKey={activeTab}
 					onSelect={(tab) => setActiveTab(tab as "sensors" | "controls" | "voice")}
-					className="mb-4"
+					className="mb-4 history-tabs"
 				>
 					<Tab
 						eventKey="sensors"
