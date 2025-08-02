@@ -1,0 +1,112 @@
+/* Status Badges and Visual Components */
+.status-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.25rem 0.75rem;
+	border-radius: 20px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.status-badge.processed {
+	background-color: #d4edda;
+	color: #155724;
+}
+
+.status-badge.not-processed {
+	background-color: #f8d7da;
+	color: #721c24;
+}
+
+.status-badge.on,
+.status-badge.open {
+	background-color: #d1ecf1;
+	color: #0c5460;
+}
+
+.status-badge.off,
+.status-badge.close {
+	background-color: #f1f3f4;
+	color: #495057;
+}
+
+/* Value displays */
+.sensor-value {
+	font-weight: 500;
+	color: #495057;
+}
+
+.sensor-value.temperature {
+	color: #dc3545;
+}
+
+.sensor-value.humidity {
+	color: #007bff;
+}
+
+.sensor-value.soil-moisture {
+	color: #6f42c1;
+}
+
+.sensor-value.water-level {
+	color: #20c997;
+}
+
+/* Filter badge styling */
+.filter-badge {
+	display: inline-block;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	padding: 4px 12px;
+	border-radius: 15px;
+	font-size: 12px;
+	font-weight: 500;
+	margin-left: 10px;
+}
+
+/* Animation effects */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.fadeInUp {
+	animation: fadeInUp 0.3s ease;
+}
+
+/* Highlight animation for changed rows */
+@keyframes highlight-update {
+	0% {
+		background-color: rgba(40, 167, 69, 0.2);
+	}
+
+	100% {
+		background-color: transparent;
+	}
+}
+
+.row-changed {
+	animation: highlight-update 2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.status-badge {
+		font-size: 0.7rem;
+		padding: 0.2rem 0.5rem;
+	}
+
+	.filter-badge {
+		font-size: 10px;
+		padding: 2px 8px;
+	}
+}

@@ -1,0 +1,143 @@
+/* Table Styles for History Page */
+.table-responsive {
+	position: relative;
+	z-index: 1;
+	overflow-x: auto;
+	max-height: 600px;
+}
+
+.table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 5 !important;
+	background-color: #f8f9fa !important;
+	border-bottom: 2px solid #dee2e6;
+	backdrop-filter: blur(10px);
+}
+
+/* Sortable column headers */
+.sortable-header {
+	cursor: pointer;
+	user-select: none;
+	transition: all 0.2s ease;
+	position: relative;
+	z-index: 8;
+	background-color: #f8f9fa !important;
+	border-bottom: 2px solid #dee2e6 !important;
+}
+
+.sortable-header:hover {
+	background-color: #e9ecef !important;
+	color: #495057 !important;
+}
+
+.sortable-header::after {
+	content: '↕️';
+	opacity: 0.5;
+	margin-left: 8px;
+	font-size: 0.8em;
+	transition: all 0.2s ease;
+}
+
+.sortable-header.sort-asc::after {
+	content: '↑';
+	opacity: 1;
+	color: #007bff;
+	transform: scale(1.2);
+}
+
+.sortable-header.sort-desc::after {
+	content: '↓';
+	opacity: 1;
+	color: #007bff;
+	transform: scale(1.2);
+}
+
+/* History table specific styles */
+.history-table {
+	margin: 0;
+}
+
+.history-table th {
+	background-color: #f8f9fa;
+	border-bottom: 2px solid #dee2e6;
+	color: #495057;
+	font-weight: 600;
+	padding: 1rem;
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 0.2s ease;
+}
+
+.history-table th:hover {
+	background-color: #e9ecef;
+}
+
+.history-table th.sortable {
+	position: relative;
+}
+
+.history-table th.sortable::after {
+	content: '↕️';
+	font-size: 0.8rem;
+	margin-left: 0.5rem;
+	opacity: 0.5;
+}
+
+.history-table th.sort-asc::after {
+	content: '↑';
+	opacity: 1;
+	color: #007bff;
+}
+
+.history-table th.sort-desc::after {
+	content: '↓';
+	opacity: 1;
+	color: #007bff;
+}
+
+.history-table td {
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid #dee2e6;
+	vertical-align: middle;
+}
+
+.history-table tbody tr:hover {
+	background-color: rgba(0, 123, 255, 0.03);
+}
+
+.table-hover tbody tr:hover {
+	background-color: rgba(0, 123, 255, 0.075);
+}
+
+/* Bootstrap table responsive styles */
+.table>thead>tr>th {
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+/* Highlight animation for changed rows */
+@keyframes highlight-update {
+	0% {
+		background-color: rgba(40, 167, 69, 0.2);
+	}
+
+	100% {
+		background-color: transparent;
+	}
+}
+
+.row-changed {
+	animation: highlight-update 2s ease;
+}
+
+@media (max-width: 768px) {
+	.table-responsive {
+		max-height: 400px;
+	}
+
+	.sortable-header {
+		font-size: 0.85rem;
+		padding: 0.5rem 0.25rem;
+	}
+}

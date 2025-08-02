@@ -5,9 +5,6 @@ import { MergeStatistics, MergeOptions } from './merger/MergerTypes';
 import { DocumentAnalyzer } from './merger/DocumentAnalyzer';
 import { DataMerger } from './merger/DataMerger';
 
-// Re-export types for backward compatibility
-export { MergeStatistics, MergeOptions } from './merger/MergerTypes';
-
 export class DataMergerService {
 	private static instance: DataMergerService;
 	private dbService: DatabaseService;

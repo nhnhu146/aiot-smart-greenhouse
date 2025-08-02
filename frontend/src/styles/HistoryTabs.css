@@ -1,0 +1,68 @@
+/* Tab Navigation Styles */
+.nav-tabs {
+	border-bottom: 2px solid #dee2e6;
+	margin-bottom: 1.5rem;
+	z-index: 5;
+	position: relative;
+}
+
+.nav-tabs .nav-link {
+	border: none;
+	color: #6c757d;
+	font-weight: 500;
+	padding: 0.75rem 1.5rem;
+	transition: all 0.3s ease;
+	position: relative;
+	z-index: 6;
+}
+
+.nav-tabs .nav-link:hover {
+	color: #495057;
+	background-color: #f8f9fa;
+	border-bottom: 2px solid #007bff;
+}
+
+.nav-tabs .nav-link.active {
+	color: #007bff;
+	background-color: white;
+	border-bottom: 2px solid #007bff;
+	font-weight: 600;
+}
+
+.tab-content-wrapper {
+	background: white;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Tab count badges */
+.tab-count {
+	background-color: #6c757d;
+	color: white;
+	font-size: 0.75rem;
+	padding: 0.2rem 0.5rem;
+	border-radius: 10px;
+	margin-left: 0.5rem;
+	font-weight: 500;
+}
+
+.nav-link.active .tab-count {
+	background-color: #007bff;
+}
+
+/* Pagination controls positioning */
+.pagination-controls {
+	position: relative;
+	z-index: 5;
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid #dee2e6;
+}
+
+@media (max-width: 768px) {
+	.nav-tabs .nav-link {
+		padding: 0.75rem 1rem;
+		font-size: 0.9rem;
+	}
+}

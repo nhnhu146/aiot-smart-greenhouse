@@ -31,7 +31,7 @@ export class EmailService {
 		}
 	}
 
-	async sendTestEmail(recipientEmail: string | string[]): Promise<boolean> {
+	async sendTestEmail(recipientEmail: string): Promise<boolean> {
 		if (!this.emailSender) {
 			console.log('📧 Email service not configured - simulating test email');
 			return true;
@@ -39,16 +39,14 @@ export class EmailService {
 
 		try {
 			const template = await this.templateLoader.loadTemplate('test-email.html');
-			const recipients = Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail];
-
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
-				recipientEmail: recipients.join(', '),
+				recipientEmail,
 				currentTime: new Date().toISOString(),
 				systemVersion: '2.1.0'
 			});
 
 			return await this.emailSender.sendEmail({
-				to: recipients,
+				to: recipientEmail,
 				subject: '✅ Smart Greenhouse - Email System Test',
 				htmlContent: processedTemplate
 			});
@@ -84,26 +82,7 @@ export class EmailService {
 		}
 	}
 
-	async sendBatchAlertEmail(batchData: BatchAlertEmailData, recipientEmails: string[]): Promise<boolean>;
-	async sendBatchAlertEmail(recipientEmails: string[], batchData: BatchAlertEmailData): Promise<boolean>;
-	async sendBatchAlertEmail(
-		arg1: BatchAlertEmailData | string[],
-		arg2: string[] | BatchAlertEmailData
-	): Promise<boolean> {
-		// Handle both signatures for backward compatibility
-		let batchData: BatchAlertEmailData;
-		let recipientEmails: string[];
-
-		if (typeof arg1 === 'string' || Array.isArray(arg1)) {
-			// Old signature: sendBatchAlertEmail(recipientEmails, batchData)
-			recipientEmails = arg1 as string[];
-			batchData = arg2 as BatchAlertEmailData;
-		} else {
-			// New signature: sendBatchAlertEmail(batchData, recipientEmails)
-			batchData = arg1 as BatchAlertEmailData;
-			recipientEmails = arg2 as string[];
-		}
-
+	async sendBatchAlertEmail(batchData: BatchAlertEmailData, recipientEmails: string[]): Promise<boolean> {
 		if (!this.emailSender) {
 			console.log('📧 Email service not configured - simulating batch alert email');
 			return true;
@@ -164,13 +143,6 @@ export class EmailService {
 		return this.transporter.isReady();
 	}
 
-	public getStatus(): { configured: boolean; ready: boolean } {
-		return {
-			configured: this.transporter.isReady(),
-			ready: this.transporter.isReady()
-		};
-	}
-
 	public reloadTemplates(): void {
 		this.templateLoader.clearCache();
 		console.log('✅ Templates cache cleared');
@@ -178,7 +150,3 @@ export class EmailService {
 }
 
 export default EmailService;
-
-// Create singleton instance for backward compatibility
-const emailService = new EmailService();
-export { emailService };

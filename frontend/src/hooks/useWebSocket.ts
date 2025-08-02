@@ -175,7 +175,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		setSocket(newSocket);
 
-		// Cleanup function
+		// Teardown function
 		return () => {
 			if (reconnectTimeoutRef.current) {
 				clearTimeout(reconnectTimeoutRef.current);

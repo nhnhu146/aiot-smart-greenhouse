@@ -4,8 +4,8 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { PasswordReset } from '../models';
 import { emailService } from '../services';
+import { users, User } from '../auth/authService';
 
-const router = express.Router();
 
 // Rate limiting for password reset requests
 const resetRequestLimit = rateLimit({
@@ -30,10 +30,7 @@ const resetPasswordLimit = rateLimit({
 	legacyHeaders: false
 });
 
-// In-memory user store (should be replaced with database)
-declare global {
-	var users: Map<string, any>;
-}
+const router = express.Router();
 
 /**
  * Request password reset

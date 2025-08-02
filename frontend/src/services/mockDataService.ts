@@ -241,7 +241,7 @@ class MockDataService {
 			}
 		}, intervalMs);
 
-		// Return cleanup function
+		// Return shutdown function
 		return () => {
 			clearInterval(interval);
 		};
