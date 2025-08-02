@@ -11,6 +11,7 @@ import {
 	Legend,
 	TimeScale,
 } from 'chart.js';
+import { ChartUtils } from '@/utils/chart/ChartUtils';
 import 'chartjs-adapter-date-fns';
 
 ChartJS.register(
@@ -53,142 +54,24 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 			};
 		}
 
-		const labels = data.map(item => {
-			const timestamp = item.createdAt || item.timestamp;
-			return timestamp ? new Date(timestamp) : new Date();
-		});
+		// Use ChartUtils to clean and validate data
+		const validData = ChartUtils.filterValidData(data.map(item => ({
+			...item,
+			timestamp: item.createdAt || item.timestamp || new Date().toISOString()
+		})));
 
-		const datasets = [];
-		const colors = {
-			temperature: '#ff6b6b',
-			humidity: '#4dabf7',
-			soilMoisture: '#69db7c',
-			waterLevel: '#51cf66',
-			lightLevel: '#ffd43b'
-		};
-
-		if (selectedMetrics.includes('temperature')) {
-			datasets.push({
-				label: 'Temperature (°C)',
-				data: data.map(item => item.temperature || 0),
-				borderColor: colors.temperature,
-				backgroundColor: colors.temperature + '20',
-				fill: false,
-				tension: 0.1,
-				pointRadius: 2,
-				pointHoverRadius: 4,
-			});
+		if (validData.length === 0) {
+			return {
+				labels: [],
+				datasets: []
+			};
 		}
 
-		if (selectedMetrics.includes('humidity')) {
-			datasets.push({
-				label: 'Humidity (%)',
-				data: data.map(item => item.humidity || 0),
-				borderColor: colors.humidity,
-				backgroundColor: colors.humidity + '20',
-				fill: false,
-				tension: 0.1,
-				pointRadius: 2,
-				pointHoverRadius: 4,
-			});
-		}
-
-		if (selectedMetrics.includes('soilMoisture')) {
-			datasets.push({
-				label: 'Soil Moisture',
-				data: data.map(item => item.soilMoisture || 0),
-				borderColor: colors.soilMoisture,
-				backgroundColor: colors.soilMoisture + '20',
-				fill: false,
-				tension: 0.1,
-				pointRadius: 2,
-				pointHoverRadius: 4,
-			});
-		}
-
-		if (selectedMetrics.includes('waterLevel')) {
-			datasets.push({
-				label: 'Water Level',
-				data: data.map(item => item.waterLevel || 0),
-				borderColor: colors.waterLevel,
-				backgroundColor: colors.waterLevel + '20',
-				fill: false,
-				tension: 0.1,
-				pointRadius: 2,
-				pointHoverRadius: 4,
-			});
-		}
-
-		if (selectedMetrics.includes('lightLevel')) {
-			datasets.push({
-				label: 'Light Level',
-				data: data.map(item => item.lightLevel || 0),
-				borderColor: colors.lightLevel,
-				backgroundColor: colors.lightLevel + '20',
-				fill: false,
-				tension: 0.1,
-				pointRadius: 2,
-				pointHoverRadius: 4,
-			});
-		}
-
-		return { labels, datasets };
+		// Format data using ChartUtils
+		return ChartUtils.formatForChart(validData, selectedMetrics);
 	};
 
-	const options = {
-		responsive: true,
-		maintainAspectRatio: false,
-		interaction: {
-			mode: 'index' as const,
-			intersect: false,
-		},
-		plugins: {
-			legend: {
-				position: 'top' as const,
-			},
-			title: {
-				display: true,
-				text: 'Sensor Data Timeline'
-			},
-			tooltip: {
-				callbacks: {
-					title: (context: any) => {
-						return new Date(context[0].parsed.x).toLocaleString();
-					}
-				}
-			}
-		},
-		scales: {
-			x: {
-				type: 'time' as const,
-				time: {
-					displayFormats: {
-						hour: 'HH:mm',
-						day: 'MMM dd',
-						week: 'MMM dd',
-						month: 'MMM yyyy'
-					}
-				},
-				title: {
-					display: true,
-					text: 'Time'
-				}
-			},
-			y: {
-				beginAtZero: true,
-				title: {
-					display: true,
-					text: 'Value'
-				}
-			}
-		},
-		elements: {
-			point: {
-				radius: 2,
-				hoverRadius: 6
-			}
-		}
-	};
+	const options = ChartUtils.getChartOptions();
 
 	if (loading) {
 		return (

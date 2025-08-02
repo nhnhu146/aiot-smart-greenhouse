@@ -61,7 +61,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 	});
 	const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
 	const [alerts, setAlerts] = useState<Alert[]>([]);
-	const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
 	// Use requestAnimationFrame to prevent UI blocking
 	const updateSensorData = useCallback((data: SensorData) => {
@@ -83,6 +83,8 @@ export default function useWebSocket(): UseWebSocketReturn {
 				}));
 
 			} else {
+				// Handle invalid/unexpected data format
+				console.warn('Received invalid sensor data format:', data);
 			}
 		});
 	}, []);
@@ -143,6 +145,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 			// Don't spam error logs, just warn once per connection attempt
 			if (!newSocket.recovered) {
+				console.warn('Connection recovery attempt failed');
 			}
 		});
 
@@ -165,8 +168,9 @@ export default function useWebSocket(): UseWebSocketReturn {
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts); // Legacy compatibility
 
-		newSocket.on('notification', (_notification: any) => {
+		newSocket.on('notification', (notification: any) => {
 			// Handle notifications here (could show toast, etc.)
+			console.log('Received notification:', notification);
 		});
 
 		setSocket(newSocket);

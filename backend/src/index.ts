@@ -567,8 +567,8 @@ function setupMQTTHandlers() {
 			else if (topic === 'greenhouse/command') {
 				console.log(`🎤 Received voice command: ${messageString}`);
 
-				// Import voice command service
-				const { voiceCommandService } = await import('./services');
+				// Import optimized voice command processor
+				const { VoiceCommandOptimizer } = await import('./services/voice/VoiceCommandOptimizer');
 
 				// Parse command and confidence score
 				let command = messageString;
@@ -592,8 +592,8 @@ function setupMQTTHandlers() {
 					console.log(`ℹ️ No confidence score provided, will display as N/A`);
 				}
 
-				// Process voice command with parsed confidence (or null for N/A)
-				await voiceCommandService.processVoiceCommand(command, confidence);
+				// Process voice command with optimized handler for immediate response
+				await VoiceCommandOptimizer.processCommandOptimized(command, confidence);
 
 				// Send debug feedback
 				mqttService.publishDebugFeedback(topic, messageString, 'voice_command_processed');

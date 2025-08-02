@@ -17,7 +17,7 @@ export interface DeviceStatus {
 }
 
 class ApiClient {
-	private async request(endpoint: string, options: RequestInit = {}) {
+	private async request(endpoint: string, options: any = {}) {
 		try {
 			const token = localStorage.getItem('token');
 			const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -38,6 +38,34 @@ class ApiClient {
 			console.error(`API request failed: ${endpoint}`, error);
 			throw error;
 		}
+	}
+
+	// Generic GET method with query parameters
+	async get(endpoint: string, options: { params?: Record<string, any> } = {}) {
+		let url = endpoint;
+
+		if (options.params) {
+			const searchParams = new URLSearchParams();
+			Object.entries(options.params).forEach(([key, value]) => {
+				if (value !== undefined && value !== null && value !== '') {
+					searchParams.append(key, String(value));
+				}
+			});
+			const queryString = searchParams.toString();
+			if (queryString) {
+				url += (url.includes('?') ? '&' : '?') + queryString;
+			}
+		}
+
+		return this.request(url);
+	}
+
+	// Generic POST method
+	async post(endpoint: string, data?: any) {
+		return this.request(endpoint, {
+			method: 'POST',
+			body: data ? JSON.stringify(data) : undefined,
+		});
 	}
 
 	// Sensor Data APIs

@@ -111,3 +111,13 @@ temp/
 **/yarn.lock
 /.copilot_temp
 *.production
+
+# Copilot temporary files
+.copilot_temp/
+temp_*.py
+temp_*.js
+temp_*.ts
+temp_*.md
+*_temp.*
+process_*.py
+helper_*.py

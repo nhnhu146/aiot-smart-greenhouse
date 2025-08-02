@@ -8,3 +8,5 @@ export { DataMergerService } from './DataMergerService';
 export { CountService, countService } from './CountService';
 export { default as automationService } from './AutomationService';
 export { VoiceCommandService, voiceCommandService } from './VoiceCommandService';
+export { MQTTMessageHandler } from './mqtt/MQTTMessageHandler';
+export { VoiceCommandOptimizer } from './voice/VoiceCommandOptimizer';

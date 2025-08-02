@@ -46,6 +46,7 @@ class MockDataService {
 		if (savedPreference === 'true') {
 			this.useMockData = true;
 		} else {
+			this.useMockData = false;
 		}
 	}
 

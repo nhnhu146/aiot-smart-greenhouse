@@ -1,0 +1,79 @@
+.sensor-card {
+    display: flex;
+    align-items: center;
+    padding: 1.2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border-left: 4px solid #ddd;
+}
+
+.sensor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.sensor-card.danger {
+    border-left-color: #dc3545;
+}
+
+.sensor-card.info {
+    border-left-color: #17a2b8;
+}
+
+.sensor-card.success {
+    border-left-color: #28a745;
+}
+
+.sensor-card.primary {
+    border-left-color: #007bff;
+}
+
+.sensor-card.warning {
+    border-left-color: #ffc107;
+}
+
+.sensor-card.secondary {
+    border-left-color: #6c757d;
+}
+
+.sensor-icon {
+    font-size: 2.5rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.sensor-info {
+    flex: 1;
+}
+
+.sensor-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sensor-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+}
+
+.sensor-value.invalid {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.sensor-unit {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6c757d;
+}

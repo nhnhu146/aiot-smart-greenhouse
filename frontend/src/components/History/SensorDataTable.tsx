@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, Badge } from 'react-bootstrap';
 import { ChartDataPoint } from '@/services/mockDataService';
 import { SortState } from '@/types/history';
+import SortableHeader from './SortableHeader';
 
 interface SensorDataTableProps {
 	data: ChartDataPoint[];
@@ -10,13 +11,6 @@ interface SensorDataTableProps {
 }
 
 const SensorDataTable: React.FC<SensorDataTableProps> = ({ data, sortState, onSort }) => {
-	const getSortIcon = (field: string, tab: 'sensors' | 'controls' | 'voice') => {
-		if (sortState.field === field && sortState.tab === tab) {
-			return sortState.direction === 'asc' ? ' ↑' : ' ↓';
-		}
-		return ' ↕';
-	};
-
 	const formatDateTime = (timestamp: string): string => {
 		const date = new Date(timestamp);
 		return date.toLocaleString('en-US', {
@@ -39,33 +33,33 @@ const SensorDataTable: React.FC<SensorDataTableProps> = ({ data, sortState, onSo
 
 	return (
 		<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-			<Table striped hover>
+			<Table striped hover className="history-table">
 				<thead className="table-light sticky-top">
 					<tr>
-						<th className="sortable-header" onClick={() => onSort('time', 'sensors')}>
-							Time{getSortIcon('time', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('temperature', 'sensors')}>
-							Temperature (°C){getSortIcon('temperature', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('humidity', 'sensors')}>
-							Humidity (%){getSortIcon('humidity', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('soilMoisture', 'sensors')}>
-							Soil Moisture{getSortIcon('soilMoisture', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('waterLevel', 'sensors')}>
-							Water Level{getSortIcon('waterLevel', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('lightLevel', 'sensors')}>
-							Light Level{getSortIcon('lightLevel', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('rainStatus', 'sensors')}>
-							Rain Status{getSortIcon('rainStatus', 'sensors')}
-						</th>
-						<th className="sortable-header" onClick={() => onSort('plantHeight', 'sensors')}>
-							Plant Height (cm){getSortIcon('plantHeight', 'sensors')}
-						</th>
+						<SortableHeader field="createdAt" tab="sensors" sortState={sortState} onSort={onSort}>
+							Time
+						</SortableHeader>
+						<SortableHeader field="temperature" tab="sensors" sortState={sortState} onSort={onSort}>
+							Temperature (°C)
+						</SortableHeader>
+						<SortableHeader field="humidity" tab="sensors" sortState={sortState} onSort={onSort}>
+							Humidity (%)
+						</SortableHeader>
+						<SortableHeader field="soilMoisture" tab="sensors" sortState={sortState} onSort={onSort}>
+							Soil Moisture
+						</SortableHeader>
+						<SortableHeader field="waterLevel" tab="sensors" sortState={sortState} onSort={onSort}>
+							Water Level
+						</SortableHeader>
+						<SortableHeader field="lightLevel" tab="sensors" sortState={sortState} onSort={onSort}>
+							Light Level
+						</SortableHeader>
+						<SortableHeader field="rainStatus" tab="sensors" sortState={sortState} onSort={onSort}>
+							Rain Status
+						</SortableHeader>
+						<SortableHeader field="plantHeight" tab="sensors" sortState={sortState} onSort={onSort}>
+							Plant Height (cm)
+						</SortableHeader>
 					</tr>
 				</thead>
 				<tbody>

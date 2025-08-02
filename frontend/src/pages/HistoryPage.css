@@ -106,14 +106,16 @@
 /* Fix for sticky table header z-index issues */
 .table-responsive {
 	position: relative;
+	z-index: 1;
 }
 
 .table thead th {
 	position: sticky;
 	top: 0;
-	z-index: 10 !important;
+	z-index: 5 !important;
 	background-color: #f8f9fa !important;
 	border-bottom: 2px solid #dee2e6;
+	backdrop-filter: blur(10px);
 }
 
 /* Sortable column headers */
@@ -121,15 +123,36 @@
 	cursor: pointer;
 	user-select: none;
 	transition: background-color 0.2s ease;
+	position: relative;
+	z-index: 5;
 }
 
 .sortable-header:hover {
 	background-color: #e9ecef !important;
 }
 
+.sortable-header::after {
+	content: '↕️';
+	opacity: 0.5;
+	margin-left: 5px;
+	font-size: 0.8em;
+}
+
+.sortable-header.sort-asc::after {
+	content: '↑';
+	opacity: 1;
+	color: #007bff;
+}
+
+.sortable-header.sort-desc::after {
+	content: '↓';
+	opacity: 1;
+	color: #007bff;
+}
+
 .floating-filter-toggle {
 	position: relative;
-	z-index: 1000;
+	z-index: 10;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border: none;
 	color: white;
@@ -145,6 +168,22 @@
 	transform: translateY(-2px);
 	box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 	background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.floating-filter-toggle.active {
+	background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+/* Filter container positioning */
+.filters-section {
+	background: white;
+	border-radius: 12px;
+	padding: 1.5rem;
+	margin-bottom: 1.5rem;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+	transition: all 0.3s ease;
+	position: relative;
+	z-index: 2;
 }
 
 /* Tabs */
@@ -461,4 +500,226 @@
 	.floating-filter-menu::before {
 		display: none;
 	}
+}
+
+/* === REFACTOR FIXES === */
+/* Fix for sticky table header z-index issues */
+.table-responsive {
+    position: relative;
+    z-index: 1;
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10 !important;
+    background-color: #f8f9fa !important;
+    border-bottom: 2px solid #dee2e6;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Fix filter positioning */
+.floating-filter-container {
+    position: relative;
+    display: inline-block;
+    z-index: 5;
+}
+
+.floating-filter-toggle {
+    position: relative;
+    z-index: 15 !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.floating-filter-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.floating-filter-toggle.active {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    z-index: 20 !important;
+}
+
+/* Filter container positioning */
+.filters-section {
+    position: relative;
+    z-index: 12 !important;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+}
+
+.filters-section.show {
+    animation: filterSlideDown 0.3s ease-out;
+}
+
+@keyframes filterSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Sortable column headers - Enhanced */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 8;
+    background-color: #f8f9fa !important;
+    border-bottom: 2px solid #dee2e6 !important;
+}
+
+.sortable-header:hover {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+}
+
+.sortable-header::after {
+    content: '↕️';
+    opacity: 0.5;
+    margin-left: 8px;
+    font-size: 0.8em;
+    transition: all 0.2s ease;
+}
+
+.sortable-header.sort-asc::after {
+    content: '↑';
+    opacity: 1;
+    color: #007bff;
+    transform: scale(1.2);
+}
+
+.sortable-header.sort-desc::after {
+    content: '↓';
+    opacity: 1;
+    color: #007bff;
+    transform: scale(1.2);
+}
+
+/* Fix table wrapper to prevent header overlap */
+.history-table-wrapper {
+    position: relative;
+    z-index: 1;
+    margin-top: 1rem;
+}
+
+/* Enhanced tab navigation */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 1.5rem;
+    z-index: 5;
+    position: relative;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 6;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #007bff;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    background-color: white;
+    border-bottom: 2px solid #007bff;
+    font-weight: 600;
+}
+
+/* Pagination controls positioning */
+.pagination-controls {
+    position: relative;
+    z-index: 5;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Loading and empty states */
+.loading-spinner {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 3rem;
+}
+
+.empty-state {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+    .table-responsive {
+        max-height: 400px;
+    }
+    
+    .floating-filter-toggle {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .filters-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .sortable-header {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.25rem;
+    }
+}
+
+/* Additional fixes for Bootstrap conflicts */
+.table > thead > tr > th {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.075);
+}
+
+/* Filter badge styling */
+.filter-badge {
+    background-color: #ffc107;
+    color: #212529;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
+    margin-left: 0.5rem;
 }

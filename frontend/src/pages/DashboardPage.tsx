@@ -1,9 +1,8 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Container, Row, Col, Card, Badge, Alert, Form } from 'react-bootstrap';
 import AppLineChart from '@/components/LineChart/LineChart';
 import SensorDashboard from '@/components/SensorDashboard/SensorDashboard';
-import ActivityCard from '@/components/ActivityCard/ActivityCard';
+import DeviceControlCenter from '@/components/DeviceControl/DeviceControlCenter';
 import withAuth from '@/components/withAuth/withAuth';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import useWebSocket from '@/hooks/useWebSocket';
@@ -30,8 +29,6 @@ const DashboardPage = () => {
 	const [autoMode, setAutoMode] = useState(false);
 	// Voice command states
 	const [latestVoiceCommand, setLatestVoiceCommand] = useState<VoiceCommand | null>(null);
-	// Device control highlight
-	const [deviceControlHighlight, setDeviceControlHighlight] = useState(false);
 
 	const { socket } = useWebSocket();
 
@@ -40,51 +37,51 @@ const DashboardPage = () => {
 			title: 'Lighting System',
 			icon: '💡',
 			device: 'light',
-			description: 'LED grow lights for optimal plant growth'
+			description: ''
 		},
 		{
 			title: 'Water Pump',
 			icon: '💧',
 			device: 'pump',
-			description: 'Automated watering system'
+			description: ''
 		},
 		{
 			title: 'Window Control',
 			icon: '🪟',
 			device: 'window',
-			description: 'Automated window opening/closing'
+			description: ''
 		},
 		{
 			title: 'Door Access',
 			icon: '🚪',
 			device: 'door',
-			description: 'Greenhouse door management'
+			description: ''
 		},
 	], []);
 
-	const handleSwitchChange = useCallback((device: string, state: boolean) => {
-		setSwitchStates((prev) => new Map(prev).set(device, state));
+	// Handle device toggle for new DeviceControlCenter
+	const handleDeviceToggle = useCallback(async (device: string) => {
+		const currentState = switchStates.get(device) || false;
+		const newState = !currentState;
+
+		setSwitchStates((prev) => new Map(prev).set(device, newState));
 
 		// Map device and state to proper action format
 		let action: string;
 		if (['light', 'pump'].includes(device)) {
-			action = state ? 'on' : 'off';
+			action = newState ? 'on' : 'off';
 		} else if (['door', 'window'].includes(device)) {
-			action = state ? 'open' : 'close';
+			action = newState ? 'open' : 'close';
 		} else {
-			action = state ? 'on' : 'off'; // fallback
+			action = newState ? 'on' : 'off'; // fallback
 		}
 
-		sendDeviceControl(device, action);
+		await sendDeviceControl(device, action);
 		setUserInteraction(true);
-
-		// Trigger device control highlight
-		setDeviceControlHighlight(true);
-		setTimeout(() => setDeviceControlHighlight(false), 1000);
 
 		// Clear user interaction flag after 5 minutes to re-enable auto mode
 		setTimeout(() => setUserInteraction(false), 5 * 60 * 1000);
-	}, [sendDeviceControl]);
+	}, [sendDeviceControl, switchStates]);
 
 	const toggleAutoMode = useCallback(async () => {
 		const newAutoMode = !autoMode;
@@ -291,49 +288,30 @@ const DashboardPage = () => {
 				</Col>
 			</Row>
 
-			{/* Device Control Section */}
+			{/* Device Control Center */}
 			<Row className="mb-4">
 				<Col>
-					<Card className={`control-card ${deviceControlHighlight ? 'highlight' : ''}`}>
+					<DeviceControlCenter
+						activities={activities}
+						switchStates={switchStates}
+						onDeviceToggle={handleDeviceToggle}
+						voiceCommandTrigger={latestVoiceCommand}
+					/>
+
+					{/* Auto Mode Controls */}
+					<Card className="mt-3">
 						<Card.Header className="d-flex justify-content-between align-items-center">
-							<h5 className="mb-0">🎛️ Device Control Center</h5>
-							<div className="d-flex align-items-center gap-3">
-								<Form.Check
-									type="switch"
-									id="auto-mode-switch"
-									label={`Auto Mode ${autoMode ? 'ON' : 'OFF'}`}
-									checked={autoMode}
-									onChange={toggleAutoMode}
-									className={autoMode ? 'text-success' : 'text-warning'}
-								/>
-								{userInteraction && (
-									<Badge bg="warning" text="dark">
-										Manual Override Active
-									</Badge>
-								)}
-							</div>
+							<h6 className="mb-0">🤖 Automation Settings</h6>
+							<Form.Check
+								type="switch"
+								id="auto-mode-switch"
+								label={`Auto Mode ${autoMode ? 'ON' : 'OFF'}`}
+								checked={autoMode}
+								onChange={toggleAutoMode}
+								className={autoMode ? 'text-success' : 'text-warning'}
+							/>
 						</Card.Header>
 						<Card.Body>
-							{!isConnected && (
-								<Alert variant="warning" className="mb-3">
-									⚠️ WebSocket disconnected. Device control may not work properly.
-								</Alert>
-							)}
-
-							<Row>
-								{activities.map((activity) => (
-									<Col key={activity.device} lg={4} md={6} className="mb-3">
-										<ActivityCard
-											title={activity.title}
-											icon={activity.icon}
-											switchId={activity.device}
-											switchState={switchStates.get(activity.device) || false}
-											onSwitchChange={(state: boolean) => handleSwitchChange(activity.device, state)}
-											disabled={autoMode}
-										/>
-									</Col>
-								))}
-							</Row>
 							<div className="d-flex gap-3 align-items-center mb-3">
 								<Badge bg={autoMode ? "success" : "secondary"}>
 									Auto Mode: {autoMode ? "ON" : "OFF"}
@@ -342,9 +320,16 @@ const DashboardPage = () => {
 									User Interaction: {userInteraction ? "Active" : "Inactive"}
 								</Badge>
 							</div>
+
+							{!isConnected && (
+								<Alert variant="warning" className="mb-3">
+									⚠️ WebSocket disconnected. Device control may not work properly.
+								</Alert>
+							)}
+
 							{/* Automation Status */}
 							{autoMode && !userInteraction && (
-								<Alert variant="info" className="mt-3 mb-0">
+								<Alert variant="info" className="mb-0">
 									🤖 <strong>Automation Active:</strong> Devices are being controlled automatically based on sensor readings.
 									<br />
 									<small>
@@ -356,13 +341,13 @@ const DashboardPage = () => {
 							)}
 
 							{userInteraction && (
-								<Alert variant="warning" className="mt-3 mb-0">
+								<Alert variant="warning" className="mb-0">
 									👋 <strong>Manual Control:</strong> User interaction detected. Automation will resume in 5 minutes.
 								</Alert>
 							)}
 
 							{!autoMode && (
-								<Alert variant="secondary" className="mt-3 mb-0">
+								<Alert variant="secondary" className="mb-0">
 									⏸️ <strong>Auto Mode Disabled:</strong> All devices are under manual control.
 								</Alert>
 							)}

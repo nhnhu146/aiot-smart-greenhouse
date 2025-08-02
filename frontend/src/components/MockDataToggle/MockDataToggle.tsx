@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import mockDataService from '@/services/mockDataService';
 import './MockDataToggle.css';
 
