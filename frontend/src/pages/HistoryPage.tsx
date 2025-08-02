@@ -60,7 +60,7 @@ const HistoryPage: React.FC = () => {
 						pagination={sensorPagination}
 						onPageChange={handlePageChange}
 						isEmpty={sensorData.length === 0 && !loading.sensors}
-						emptyMessage="No sensor data found"
+						emptyMessage="No sensor data found. Try adjusting filters or check your connection."
 					>
 						<SensorDataTable
 							data={sensorData}
@@ -78,7 +78,7 @@ const HistoryPage: React.FC = () => {
 						pagination={devicePagination}
 						onPageChange={handlePageChange}
 						isEmpty={deviceControls.length === 0 && !loading.controls}
-						emptyMessage="No device control data found"
+						emptyMessage="No device control data found. Try adjusting filters or check your connection."
 					>
 						<DeviceControlTable
 							data={deviceControls}
@@ -96,7 +96,7 @@ const HistoryPage: React.FC = () => {
 						pagination={voicePagination}
 						onPageChange={handlePageChange}
 						isEmpty={voiceCommands.length === 0 && !loading.voice}
-						emptyMessage="No voice commands found"
+						emptyMessage="No voice commands found. Try adjusting filters or check your connection."
 					>
 						<VoiceCommandTable
 							data={voiceCommands}

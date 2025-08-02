@@ -80,9 +80,9 @@ const DashboardPage = () => {
 			<Row className="mb-4">
 				<Col xs={12}>
 					<Card className="chart-card">
-						<Card.Header className="bg-light">
+						{/* <Card.Header className="bg-light">
 							<h5 className="mb-0">📈 Sensor Data Trends (20 Latest Points)</h5>
-						</Card.Header>
+						</Card.Header> */}
 						<Card.Body>
 							<AppLineChart />
 						</Card.Body>

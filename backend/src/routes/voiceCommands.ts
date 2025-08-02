@@ -40,7 +40,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 		const response: APIResponse = {
 			success: true,
 			data: {
-				commands,
+				voiceCommands: commands,
 				pagination: {
 					page,
 					limit,
