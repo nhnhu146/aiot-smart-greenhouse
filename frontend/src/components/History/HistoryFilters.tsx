@@ -1,6 +1,6 @@
 import React from 'react';
-import { Form, Row, Col, Button } from 'react-bootstrap';
 import { FilterState } from '@/types/history';
+import { Button, Form, Row, Col } from 'react-bootstrap';
 
 interface HistoryFiltersProps {
 	filters: FilterState;
@@ -9,6 +9,7 @@ interface HistoryFiltersProps {
 	onApplyFilters: () => void;
 	onClearFilters: () => void;
 	onToggleFilters: () => void;
+	hasActiveFilters: boolean;
 }
 
 const HistoryFilters: React.FC<HistoryFiltersProps> = ({
@@ -17,28 +18,30 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 	onFilterChange,
 	onApplyFilters,
 	onClearFilters,
-	onToggleFilters
+	onToggleFilters,
+	hasActiveFilters
 }) => {
 	return (
-		<div className="floating-filter-container">
+		<>
 			<Button
-				variant="primary"
-				onClick={onToggleFilters}
 				className={`floating-filter-toggle ${showFilters ? 'active' : ''}`}
+				onClick={onToggleFilters}
 			>
-				🔍 Filters
-				{Object.values(filters).some(v => v !== '') && (
-					<span className="filter-badge">Active</span>
-				)}
+				🔍 {showFilters ? 'Hide' : 'Show'} Filters
+				{hasActiveFilters && <span className="badge bg-warning ms-2">Active</span>}
 			</Button>
 
-			<div className={`floating-filter-menu ${showFilters ? 'show' : ''}`}>
-				<div className="filter-section">
-					<div className="filter-section-title">📅 Date Range</div>
-					<Row>
+			{showFilters && (
+				<div className="filters-section">
+					<div className="filters-header">
+						<h4 className="filters-title">🔍 Data Filters</h4>
+					</div>
+
+					<Row className="g-3">
+						{/* Date Range Filters */}
 						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>From Date</Form.Label>
+							<Form.Group>
+								<Form.Label>Date From</Form.Label>
 								<Form.Control
 									type="datetime-local"
 									value={filters.dateFrom}
@@ -47,8 +50,8 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 							</Form.Group>
 						</Col>
 						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>To Date</Form.Label>
+							<Form.Group>
+								<Form.Label>Date To</Form.Label>
 								<Form.Control
 									type="datetime-local"
 									value={filters.dateTo}
@@ -56,96 +59,84 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 								/>
 							</Form.Group>
 						</Col>
-					</Row>
-				</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
-					<Row>
+						{/* Temperature Range */}
 						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Min</Form.Label>
+							<Form.Group>
+								<Form.Label>Min Temperature (°C)</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Min temp"
 									value={filters.minTemperature}
 									onChange={(e) => onFilterChange('minTemperature', e.target.value)}
+									placeholder="e.g. 20"
 								/>
 							</Form.Group>
 						</Col>
 						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Max</Form.Label>
+							<Form.Group>
+								<Form.Label>Max Temperature (°C)</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Max temp"
 									value={filters.maxTemperature}
 									onChange={(e) => onFilterChange('maxTemperature', e.target.value)}
+									placeholder="e.g. 35"
 								/>
 							</Form.Group>
 						</Col>
-					</Row>
-				</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">💧 Humidity Range (%)</div>
-					<Row>
+						{/* Humidity Range */}
 						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Min</Form.Label>
+							<Form.Group>
+								<Form.Label>Min Humidity (%)</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Min humidity"
 									value={filters.minHumidity}
 									onChange={(e) => onFilterChange('minHumidity', e.target.value)}
+									placeholder="e.g. 40"
 								/>
 							</Form.Group>
 						</Col>
 						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Max</Form.Label>
+							<Form.Group>
+								<Form.Label>Max Humidity (%)</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Max humidity"
 									value={filters.maxHumidity}
 									onChange={(e) => onFilterChange('maxHumidity', e.target.value)}
+									placeholder="e.g. 80"
 								/>
 							</Form.Group>
 						</Col>
-					</Row>
-				</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">🌱 Binary Sensors</div>
-					<Row>
+						{/* Binary Sensor Filters */}
 						<Col md={4}>
-							<Form.Group className="mb-2">
+							<Form.Group>
 								<Form.Label>Soil Moisture</Form.Label>
 								<Form.Select
 									value={filters.soilMoisture}
 									onChange={(e) => onFilterChange('soilMoisture', e.target.value)}
 								>
 									<option value="">All</option>
-									<option value="0">Dry (0)</option>
-									<option value="1">Wet (1)</option>
+									<option value="0">Dry</option>
+									<option value="1">Wet</option>
 								</Form.Select>
 							</Form.Group>
 						</Col>
 						<Col md={4}>
-							<Form.Group className="mb-2">
+							<Form.Group>
 								<Form.Label>Water Level</Form.Label>
 								<Form.Select
 									value={filters.waterLevel}
 									onChange={(e) => onFilterChange('waterLevel', e.target.value)}
 								>
 									<option value="">All</option>
-									<option value="0">None (0)</option>
-									<option value="1">Full (1)</option>
+									<option value="0">Normal</option>
+									<option value="1">Flooded</option>
 								</Form.Select>
 							</Form.Group>
 						</Col>
 						<Col md={4}>
-							<Form.Group className="mb-2">
+							<Form.Group>
 								<Form.Label>Rain Status</Form.Label>
 								<Form.Select
 									value={filters.rainStatus}
@@ -157,35 +148,67 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 								</Form.Select>
 							</Form.Group>
 						</Col>
+
+						{/* Device Filters */}
+						<Col md={6}>
+							<Form.Group>
+								<Form.Label>Device Type</Form.Label>
+								<Form.Select
+									value={filters.deviceType}
+									onChange={(e) => onFilterChange('deviceType', e.target.value)}
+								>
+									<option value="">All Devices</option>
+									<option value="light">Light</option>
+									<option value="pump">Pump</option>
+									<option value="door">Door</option>
+									<option value="window">Window</option>
+								</Form.Select>
+							</Form.Group>
+						</Col>
+						<Col md={6}>
+							<Form.Group>
+								<Form.Label>Control Action</Form.Label>
+								<Form.Select
+									value={filters.controlType}
+									onChange={(e) => onFilterChange('controlType', e.target.value)}
+								>
+									<option value="">All Actions</option>
+									<option value="on">Turn On</option>
+									<option value="off">Turn Off</option>
+									<option value="open">Open</option>
+									<option value="close">Close</option>
+								</Form.Select>
+							</Form.Group>
+						</Col>
+
+						{/* Page Size */}
+						<Col md={6}>
+							<Form.Group>
+								<Form.Label>Items per Page</Form.Label>
+								<Form.Select
+									value={filters.pageSize}
+									onChange={(e) => onFilterChange('pageSize', e.target.value)}
+								>
+									<option value="10">10</option>
+									<option value="20">20</option>
+									<option value="50">50</option>
+									<option value="100">100</option>
+								</Form.Select>
+							</Form.Group>
+						</Col>
 					</Row>
-				</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">📄 Results</div>
-					<Form.Group className="mb-2">
-						<Form.Label>Page Size</Form.Label>
-						<Form.Select
-							value={filters.pageSize}
-							onChange={(e) => onFilterChange('pageSize', e.target.value)}
-						>
-							<option value="10">10 per page</option>
-							<option value="20">20 per page</option>
-							<option value="50">50 per page</option>
-							<option value="100">100 per page</option>
-						</Form.Select>
-					</Form.Group>
+					<div className="filter-actions mt-3">
+						<Button variant="outline-secondary" onClick={onClearFilters}>
+							Clear All
+						</Button>
+						<Button variant="primary" onClick={onApplyFilters} className="ms-2">
+							Apply Filters
+						</Button>
+					</div>
 				</div>
-
-				<div className="filter-actions">
-					<Button variant="outline-secondary" size="sm" onClick={onClearFilters}>
-						Clear All
-					</Button>
-					<Button variant="primary" size="sm" onClick={() => { onApplyFilters(); onToggleFilters(); }}>
-						Apply Filters
-					</Button>
-				</div>
-			</div>
-		</div>
+			)}
+		</>
 	);
 };
 

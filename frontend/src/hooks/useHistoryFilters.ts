@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import { FilterState } from '@/types/history';
 
-interface UseHistoryFiltersReturn {
-	filters: FilterState;
-	showFilters: boolean;
-	updateFilter: (field: keyof FilterState, value: string) => void;
-	applyFilters: () => void;
-	clearFilters: () => void;
-	toggleFilters: () => void;
-	hasActiveFilters: boolean;
-}
-
 const initialFilters: FilterState = {
 	dateFrom: '',
 	dateTo: '',
@@ -30,36 +20,46 @@ const initialFilters: FilterState = {
 	pageSize: '20',
 };
 
-export const useHistoryFilters = (): UseHistoryFiltersReturn => {
+export const useHistoryFilters = () => {
 	const [filters, setFilters] = useState<FilterState>(initialFilters);
 	const [showFilters, setShowFilters] = useState(false);
+	const [appliedFilters, setAppliedFilters] = useState<FilterState>(initialFilters);
 
 	const updateFilter = (field: keyof FilterState, value: string) => {
-		setFilters(prev => ({ ...prev, [field]: value }));
+		setFilters(prev => ({
+			...prev,
+			[field]: value
+		}));
 	};
 
 	const applyFilters = () => {
-		// Filters are applied automatically through state changes
-		console.log('Applying filters:', filters);
+		setAppliedFilters({ ...filters });
 	};
 
 	const clearFilters = () => {
 		setFilters(initialFilters);
+		setAppliedFilters(initialFilters);
 	};
 
 	const toggleFilters = () => {
-		setShowFilters(prev => !prev);
+		setShowFilters(!showFilters);
 	};
 
-	const hasActiveFilters = Object.values(filters).some(value => value !== '');
+	const hasActiveFilters = () => {
+		return Object.entries(appliedFilters).some(([key, value]) => {
+			if (key === 'pageSize') return false;
+			return value !== '';
+		});
+	};
 
 	return {
 		filters,
 		showFilters,
+		appliedFilters,
 		updateFilter,
 		applyFilters,
 		clearFilters,
 		toggleFilters,
-		hasActiveFilters,
+		hasActiveFilters: hasActiveFilters()
 	};
 };

@@ -1,16 +1,9 @@
 import { useState } from 'react';
 import { SortState } from '@/types/history';
 
-interface UseHistorySortReturn {
-	sensorSort: SortState;
-	deviceSort: SortState;
-	voiceSort: SortState;
-	handleSort: (field: string, tab: 'sensors' | 'controls' | 'voice') => void;
-}
-
-export const useHistorySort = (): UseHistorySortReturn => {
+export const useHistorySort = () => {
 	const [sensorSort, setSensorSort] = useState<SortState>({
-		field: 'time',
+		field: 'createdAt',
 		direction: 'desc',
 		tab: 'sensors'
 	});
@@ -28,28 +21,34 @@ export const useHistorySort = (): UseHistorySortReturn => {
 	});
 
 	const handleSort = (field: string, tab: 'sensors' | 'controls' | 'voice') => {
-		const currentSort = tab === 'sensors' ? sensorSort :
-			tab === 'controls' ? deviceSort : voiceSort;
-
-		const newDirection = currentSort.field === field && currentSort.direction === 'asc'
-			? 'desc'
-			: 'asc';
-
-		const newSort: SortState = {
-			field,
-			direction: newDirection,
-			tab
+		const updateSort = (currentSort: SortState, setSort: (sort: SortState) => void) => {
+			if (currentSort.field === field) {
+				// Toggle direction
+				const newDirection = currentSort.direction === 'asc' ? 'desc' : 'asc';
+				setSort({
+					field,
+					direction: newDirection,
+					tab
+				});
+			} else {
+				// New field, default to desc
+				setSort({
+					field,
+					direction: 'desc',
+					tab
+				});
+			}
 		};
 
 		switch (tab) {
 			case 'sensors':
-				setSensorSort(newSort);
+				updateSort(sensorSort, setSensorSort);
 				break;
 			case 'controls':
-				setDeviceSort(newSort);
+				updateSort(deviceSort, setDeviceSort);
 				break;
 			case 'voice':
-				setVoiceSort(newSort);
+				updateSort(voiceSort, setVoiceSort);
 				break;
 		}
 	};
@@ -58,6 +57,6 @@ export const useHistorySort = (): UseHistorySortReturn => {
 		sensorSort,
 		deviceSort,
 		voiceSort,
-		handleSort,
+		handleSort
 	};
 };

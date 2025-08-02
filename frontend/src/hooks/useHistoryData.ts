@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FilterState, PaginationInfo, SortState } from '@/types/history';
-
-interface DataCounts {
-	sensors: number;
-	devices: number;
-	voice: number;
-}
+import { FilterState, SortState, PaginationInfo } from '@/types/history';
+import apiClient from '@/lib/apiClient';
 
 interface VoiceCommand {
 	id: string;
@@ -17,30 +12,19 @@ interface VoiceCommand {
 }
 
 interface UseHistoryDataReturn {
-	// Data
 	sensorData: any[];
 	deviceControls: any[];
 	voiceCommands: VoiceCommand[];
-	dataCounts: DataCounts;
-
-	// Loading states
-	isLoading: boolean;
-	isExporting: boolean;
-
-	// Pagination
 	sensorPagination: PaginationInfo;
 	devicePagination: PaginationInfo;
 	voicePagination: PaginationInfo;
-
-	// Actions
-	fetchSensorData: (page?: number) => Promise<void>;
-	fetchDeviceData: (page?: number) => Promise<void>;
-	fetchVoiceData: (page?: number) => Promise<void>;
-	fetchDataCounts: () => Promise<void>;
-	exportData: (format: 'json' | 'csv') => Promise<void>;
-	setSensorPagination: (pagination: PaginationInfo) => void;
-	setDevicePagination: (pagination: PaginationInfo) => void;
-	setVoicePagination: (pagination: PaginationInfo) => void;
+	loading: {
+		sensors: boolean;
+		controls: boolean;
+		voice: boolean;
+	};
+	handlePageChange: (tab: 'sensors' | 'controls' | 'voice', page: number) => void;
+	refreshData: (tab?: 'sensors' | 'controls' | 'voice') => void;
 }
 
 export const useHistoryData = (
@@ -52,13 +36,10 @@ export const useHistoryData = (
 	const [sensorData, setSensorData] = useState<any[]>([]);
 	const [deviceControls, setDeviceControls] = useState<any[]>([]);
 	const [voiceCommands, setVoiceCommands] = useState<VoiceCommand[]>([]);
-	const [dataCounts, setDataCounts] = useState<DataCounts>({ sensors: 0, devices: 0, voice: 0 });
-	const [isLoading, setIsLoading] = useState(true);
-	const [isExporting, setIsExporting] = useState(false);
 
 	const [sensorPagination, setSensorPagination] = useState<PaginationInfo>({
 		page: 1,
-		limit: 20,
+		limit: parseInt(filters.pageSize) || 20,
 		total: 0,
 		totalPages: 0,
 		hasNext: false,
@@ -67,7 +48,7 @@ export const useHistoryData = (
 
 	const [devicePagination, setDevicePagination] = useState<PaginationInfo>({
 		page: 1,
-		limit: 20,
+		limit: parseInt(filters.pageSize) || 20,
 		total: 0,
 		totalPages: 0,
 		hasNext: false,
@@ -76,270 +57,168 @@ export const useHistoryData = (
 
 	const [voicePagination, setVoicePagination] = useState<PaginationInfo>({
 		page: 1,
-		limit: 20,
+		limit: parseInt(filters.pageSize) || 20,
 		total: 0,
 		totalPages: 0,
 		hasNext: false,
 		hasPrev: false
 	});
 
-	const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+	const [loading, setLoading] = useState({
+		sensors: false,
+		controls: false,
+		voice: false
+	});
 
-	const buildQueryParams = (pagination: PaginationInfo, currentFilters: FilterState, sortField: string, sortDirection: string): string => {
-		const params = new URLSearchParams();
+	const buildSensorParams = () => {
+		const params: any = {
+			page: sensorPagination.page,
+			limit: sensorPagination.limit,
+			sortBy: sensorSort.field,
+			sortOrder: sensorSort.direction
+		};
 
-		// Pagination
-		params.append('page', pagination.page.toString());
-		params.append('limit', pagination.limit.toString());
+		// Add filter parameters
+		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+		if (filters.dateTo) params.dateTo = filters.dateTo;
+		if (filters.minTemperature) params.minTemperature = filters.minTemperature;
+		if (filters.maxTemperature) params.maxTemperature = filters.maxTemperature;
+		if (filters.minHumidity) params.minHumidity = filters.minHumidity;
+		if (filters.maxHumidity) params.maxHumidity = filters.maxHumidity;
+		if (filters.soilMoisture !== '') params.soilMoisture = filters.soilMoisture;
+		if (filters.waterLevel !== '') params.waterLevel = filters.waterLevel;
+		if (filters.rainStatus !== '') params.rainStatus = filters.rainStatus;
 
-		// Sorting
-		if (sortField && sortDirection) {
-			params.append('sortBy', sortField);
-			params.append('sortOrder', sortDirection);
-		}
-
-		// Filters
-		Object.entries(currentFilters).forEach(([key, value]) => {
-			if (value !== undefined && value !== null && value !== '') {
-				params.append(key, value.toString());
-			}
-		});
-
-		return params.toString();
+		return params;
 	};
 
-	const fetchDataCounts = async () => {
-		try {
-			const [sensorsRes, devicesRes, voiceRes] = await Promise.all([
-				fetch(`${API_BASE_URL}/api/sensors/count`),
-				fetch(`${API_BASE_URL}/api/history/device-controls/count`),
-				fetch(`${API_BASE_URL}/api/voice-commands/count`)
-			]);
+	const buildDeviceParams = () => {
+		const params: any = {
+			page: devicePagination.page,
+			limit: devicePagination.limit,
+			sortBy: deviceSort.field,
+			sortOrder: deviceSort.direction
+		};
 
-			const sensorsData = await sensorsRes.json();
-			const devicesData = await devicesRes.json();
-			const voiceData = await voiceRes.json();
+		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+		if (filters.dateTo) params.dateTo = filters.dateTo;
+		if (filters.deviceType) params.deviceType = filters.deviceType;
+		if (filters.controlType) params.action = filters.controlType;
 
-			setDataCounts({
-				sensors: sensorsData.data?.count || 0,
-				devices: devicesData.data?.count || 0,
-				voice: voiceData.data?.count || 0
-			});
-		} catch (error) {
-			console.error('Failed to fetch data counts:', error);
-		}
+		return params;
 	};
 
-	const fetchSensorData = async (page: number = 1) => {
+	const buildVoiceParams = () => {
+		const params: any = {
+			page: voicePagination.page,
+			limit: voicePagination.limit,
+			sortBy: voiceSort.field,
+			sortOrder: voiceSort.direction
+		};
+
+		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+		if (filters.dateTo) params.dateTo = filters.dateTo;
+
+		return params;
+	};
+
+	const fetchSensorData = async () => {
+		setLoading(prev => ({ ...prev, sensors: true }));
 		try {
-			setIsLoading(true);
-			const queryParams = buildQueryParams(
-				{ ...sensorPagination, page },
-				filters,
-				sensorSort.field,
-				sensorSort.direction
-			);
-			const response = await fetch(`${API_BASE_URL}/api/sensors?${queryParams}`);
-
-			if (!response.ok) {
-				throw new Error("Failed to fetch sensor data");
-			}
-
-			const result = await response.json();
-			if (result.success) {
-				const transformedData = result.data.sensors?.map((item: any) => ({
-					time: item.createdAt || item.timestamp,
-					temperature: item.temperature || 0,
-					humidity: item.humidity || 0,
-					soilMoisture: item.soilMoisture || 0,
-					waterLevel: item.waterLevel || 0,
-					plantHeight: item.plantHeight || 0,
-					rainStatus: item.rainStatus || false,
-					lightLevel: item.lightLevel || 0,
-				})) || [];
-
-				setSensorData(transformedData);
-				setSensorPagination({
-					page: result.data.pagination.page,
-					limit: result.data.pagination.limit,
-					total: result.data.pagination.total,
-					totalPages: result.data.pagination.totalPages,
-					hasNext: result.data.pagination.hasNext,
-					hasPrev: result.data.pagination.hasPrev
-				});
-			}
+			const params = buildSensorParams();
+			const response = await apiClient.get('/api/history/sensors', { params });
+			setSensorData(response.data.data || []);
+			setSensorPagination(response.data.pagination || sensorPagination);
 		} catch (error) {
 			console.error('Error fetching sensor data:', error);
+			setSensorData([]);
 		} finally {
-			setIsLoading(false);
+			setLoading(prev => ({ ...prev, sensors: false }));
 		}
 	};
 
-	const fetchDeviceData = async (page: number = 1) => {
+	const fetchDeviceControls = async () => {
+		setLoading(prev => ({ ...prev, controls: true }));
 		try {
-			setIsLoading(true);
-			const queryParams = buildQueryParams(
-				{ ...devicePagination, page },
-				filters,
-				deviceSort.field,
-				deviceSort.direction
-			);
-			const response = await fetch(`${API_BASE_URL}/api/history/device-controls?${queryParams}`);
-
-			if (!response.ok) {
-				throw new Error("Failed to fetch device control data");
-			}
-
-			const result = await response.json();
-			if (result.success) {
-				setDeviceControls(result.data.deviceControls || []);
-				setDevicePagination({
-					page: result.data.pagination.page,
-					limit: result.data.pagination.limit,
-					total: result.data.pagination.total,
-					totalPages: result.data.pagination.totalPages,
-					hasNext: result.data.pagination.hasNext,
-					hasPrev: result.data.pagination.hasPrev
-				});
-			}
+			const params = buildDeviceParams();
+			const response = await apiClient.get('/api/history/devices', { params });
+			setDeviceControls(response.data.data || []);
+			setDevicePagination(response.data.pagination || devicePagination);
 		} catch (error) {
-			console.error('Error fetching device control data:', error);
+			console.error('Error fetching device controls:', error);
+			setDeviceControls([]);
 		} finally {
-			setIsLoading(false);
+			setLoading(prev => ({ ...prev, controls: false }));
 		}
 	};
 
-	const fetchVoiceData = async (page: number = 1) => {
+	const fetchVoiceCommands = async () => {
+		setLoading(prev => ({ ...prev, voice: true }));
 		try {
-			setIsLoading(true);
-			const queryParams = buildQueryParams(
-				{ ...voicePagination, page },
-				filters,
-				voiceSort.field,
-				voiceSort.direction
-			);
-			const response = await fetch(`${API_BASE_URL}/api/voice-commands?${queryParams}`);
-
-			if (!response.ok) {
-				throw new Error("Failed to fetch voice command data");
-			}
-
-			const result = await response.json();
-			if (result.success) {
-				const transformedCommands = result.data.commands?.map((item: any) => ({
-					id: item._id,
-					command: item.command,
-					confidence: item.confidence,
-					timestamp: item.timestamp || item.createdAt,
-					processed: item.processed,
-					errorMessage: item.errorMessage,
-				})) || [];
-
-				setVoiceCommands(transformedCommands);
-				setVoicePagination({
-					page: result.data.pagination.page,
-					limit: result.data.pagination.limit,
-					total: result.data.pagination.total,
-					totalPages: result.data.pagination.totalPages,
-					hasNext: result.data.pagination.hasNext,
-					hasPrev: result.data.pagination.hasPrev
-				});
-			}
+			const params = buildVoiceParams();
+			const response = await apiClient.get('/api/voice-commands', { params });
+			setVoiceCommands(response.data.data || []);
+			setVoicePagination(response.data.pagination || voicePagination);
 		} catch (error) {
-			console.error('Error fetching voice command data:', error);
+			console.error('Error fetching voice commands:', error);
+			setVoiceCommands([]);
 		} finally {
-			setIsLoading(false);
+			setLoading(prev => ({ ...prev, voice: false }));
 		}
 	};
 
-	const exportData = async (format: 'json' | 'csv') => {
-		try {
-			setIsExporting(true);
-			const queryParams = buildQueryParams(
-				{ page: 1, limit: 10000, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
-				filters,
-				'',
-				''
-			);
-			const response = await fetch(`${API_BASE_URL}/api/history/export?format=${format}&${queryParams}`);
-
-			if (response.ok) {
-				const contentType = response.headers.get('content-type');
-				let filename = `history-export-${Date.now()}`;
-
-				if (contentType?.includes('text/csv')) {
-					filename += '.csv';
-					const blob = await response.blob();
-					const url = window.URL.createObjectURL(blob);
-					const a = document.createElement('a');
-					a.href = url;
-					a.download = filename;
-					document.body.appendChild(a);
-					a.click();
-					document.body.removeChild(a);
-					window.URL.revokeObjectURL(url);
-				} else {
-					filename += '.json';
-					const data = await response.json();
-					const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-					const url = window.URL.createObjectURL(blob);
-					const a = document.createElement('a');
-					a.href = url;
-					a.download = filename;
-					document.body.appendChild(a);
-					a.click();
-					document.body.removeChild(a);
-					window.URL.revokeObjectURL(url);
-				}
-			}
-		} catch (error) {
-			console.error('Export failed:', error);
-		} finally {
-			setIsExporting(false);
+	const handlePageChange = (tab: 'sensors' | 'controls' | 'voice', page: number) => {
+		switch (tab) {
+			case 'sensors':
+				setSensorPagination(prev => ({ ...prev, page }));
+				break;
+			case 'controls':
+				setDevicePagination(prev => ({ ...prev, page }));
+				break;
+			case 'voice':
+				setVoicePagination(prev => ({ ...prev, page }));
+				break;
 		}
 	};
 
-	// Auto-fetch data on filter/sort changes
+	const refreshData = (tab?: 'sensors' | 'controls' | 'voice') => {
+		if (!tab || tab === 'sensors') fetchSensorData();
+		if (!tab || tab === 'controls') fetchDeviceControls();
+		if (!tab || tab === 'voice') fetchVoiceCommands();
+	};
+
+	// Effect to update page size when filters change
 	useEffect(() => {
-		fetchDataCounts();
-	}, []);
+		const newLimit = parseInt(filters.pageSize) || 20;
+		setSensorPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+		setDevicePagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+		setVoicePagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+	}, [filters.pageSize]);
 
+	// Effect to fetch sensor data when dependencies change
 	useEffect(() => {
 		fetchSensorData();
-	}, [filters, sensorSort]);
+	}, [filters, sensorSort, sensorPagination.page, sensorPagination.limit]);
 
+	// Effect to fetch device data when dependencies change
 	useEffect(() => {
-		fetchDeviceData();
-	}, [filters, deviceSort]);
+		fetchDeviceControls();
+	}, [filters, deviceSort, devicePagination.page, devicePagination.limit]);
 
+	// Effect to fetch voice data when dependencies change
 	useEffect(() => {
-		fetchVoiceData();
-	}, [filters, voiceSort]);
+		fetchVoiceCommands();
+	}, [filters, voiceSort, voicePagination.page, voicePagination.limit]);
 
 	return {
-		// Data
 		sensorData,
 		deviceControls,
 		voiceCommands,
-		dataCounts,
-
-		// Loading states
-		isLoading,
-		isExporting,
-
-		// Pagination
 		sensorPagination,
 		devicePagination,
 		voicePagination,
-
-		// Actions
-		fetchSensorData,
-		fetchDeviceData,
-		fetchVoiceData,
-		fetchDataCounts,
-		exportData,
-		setSensorPagination,
-		setDevicePagination,
-		setVoicePagination,
+		loading,
+		handlePageChange,
+		refreshData
 	};
 };
