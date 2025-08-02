@@ -54,7 +54,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 			};
 		}
 
-		// Use ChartUtils to clean and validate data
+		// Use ChartUtils to clean and validate data with enhanced timestamp handling
 		const validData = ChartUtils.filterValidData(data.map(item => ({
 			...item,
 			timestamp: item.createdAt || item.timestamp || new Date().toISOString()
@@ -67,11 +67,61 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 			};
 		}
 
-		// Format data using ChartUtils
+		// Format data using ChartUtils with enhanced options
 		return ChartUtils.formatForChart(validData, selectedMetrics);
 	};
 
-	const options = ChartUtils.getChartOptions();
+	// Enhanced chart options with better tooltip formatting
+	const getEnhancedOptions = () => {
+		const baseOptions = ChartUtils.getChartOptions();
+		
+		return {
+			...baseOptions,
+			plugins: {
+				...baseOptions.plugins,
+				tooltip: {
+					callbacks: {
+						title: (context: any) => {
+							if (context[0]?.label) {
+								const date = new Date(context[0].label);
+								return date.toLocaleString('en-US', {
+									year: 'numeric',
+									month: '2-digit',
+									day: '2-digit',
+									hour: '2-digit',
+									minute: '2-digit',
+									timeZone: 'Asia/Ho_Chi_Minh'
+								});
+							}
+							return '';
+						},
+						label: (context: any) => {
+							const value = context.parsed.y;
+							if (value === null || value === undefined) return '';
+
+							const label = context.dataset.label || '';
+							if (label.includes('Temperature')) return `${label}: ${value.toFixed(1)}°C`;
+							if (label.includes('Humidity')) return `${label}: ${value.toFixed(1)}%`;
+							if (label.includes('Soil') || label.includes('Water') || label.includes('Light')) {
+								return `${label}: ${value === 1 ? 'Yes' : 'No'}`;
+							}
+							return `${label}: ${value.toFixed(1)}`;
+						}
+					}
+				}
+			},
+			scales: {
+				...baseOptions.scales,
+				x: {
+					...baseOptions.scales?.x,
+					title: {
+						display: true,
+						text: 'Time (UTC+7)',
+					},
+				}
+			}
+		};
+	};
 
 	if (loading) {
 		return (
@@ -99,8 +149,8 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 	}
 
 	return (
-		<div className="chart-container" style={{ height: '400px' }}>
-			<Line data={formatChartData()} options={options} />
+		<div className="chart-container" style={{ minHeight: '450px', width: '100%' }}>
+			<Line data={formatChartData()} options={getEnhancedOptions()} />
 		</div>
 	);
 };

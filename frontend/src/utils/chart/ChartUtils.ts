@@ -1,5 +1,6 @@
 /**
  * Chart utility functions for data processing and formatting
+ * Optimized for Sensor Data Timeline visualization
  */
 
 export interface ChartDataPoint {
@@ -15,15 +16,15 @@ export interface ChartDataPoint {
 
 export class ChartUtils {
 
-	/**
-	 * Remove duplicate "Date" keywords from chart data
-	 */
-	static cleanChartLabels(data: ChartDataPoint[]): ChartDataPoint[] {
-		return data.map(item => ({
-			...item,
-			timestamp: this.normalizeTimestamp(item.timestamp)
-		}));
-	}
+	private static readonly CHART_COLORS = {
+		temperature: '#dc3545',
+		humidity: '#17a2b8',
+		soilMoisture: '#28a745',
+		waterLevel: '#007bff',
+		lightLevel: '#ffc107',
+		rainStatus: '#6c757d',
+		plantHeight: '#e83e8c'
+	} as const;
 
 	/**
 	 * Normalize timestamp to prevent duplicate Date keywords
@@ -78,15 +79,6 @@ export class ChartUtils {
 			tension: number;
 			fill: boolean;
 		}> = [];
-		const colors = {
-			temperature: '#dc3545',
-			humidity: '#17a2b8',
-			soilMoisture: '#28a745',
-			waterLevel: '#007bff',
-			lightLevel: '#ffc107',
-			rainStatus: '#6c757d',
-			plantHeight: '#e83e8c'
-		};
 
 		selectedMetrics.forEach(metric => {
 			if (validData.some(item => item[metric as keyof ChartDataPoint] !== undefined)) {
@@ -102,8 +94,8 @@ export class ChartUtils {
 							return 0;
 						}
 					}),
-					borderColor: colors[metric as keyof typeof colors],
-					backgroundColor: colors[metric as keyof typeof colors] + '20',
+					borderColor: this.CHART_COLORS[metric as keyof typeof this.CHART_COLORS],
+					backgroundColor: this.CHART_COLORS[metric as keyof typeof this.CHART_COLORS] + '20',
 					tension: 0.1,
 					fill: false
 				});
@@ -128,7 +120,7 @@ export class ChartUtils {
 	}
 
 	/**
-	 * Get chart options with proper time scale
+	 * Get enhanced chart options with proper time scale and Vietnamese timezone
 	 */
 	static getChartOptions() {
 		return {
@@ -154,7 +146,7 @@ export class ChartUtils {
 					},
 					title: {
 						display: true,
-						text: 'Time'
+						text: 'Time (UTC+7)'
 					}
 				},
 				y: {

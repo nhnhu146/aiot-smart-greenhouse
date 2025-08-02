@@ -1,22 +1,29 @@
-/* LineChart Component Styles */
+/* LineChart Component Styles - Optimized for Sensor Data Timeline */
 
 .line-chart-card {
 	border: none;
-	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-	border-radius: 12px;
+	box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+	border-radius: 16px;
 	overflow: hidden;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.line-chart-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
 }
 
 .line-chart-card .card-header {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: white;
 	border-bottom: none;
-	padding: 1rem 1.5rem;
+	padding: 1.25rem 1.5rem;
 }
 
 .line-chart-card .card-header h5 {
 	margin: 0;
 	font-weight: 600;
+	font-size: 1.1rem;
 }
 
 .chart-controls {
@@ -56,18 +63,30 @@
 .chart-container {
 	position: relative;
 	margin-top: 1rem;
+	padding: 0.5rem;
+	background: #fafbfc;
+	border-radius: 8px;
+	border: 1px solid #e9ecef;
 }
 
 .chart-loading,
 .chart-empty {
-	background-color: #f8f9fa;
-	border-radius: 8px;
+	background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+	border-radius: 12px;
 	border: 2px dashed #dee2e6;
+	transition: all 0.3s ease;
+}
+
+.chart-loading:hover,
+.chart-empty:hover {
+	border-color: #667eea;
+	background: linear-gradient(145deg, #f0f7ff, #e3f2fd);
 }
 
 .chart-loading .spinner-border {
-	width: 2rem;
-	height: 2rem;
+	width: 2.5rem;
+	height: 2.5rem;
+	color: #667eea;
 }
 
 /* Responsive design */

@@ -121,3 +121,6 @@ temp_*.md
 *_temp.*
 process_*.py
 helper_*.py
+
+*_summary.md
+*_analysis.md
