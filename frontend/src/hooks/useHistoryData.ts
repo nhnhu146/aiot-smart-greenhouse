@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { FilterState, SortState, PaginationInfo } from '@/types/history';
-import apiClient from '@/lib/apiClient';
+import { useSensorHistory } from './history/useSensorHistory';
+import { useDeviceHistory } from './history/useDeviceHistory';
+import { useVoiceHistory } from './history/useVoiceHistory';
 
 interface VoiceCommand {
 	id: string;
@@ -33,10 +35,6 @@ export const useHistoryData = (
 	deviceSort: SortState,
 	voiceSort: SortState
 ): UseHistoryDataReturn => {
-	const [sensorData, setSensorData] = useState<any[]>([]);
-	const [deviceControls, setDeviceControls] = useState<any[]>([]);
-	const [voiceCommands, setVoiceCommands] = useState<VoiceCommand[]>([]);
-
 	const [sensorPagination, setSensorPagination] = useState<PaginationInfo>({
 		page: 1,
 		limit: parseInt(filters.pageSize) || 20,
@@ -64,108 +62,9 @@ export const useHistoryData = (
 		hasPrev: false
 	});
 
-	const [loading, setLoading] = useState({
-		sensors: false,
-		controls: false,
-		voice: false
-	});
-
-	const buildSensorParams = () => {
-		const params: any = {
-			page: sensorPagination.page,
-			limit: sensorPagination.limit,
-			sortBy: sensorSort.field,
-			sortOrder: sensorSort.direction
-		};
-
-		// Add filter parameters
-		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo) params.dateTo = filters.dateTo;
-		if (filters.minTemperature) params.minTemperature = filters.minTemperature;
-		if (filters.maxTemperature) params.maxTemperature = filters.maxTemperature;
-		if (filters.minHumidity) params.minHumidity = filters.minHumidity;
-		if (filters.maxHumidity) params.maxHumidity = filters.maxHumidity;
-		if (filters.soilMoisture !== '') params.soilMoisture = filters.soilMoisture;
-		if (filters.waterLevel !== '') params.waterLevel = filters.waterLevel;
-		if (filters.rainStatus !== '') params.rainStatus = filters.rainStatus;
-
-		return params;
-	};
-
-	const buildDeviceParams = () => {
-		const params: any = {
-			page: devicePagination.page,
-			limit: devicePagination.limit,
-			sortBy: deviceSort.field,
-			sortOrder: deviceSort.direction
-		};
-
-		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo) params.dateTo = filters.dateTo;
-		if (filters.deviceType) params.deviceType = filters.deviceType;
-		if (filters.controlType) params.action = filters.controlType;
-
-		return params;
-	};
-
-	const buildVoiceParams = () => {
-		const params: any = {
-			page: voicePagination.page,
-			limit: voicePagination.limit,
-			sortBy: voiceSort.field,
-			sortOrder: voiceSort.direction
-		};
-
-		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo) params.dateTo = filters.dateTo;
-
-		return params;
-	};
-
-	const fetchSensorData = async () => {
-		setLoading(prev => ({ ...prev, sensors: true }));
-		try {
-			const params = buildSensorParams();
-			const response = await apiClient.get('/api/history/sensors', { params });
-			setSensorData(response.data.data || []);
-			setSensorPagination(response.data.pagination || sensorPagination);
-		} catch (error) {
-			console.error('Error fetching sensor data:', error);
-			setSensorData([]);
-		} finally {
-			setLoading(prev => ({ ...prev, sensors: false }));
-		}
-	};
-
-	const fetchDeviceControls = async () => {
-		setLoading(prev => ({ ...prev, controls: true }));
-		try {
-			const params = buildDeviceParams();
-			const response = await apiClient.get('/api/history/devices', { params });
-			setDeviceControls(response.data.data || []);
-			setDevicePagination(response.data.pagination || devicePagination);
-		} catch (error) {
-			console.error('Error fetching device controls:', error);
-			setDeviceControls([]);
-		} finally {
-			setLoading(prev => ({ ...prev, controls: false }));
-		}
-	};
-
-	const fetchVoiceCommands = async () => {
-		setLoading(prev => ({ ...prev, voice: true }));
-		try {
-			const params = buildVoiceParams();
-			const response = await apiClient.get('/api/voice-commands', { params });
-			setVoiceCommands(response.data.data || []);
-			setVoicePagination(response.data.pagination || voicePagination);
-		} catch (error) {
-			console.error('Error fetching voice commands:', error);
-			setVoiceCommands([]);
-		} finally {
-			setLoading(prev => ({ ...prev, voice: false }));
-		}
-	};
+	const sensorHistory = useSensorHistory(filters, sensorSort, sensorPagination, setSensorPagination);
+	const deviceHistory = useDeviceHistory(filters, deviceSort, devicePagination, setDevicePagination);
+	const voiceHistory = useVoiceHistory(filters, voiceSort, voicePagination, setVoicePagination);
 
 	const handlePageChange = (tab: 'sensors' | 'controls' | 'voice', page: number) => {
 		switch (tab) {
@@ -182,9 +81,9 @@ export const useHistoryData = (
 	};
 
 	const refreshData = (tab?: 'sensors' | 'controls' | 'voice') => {
-		if (!tab || tab === 'sensors') fetchSensorData();
-		if (!tab || tab === 'controls') fetchDeviceControls();
-		if (!tab || tab === 'voice') fetchVoiceCommands();
+		if (!tab || tab === 'sensors') sensorHistory.refresh();
+		if (!tab || tab === 'controls') deviceHistory.refresh();
+		if (!tab || tab === 'voice') voiceHistory.refresh();
 	};
 
 	// Effect to update page size when filters change
@@ -195,29 +94,18 @@ export const useHistoryData = (
 		setVoicePagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
 	}, [filters.pageSize]);
 
-	// Effect to fetch sensor data when dependencies change
-	useEffect(() => {
-		fetchSensorData();
-	}, [filters, sensorSort, sensorPagination.page, sensorPagination.limit]);
-
-	// Effect to fetch device data when dependencies change
-	useEffect(() => {
-		fetchDeviceControls();
-	}, [filters, deviceSort, devicePagination.page, devicePagination.limit]);
-
-	// Effect to fetch voice data when dependencies change
-	useEffect(() => {
-		fetchVoiceCommands();
-	}, [filters, voiceSort, voicePagination.page, voicePagination.limit]);
-
 	return {
-		sensorData,
-		deviceControls,
-		voiceCommands,
+		sensorData: sensorHistory.data,
+		deviceControls: deviceHistory.data,
+		voiceCommands: voiceHistory.data,
 		sensorPagination,
 		devicePagination,
 		voicePagination,
-		loading,
+		loading: {
+			sensors: sensorHistory.loading,
+			controls: deviceHistory.loading,
+			voice: voiceHistory.loading
+		},
 		handlePageChange,
 		refreshData
 	};
