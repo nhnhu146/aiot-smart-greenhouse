@@ -120,7 +120,7 @@ export class ChartUtils {
 	}
 
 	/**
-	 * Get enhanced chart options with proper time scale and Vietnamese timezone
+	 * Get chart options with proper time scale and Vietnamese timezone
 	 */
 	static getChartOptions() {
 		return {

@@ -124,7 +124,7 @@ export class EmailService {
 		}
 
 		try {
-			const template = await this.loadTemplate('enhanced-alert-email.html');
+			const template = await this.loadTemplate('alert-email.html');
 			const replacements = new Map([
 				['sensorType', sensorType],
 				['value', value],
@@ -208,8 +208,8 @@ export class EmailService {
 		}
 
 		try {
-			console.log(`📧 [DEBUG] Loading template: enhanced-test-email.html`);
-			const template = await this.loadTemplate('enhanced-test-email.html');
+			console.log(`📧 [DEBUG] Loading template: test-email.html`);
+			const template = await this.loadTemplate('test-email.html');
 			console.log(`📧 [DEBUG] Template loaded, length: ${template.length}`);
 
 			if (template.length === 0) {
@@ -335,7 +335,7 @@ export class EmailService {
 		return {
 			enabled: true, // Always enabled for backward compatibility
 			configured: this.isConfigured,
-			templatesLoaded: 4, // enhanced-test-email, enhanced-alert-email, batch-alert-email, password-reset-email
+			templatesLoaded: 4, // test-email, alert-email, batch-alert-email, password-reset-email
 			poolingEnabled: this.isConfigured,
 			service: 'gmail'
 		};

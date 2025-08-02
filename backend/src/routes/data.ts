@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { DataMergerService } from '../services/DataMergerService';
-import { cleanupDuplicateAlerts } from '../utils/alertCleanup';
-import { cleanupDuplicateData } from '../utils/dataCleanup';
+import { removeDuplicateAlerts } from '../utils/alertUtils';
+import { removeDuplicateData } from '../utils/dataUtils';
 
 const router = Router();
 
@@ -67,7 +67,7 @@ router.post('/alerts/cleanup', async (req: Request, res: Response) => {
 	try {
 		console.log('🔄 Alert cleanup triggered via API');
 
-		const stats = await cleanupDuplicateAlerts();
+		const stats = await removeDuplicateAlerts();
 
 		res.json({
 			status: 'success',
@@ -92,7 +92,7 @@ router.post('/sensor/cleanup', async (req: Request, res: Response) => {
 	try {
 		console.log('🔄 Enhanced sensor data cleanup triggered via API');
 
-		const stats = await cleanupDuplicateData();
+		const stats = await removeDuplicateData();
 
 		res.json({
 			status: 'success',

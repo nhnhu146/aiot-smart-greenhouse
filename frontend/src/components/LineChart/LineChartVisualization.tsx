@@ -54,7 +54,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 			};
 		}
 
-		// Use ChartUtils to clean and validate data with enhanced timestamp handling
+		// Use ChartUtils to process and validate data with proper timestamp handling
 		const validData = ChartUtils.filterValidData(data.map(item => ({
 			...item,
 			timestamp: item.createdAt || item.timestamp || new Date().toISOString()
@@ -67,14 +67,14 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 			};
 		}
 
-		// Format data using ChartUtils with enhanced options
+		// Format data using ChartUtils with proper options
 		return ChartUtils.formatForChart(validData, selectedMetrics);
 	};
 
-	// Enhanced chart options with better tooltip formatting
-	const getEnhancedOptions = () => {
+	// Chart options with improved tooltip formatting
+	const getChartOptions = () => {
 		const baseOptions = ChartUtils.getChartOptions();
-		
+
 		return {
 			...baseOptions,
 			plugins: {
@@ -150,7 +150,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 
 	return (
 		<div className="chart-container" style={{ minHeight: '450px', width: '100%' }}>
-			<Line data={formatChartData()} options={getEnhancedOptions()} />
+			<Line data={formatChartData()} options={getChartOptions()} />
 		</div>
 	);
 };

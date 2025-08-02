@@ -72,7 +72,7 @@ export const sensorTopicsData = [
 		topic: "greenhouse/sensors/height",
 		dataType: "Integer",
 		unit: "cm",
-		description: "Plant height measured by ultrasonic sensor",
+		description: "Plant height measured by distance sensor",
 		examples: [
 			{ description: "Small plant", value: 15 },
 			{ description: "Medium plant", value: 25 },

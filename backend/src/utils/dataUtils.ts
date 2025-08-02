@@ -1,11 +1,11 @@
 import SensorDataModel from '../models/SensorData';
 
 /**
- * Clean up duplicate sensor data with enhanced merging logic
+ * Remove duplicate sensor data with merging logic
  */
-export async function cleanupDuplicateData() {
+export async function removeDuplicateData() {
 	try {
-		console.log('🔄 Starting enhanced sensor data cleanup process...');
+		console.log('🔄 Starting sensor data deduplication process...');
 
 		// Find all sensor data grouped by timestamp and deviceId
 		const duplicates = await SensorDataModel.aggregate([
@@ -87,11 +87,11 @@ export async function cleanupDuplicateData() {
 			timestamp: new Date().toISOString()
 		};
 
-		console.log('✅ Enhanced sensor data cleanup completed:', stats);
+		console.log('✅ Sensor data deduplication completed:', stats);
 		return stats;
 
 	} catch (error) {
-		console.error('❌ Error during enhanced sensor data cleanup:', error);
+		console.error('❌ Error during sensor data deduplication:', error);
 		throw error;
 	}
 }

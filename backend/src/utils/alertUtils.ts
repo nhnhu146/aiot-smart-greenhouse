@@ -1,9 +1,9 @@
 import { Alert } from '../models/Alert';
 
 /**
- * Clean up duplicate alerts with the same timestamp
+ * Remove duplicate alerts with the same timestamp
  */
-export async function cleanupDuplicateAlerts() {
+export async function removeDuplicateAlerts() {
 	try {
 		console.log('🔄 Starting alert cleanup process...');
 
