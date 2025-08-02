@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useWebSocket from '@/hooks/useWebSocket';
 
 export interface VoiceCommand {
-	id: string;
+	_id: string;
 	command: string;
 	confidence: number | null;
 	timestamp: string;

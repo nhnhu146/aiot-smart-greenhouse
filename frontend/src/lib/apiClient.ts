@@ -47,7 +47,8 @@ class ApiClient {
 		if (options.params) {
 			const searchParams = new URLSearchParams();
 			Object.entries(options.params).forEach(([key, value]) => {
-				if (value !== undefined && value !== null && value !== '') {
+				// More strict filtering: exclude undefined, null, empty strings, and whitespace-only strings
+				if (value !== undefined && value !== null && value !== '' && String(value).trim() !== '') {
 					searchParams.append(key, String(value));
 				}
 			});

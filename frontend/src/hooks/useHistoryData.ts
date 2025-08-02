@@ -5,7 +5,7 @@ import { useDeviceHistory } from './history/useDeviceHistory';
 import { useVoiceHistory } from './history/useVoiceHistory';
 
 interface VoiceCommand {
-	id: string;
+	_id: string;
 	command: string;
 	confidence: number | null;
 	timestamp: string;

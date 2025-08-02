@@ -1,11 +1,24 @@
 import React from 'react';
 import { Table, Badge } from 'react-bootstrap';
-import { ChartDataPoint } from '@/services/mockDataService';
 import { SortState } from '@/types/history';
 import SortableHeader from './SortableHeader';
 
+interface SensorDataPoint {
+	_id: string;
+	temperature?: number;
+	humidity?: number;
+	soilMoisture?: number;
+	waterLevel?: number;
+	lightLevel?: number;
+	rainStatus?: number | boolean;
+	plantHeight?: number;
+	createdAt: string;
+	deviceId?: string;
+	dataQuality?: string;
+}
+
 interface SensorDataTableProps {
-	data: ChartDataPoint[];
+	data: SensorDataPoint[];
 	sortState: SortState;
 	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice') => void;
 }
@@ -65,7 +78,7 @@ const SensorDataTable: React.FC<SensorDataTableProps> = ({ data, sortState, onSo
 				<tbody>
 					{data.map((item, index) => (
 						<tr key={index}>
-							<td className="text-nowrap">{formatDateTime(item.time)}</td>
+							<td className="text-nowrap">{formatDateTime(item.createdAt)}</td>
 							<td>{item.temperature?.toFixed(1) || "N/A"}</td>
 							<td>{item.humidity?.toFixed(1) || "N/A"}</td>
 							<td>

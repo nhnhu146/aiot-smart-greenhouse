@@ -3,7 +3,7 @@ import { Table, Badge } from 'react-bootstrap';
 import { SortState } from '@/types/history';
 
 interface VoiceCommand {
-	id: string;
+	_id: string;
 	command: string;
 	confidence: number | null;
 	timestamp: string;
@@ -87,7 +87,7 @@ const VoiceCommandTable: React.FC<VoiceCommandTableProps> = ({ data, sortState, 
 				</thead>
 				<tbody>
 					{data.map((command, index) => (
-						<tr key={command.id || index}>
+						<tr key={command._id || index}>
 							<td className="text-nowrap">{formatDateTime(command.timestamp)}</td>
 							<td>
 								<div className="d-flex align-items-center">

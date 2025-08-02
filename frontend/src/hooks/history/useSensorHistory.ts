@@ -19,16 +19,16 @@ export const useSensorHistory = (
 			sortOrder: sort.direction
 		};
 
-		// Add filter parameters
-		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo) params.dateTo = filters.dateTo;
-		if (filters.minTemperature) params.minTemperature = filters.minTemperature;
-		if (filters.maxTemperature) params.maxTemperature = filters.maxTemperature;
-		if (filters.minHumidity) params.minHumidity = filters.minHumidity;
-		if (filters.maxHumidity) params.maxHumidity = filters.maxHumidity;
-		if (filters.soilMoisture !== '') params.soilMoisture = filters.soilMoisture;
-		if (filters.waterLevel !== '') params.waterLevel = filters.waterLevel;
-		if (filters.rainStatus !== '') params.rainStatus = filters.rainStatus;
+		// Add filter parameters only if they have meaningful values
+		if (filters.dateFrom && filters.dateFrom.trim()) params.dateFrom = filters.dateFrom;
+		if (filters.dateTo && filters.dateTo.trim()) params.dateTo = filters.dateTo;
+		if (filters.minTemperature && filters.minTemperature.trim()) params.minTemperature = parseFloat(filters.minTemperature);
+		if (filters.maxTemperature && filters.maxTemperature.trim()) params.maxTemperature = parseFloat(filters.maxTemperature);
+		if (filters.minHumidity && filters.minHumidity.trim()) params.minHumidity = parseFloat(filters.minHumidity);
+		if (filters.maxHumidity && filters.maxHumidity.trim()) params.maxHumidity = parseFloat(filters.maxHumidity);
+		if (filters.soilMoisture !== '' && filters.soilMoisture.trim()) params.soilMoisture = parseInt(filters.soilMoisture);
+		if (filters.waterLevel !== '' && filters.waterLevel.trim()) params.waterLevel = parseInt(filters.waterLevel);
+		if (filters.rainStatus !== '' && filters.rainStatus.trim()) params.rainStatus = filters.rainStatus === 'true';
 
 		return params;
 	};

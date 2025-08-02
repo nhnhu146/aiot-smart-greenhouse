@@ -19,10 +19,11 @@ export const useDeviceHistory = (
 			sortOrder: sort.direction
 		};
 
-		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo) params.dateTo = filters.dateTo;
-		if (filters.deviceType) params.deviceType = filters.deviceType;
-		if (filters.controlType) params.action = filters.controlType;
+		// Add filter parameters only if they have meaningful values
+		if (filters.dateFrom && filters.dateFrom.trim()) params.dateFrom = filters.dateFrom;
+		if (filters.dateTo && filters.dateTo.trim()) params.dateTo = filters.dateTo;
+		if (filters.deviceType && filters.deviceType.trim()) params.deviceType = filters.deviceType;
+		if (filters.controlType && filters.controlType.trim()) params.action = filters.controlType;
 
 		return params;
 	};

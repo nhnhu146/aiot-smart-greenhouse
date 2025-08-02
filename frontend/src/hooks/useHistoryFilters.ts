@@ -23,6 +23,7 @@ const initialFilters: FilterState = {
 export const useHistoryFilters = () => {
 	const [filters, setFilters] = useState<FilterState>(initialFilters);
 	const [showFilters, setShowFilters] = useState(false);
+	// Initialize appliedFilters with initialFilters so data loads immediately
 	const [appliedFilters, setAppliedFilters] = useState<FilterState>(initialFilters);
 
 	const updateFilter = (field: keyof FilterState, value: string) => {

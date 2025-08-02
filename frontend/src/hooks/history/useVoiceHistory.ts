@@ -3,7 +3,7 @@ import { FilterState, SortState, PaginationInfo } from '@/types/history';
 import apiClient from '@/lib/apiClient';
 
 interface VoiceCommand {
-	id: string;
+	_id: string;
 	command: string;
 	confidence: number | null;
 	timestamp: string;
@@ -28,8 +28,9 @@ export const useVoiceHistory = (
 			sortOrder: sort.direction
 		};
 
-		if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo) params.dateTo = filters.dateTo;
+		// Add filter parameters only if they have meaningful values
+		if (filters.dateFrom && filters.dateFrom.trim()) params.dateFrom = filters.dateFrom;
+		if (filters.dateTo && filters.dateTo.trim()) params.dateTo = filters.dateTo;
 
 		return params;
 	};
