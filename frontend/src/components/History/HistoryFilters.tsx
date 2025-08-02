@@ -1,6 +1,6 @@
 import React from 'react';
+import { Form, Row, Col, Button } from 'react-bootstrap';
 import { FilterState } from '@/types/history';
-import { Button, Form, Row, Col } from 'react-bootstrap';
 
 interface HistoryFiltersProps {
 	filters: FilterState;
@@ -9,7 +9,7 @@ interface HistoryFiltersProps {
 	onApplyFilters: () => void;
 	onClearFilters: () => void;
 	onToggleFilters: () => void;
-	hasActiveFilters: boolean;
+	hasActiveFilters?: boolean;
 }
 
 const HistoryFilters: React.FC<HistoryFiltersProps> = ({
@@ -22,66 +22,25 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 	hasActiveFilters
 }) => {
 	return (
-		<>
-			{/* Floating Filter Toggle Button */}
+		<div className="floating-filter-container">
 			<Button
-				className={`floating-filter-toggle ${showFilters ? 'active' : ''} ${hasActiveFilters ? 'has-filters' : ''}`}
+				variant={hasActiveFilters ? "warning" : "primary"}
 				onClick={onToggleFilters}
-				style={{
-					position: 'fixed',
-					top: '50%',
-					right: '20px',
-					zIndex: 1050,
-					borderRadius: '25px',
-					padding: '10px 20px',
-					boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-					border: 'none',
-					fontWeight: '600',
-					transform: 'translateY(-50%)',
-					transition: 'all 0.3s ease'
-				}}
+				className={`floating-filter-toggle ${showFilters ? 'active' : ''}`}
 			>
-				🔍  Filters
-				{hasActiveFilters && <span className="badge bg-warning ms-2">{Object.values(filters).filter(v => v).length}</span>}
+				🔍 Filters
+				{hasActiveFilters && (
+					<span className="filter-badge">Active</span>
+				)}
 			</Button>
 
-			{/* Floating Filter Panel */}
-			{showFilters && (
-				<div
-					className="floating-filters-panel"
-					style={{
-						position: 'fixed',
-						top: '50%',
-						right: '20px',
-						transform: 'translateY(-50%)',
-						width: '400px',
-						maxHeight: '80vh',
-						overflowY: 'auto',
-						backgroundColor: 'white',
-						borderRadius: '12px',
-						boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-						border: '1px solid #e9ecef',
-						zIndex: 1040,
-						padding: '20px'
-					}}
-				>
-					<div className="d-flex justify-content-between align-items-center mb-3">
-						<h5 className="mb-0">🔍 Data Filters</h5>
-						<Button
-							variant="outline-secondary"
-							size="sm"
-							onClick={onToggleFilters}
-							style={{ borderRadius: '20px' }}
-						>
-							✕
-						</Button>
-					</div>
-
-					<Row className="g-3">
-						{/* Date Range Filters */}
+			<div className={`floating-filter-menu ${showFilters ? 'show' : ''}`}>
+				<div className="filter-section">
+					<div className="filter-section-title">📅 Date Range</div>
+					<Row>
 						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Date From</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label>From Date</Form.Label>
 								<Form.Control
 									type="datetime-local"
 									value={filters.dateFrom}
@@ -90,8 +49,8 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 							</Form.Group>
 						</Col>
 						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Date To</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label>To Date</Form.Label>
 								<Form.Control
 									type="datetime-local"
 									value={filters.dateTo}
@@ -99,84 +58,96 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 								/>
 							</Form.Group>
 						</Col>
+					</Row>
+				</div>
 
-						{/* Temperature Range */}
+				<div className="filter-section">
+					<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
+					<Row>
 						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Min Temperature (°C)</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label>Min</Form.Label>
 								<Form.Control
 									type="number"
+									placeholder="Min temp"
 									value={filters.minTemperature}
 									onChange={(e) => onFilterChange('minTemperature', e.target.value)}
-									placeholder="e.g. 20"
 								/>
 							</Form.Group>
 						</Col>
 						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Max Temperature (°C)</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label>Max</Form.Label>
 								<Form.Control
 									type="number"
+									placeholder="Max temp"
 									value={filters.maxTemperature}
 									onChange={(e) => onFilterChange('maxTemperature', e.target.value)}
-									placeholder="e.g. 35"
 								/>
 							</Form.Group>
 						</Col>
+					</Row>
+				</div>
 
-						{/* Humidity Range */}
+				<div className="filter-section">
+					<div className="filter-section-title">💧 Humidity Range (%)</div>
+					<Row>
 						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Min Humidity (%)</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label>Min</Form.Label>
 								<Form.Control
 									type="number"
+									placeholder="Min humidity"
 									value={filters.minHumidity}
 									onChange={(e) => onFilterChange('minHumidity', e.target.value)}
-									placeholder="e.g. 40"
 								/>
 							</Form.Group>
 						</Col>
 						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Max Humidity (%)</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label>Max</Form.Label>
 								<Form.Control
 									type="number"
+									placeholder="Max humidity"
 									value={filters.maxHumidity}
 									onChange={(e) => onFilterChange('maxHumidity', e.target.value)}
-									placeholder="e.g. 80"
 								/>
 							</Form.Group>
 						</Col>
+					</Row>
+				</div>
 
-						{/* Binary Sensor Filters */}
+				<div className="filter-section">
+					<div className="filter-section-title">🌱 Binary Sensors</div>
+					<Row>
 						<Col md={4}>
-							<Form.Group>
+							<Form.Group className="mb-2">
 								<Form.Label>Soil Moisture</Form.Label>
 								<Form.Select
 									value={filters.soilMoisture}
 									onChange={(e) => onFilterChange('soilMoisture', e.target.value)}
 								>
 									<option value="">All</option>
-									<option value="0">Dry</option>
-									<option value="1">Wet</option>
+									<option value="0">Dry (0)</option>
+									<option value="1">Wet (1)</option>
 								</Form.Select>
 							</Form.Group>
 						</Col>
 						<Col md={4}>
-							<Form.Group>
+							<Form.Group className="mb-2">
 								<Form.Label>Water Level</Form.Label>
 								<Form.Select
 									value={filters.waterLevel}
 									onChange={(e) => onFilterChange('waterLevel', e.target.value)}
 								>
 									<option value="">All</option>
-									<option value="0">Normal</option>
-									<option value="1">Flooded</option>
+									<option value="0">None (0)</option>
+									<option value="1">Full (1)</option>
 								</Form.Select>
 							</Form.Group>
 						</Col>
 						<Col md={4}>
-							<Form.Group>
+							<Form.Group className="mb-2">
 								<Form.Label>Rain Status</Form.Label>
 								<Form.Select
 									value={filters.rainStatus}
@@ -188,77 +159,35 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 								</Form.Select>
 							</Form.Group>
 						</Col>
-
-						{/* Device Filters */}
-						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Device Type</Form.Label>
-								<Form.Select
-									value={filters.deviceType}
-									onChange={(e) => onFilterChange('deviceType', e.target.value)}
-								>
-									<option value="">All Devices</option>
-									<option value="light">Light</option>
-									<option value="pump">Pump</option>
-									<option value="door">Door</option>
-									<option value="window">Window</option>
-								</Form.Select>
-							</Form.Group>
-						</Col>
-						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Control Action</Form.Label>
-								<Form.Select
-									value={filters.controlType}
-									onChange={(e) => onFilterChange('controlType', e.target.value)}
-								>
-									<option value="">All Actions</option>
-									<option value="on">Turn On</option>
-									<option value="off">Turn Off</option>
-									<option value="open">Open</option>
-									<option value="close">Close</option>
-								</Form.Select>
-							</Form.Group>
-						</Col>
-
-						{/* Page Size */}
-						<Col md={6}>
-							<Form.Group>
-								<Form.Label>Items per Page</Form.Label>
-								<Form.Select
-									value={filters.pageSize}
-									onChange={(e) => onFilterChange('pageSize', e.target.value)}
-								>
-									<option value="10">10</option>
-									<option value="20">20</option>
-									<option value="50">50</option>
-									<option value="100">100</option>
-								</Form.Select>
-							</Form.Group>
-						</Col>
 					</Row>
-
-					<div className="filter-actions d-flex gap-2 mt-3">
-						<Button
-							variant="outline-secondary"
-							size="sm"
-							onClick={onClearFilters}
-							style={{ borderRadius: '20px' }}
-						>
-							Clear All
-						</Button>
-						<Button
-							variant="primary"
-							size="sm"
-							onClick={onApplyFilters}
-							style={{ borderRadius: '20px' }}
-						>
-							Apply Filters
-						</Button>
-					</div>
 				</div>
-			)}
-		</>
+
+				<div className="filter-section">
+					<div className="filter-section-title">📄 Results</div>
+					<Form.Group className="mb-2">
+						<Form.Label>Page Size</Form.Label>
+						<Form.Select
+							value={filters.pageSize}
+							onChange={(e) => onFilterChange('pageSize', e.target.value)}
+						>
+							<option value="10">10 per page</option>
+							<option value="20">20 per page</option>
+							<option value="50">50 per page</option>
+							<option value="100">100 per page</option>
+						</Form.Select>
+					</Form.Group>
+				</div>
+
+				<div className="filter-actions">
+					<Button variant="outline-secondary" size="sm" onClick={onClearFilters}>
+						Clear All
+					</Button>
+					<Button variant="primary" size="sm" onClick={() => { onApplyFilters(); onToggleFilters(); }}>
+						Apply Filters
+					</Button>
+				</div>
+			</div>
+		</div>
 	);
 };
 

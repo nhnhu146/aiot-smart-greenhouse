@@ -13,7 +13,7 @@ const AutoModeControl: React.FC<AutoModeControlProps> = ({
 	onToggle
 }) => {
 	return (
-		<Card className="control-card">
+		<Card className="control-card h-100">
 			<Card.Header className="d-flex justify-content-between align-items-center">
 				<h6 className="mb-0">🤖 Automation Control</h6>
 				<Form.Check
@@ -24,8 +24,8 @@ const AutoModeControl: React.FC<AutoModeControlProps> = ({
 					className={autoMode ? 'text-success' : 'text-warning'}
 				/>
 			</Card.Header>
-			<Card.Body>
-				<div className="d-flex gap-3 align-items-center mb-3">
+			<Card.Body className="d-flex flex-column justify-content-center">
+				<div className="d-flex gap-3 align-items-center">
 					<Badge bg={autoMode ? "success" : "secondary"}>
 						Auto Mode: {autoMode ? "ON" : "OFF"}
 					</Badge>

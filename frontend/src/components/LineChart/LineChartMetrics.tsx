@@ -7,6 +7,7 @@ interface SensorData {
 	soilMoisture?: number;
 	waterLevel?: number;
 	lightLevel?: number;
+	plantHeight?: number;
 }
 
 interface LineChartMetricsProps {
@@ -23,7 +24,8 @@ const LineChartMetrics: React.FC<LineChartMetricsProps> = ({
 	const metrics = [
 		{ key: 'temperature', label: 'Temperature', color: '#B91C1C', unit: '°C' },
 		{ key: 'humidity', label: 'Humidity', color: '#1E40AF', unit: '%' },
-		{ key: 'soilMoisture', label: 'Soil Moisture', color: '#059669', unit: '' },
+		{ key: 'plantHeight', label: 'Plant Height', color: '#059669', unit: 'cm' },
+		{ key: 'soilMoisture', label: 'Soil Moisture', color: '#8B5CF6', unit: '' },
 		{ key: 'waterLevel', label: 'Water Level', color: '#0C4A6E', unit: '' },
 		{ key: 'lightLevel', label: 'Light Level', color: '#D97706', unit: '' },
 	];

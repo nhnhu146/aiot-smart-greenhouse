@@ -9,6 +9,7 @@ import DeviceControlTable from "@/components/History/DeviceControlTable";
 import VoiceCommandTable from "@/components/History/VoiceCommandTable";
 import TabContent from "@/components/History/TabContent";
 import HistoryHeader from "@/components/History/HistoryHeader";
+import HistoryFilters from "@/components/History/HistoryFilters";
 import withAuth from "@/components/withAuth/withAuth";
 import './HistoryPage.css';
 
@@ -17,7 +18,12 @@ const HistoryPage: React.FC = () => {
 
 	// Custom hooks for state management
 	const {
+		filters,
+		showFilters,
 		appliedFilters,
+		updateFilter,
+		applyFilters,
+		clearFilters,
 		toggleFilters,
 		hasActiveFilters
 	} = useHistoryFilters();
@@ -120,6 +126,16 @@ const HistoryPage: React.FC = () => {
 					onToggleFilters={toggleFilters}
 					onExportData={handleExportData}
 					isExporting={isExporting}
+					hasActiveFilters={hasActiveFilters}
+				/>
+
+				<HistoryFilters
+					filters={filters}
+					showFilters={showFilters}
+					onFilterChange={updateFilter}
+					onApplyFilters={applyFilters}
+					onClearFilters={clearFilters}
+					onToggleFilters={toggleFilters}
 					hasActiveFilters={hasActiveFilters}
 				/>
 

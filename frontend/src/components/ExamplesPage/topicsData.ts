@@ -166,11 +166,11 @@ export const controlTopics = [
 		"examples": [
 			{
 				"command": "1",
-				"description": "Open window using servo (verified format)"
+				"description": "Open window using servo"
 			},
 			{
 				"command": "0",
-				"description": "Close window using servo (verified format)"
+				"description": "Close window using servo"
 			}
 		]
 	},
@@ -181,11 +181,11 @@ export const controlTopics = [
 		"examples": [
 			{
 				"command": "1",
-				"description": "Open door (verified format)"
+				"description": "Open door"
 			},
 			{
 				"command": "0",
-				"description": "Close door (verified format)"
+				"description": "Close door"
 			}
 		]
 	},
@@ -196,11 +196,11 @@ export const controlTopics = [
 		"examples": [
 			{
 				"command": "1",
-				"description": "Start water pump (verified format)"
+				"description": "Start water pump"
 			},
 			{
 				"command": "0",
-				"description": "Stop water pump (verified format)"
+				"description": "Stop water pump"
 			}
 		]
 	},
@@ -211,11 +211,11 @@ export const controlTopics = [
 		"examples": [
 			{
 				"command": "1",
-				"description": "Enable voice recording (verified format)"
+				"description": "Enable voice recording"
 			},
 			{
 				"command": "0",
-				"description": "Disable voice recording (verified format)"
+				"description": "Disable voice recording"
 			}
 		]
 	},
