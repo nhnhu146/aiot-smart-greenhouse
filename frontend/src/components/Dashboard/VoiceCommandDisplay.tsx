@@ -17,10 +17,10 @@ const VoiceCommandDisplay: React.FC<VoiceCommandDisplayProps> = ({
 	if (!latestVoiceCommand) {
 		return (
 			<Card className="control-card h-100">
-				<Card.Header>
+				<Card.Header style={{ minHeight: '60px' }} className="d-flex align-items-center">
 					<h6 className="mb-0">🎤 Latest Voice Command</h6>
 				</Card.Header>
-				<Card.Body className="d-flex flex-column justify-content-center">
+				<Card.Body className="d-flex flex-column justify-content-center" style={{ minHeight: '120px' }}>
 					<div className="text-muted">No voice commands recorded yet.</div>
 				</Card.Body>
 			</Card>
@@ -28,10 +28,10 @@ const VoiceCommandDisplay: React.FC<VoiceCommandDisplayProps> = ({
 	}
 	return (
 		<Card className="control-card h-100">
-			<Card.Header>
+			<Card.Header style={{ minHeight: '60px' }} className="d-flex align-items-center">
 				<h6 className="mb-0">🎤 Latest Voice Command</h6>
 			</Card.Header>
-			<Card.Body className="d-flex flex-column justify-content-center">
+			<Card.Body className="d-flex flex-column justify-content-center" style={{ minHeight: '120px' }}>
 				<div className="d-flex flex-column gap-2">
 					<div>
 						<strong>Command:</strong> {latestVoiceCommand.command}

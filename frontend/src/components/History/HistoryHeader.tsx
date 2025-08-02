@@ -47,5 +47,4 @@ const HistoryHeader: React.FC<HistoryHeaderProps> = ({
 		</div>
 	);
 };
-
 export default HistoryHeader;

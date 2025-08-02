@@ -1,14 +1,13 @@
 import React from 'react';
-import { Form, Row, Col, Button } from 'react-bootstrap';
+import { Form, Row, Col, Button, Card } from 'react-bootstrap';
 import { FilterState } from '@/types/history';
 
 interface HistoryFiltersProps {
 	filters: FilterState;
 	showFilters: boolean;
 	onFilterChange: (field: keyof FilterState, value: string) => void;
-	onApplyFilters: () => void;
 	onClearFilters: () => void;
-	onToggleFilters: () => void;
+	onApplyFilters: () => void;
 	hasActiveFilters?: boolean;
 }
 
@@ -16,177 +15,191 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 	filters,
 	showFilters,
 	onFilterChange,
-	onApplyFilters,
 	onClearFilters,
-	onToggleFilters,
-	hasActiveFilters
+	onApplyFilters
 }) => {
-	return (
-		<div className="floating-filter-container">
-			<Button
-				variant={hasActiveFilters ? "warning" : "primary"}
-				onClick={onToggleFilters}
-				className={`floating-filter-toggle ${showFilters ? 'active' : ''}`}
-			>
-				🔍 Filters
-				{hasActiveFilters && (
-					<span className="filter-badge">Active</span>
-				)}
-			</Button>
+	const handleInputChange = (field: keyof FilterState, value: string) => {
+		onFilterChange(field, value);
+	};
 
-			<div className={`floating-filter-menu ${showFilters ? 'show' : ''}`}>
-				<div className="filter-section">
-					<div className="filter-section-title">📅 Date Range</div>
-					<Row>
-						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>From Date</Form.Label>
+	if (!showFilters) return null;
+
+	return (
+		<div className="floating-filter-overlay" onClick={(e) => e.target === e.currentTarget && onApplyFilters && onApplyFilters()}>
+			<Card className="floating-filter-menu shadow-lg">
+				<Card.Header className="d-flex justify-content-between align-items-center">
+					<h5 className="mb-0">🔍 Filter Data</h5>
+					<Button variant="outline-secondary" size="sm" onClick={onApplyFilters}>
+						✕
+					</Button>
+				</Card.Header>
+				<Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+					<div className="filter-section">
+						<div className="filter-section-title">📅 Date Range</div>
+						<Row className="mb-3">
+							<Col md={6}>
+								<Form.Label>From</Form.Label>
 								<Form.Control
 									type="datetime-local"
 									value={filters.dateFrom}
-									onChange={(e) => onFilterChange('dateFrom', e.target.value)}
+									onChange={(e) => handleInputChange('dateFrom', e.target.value)}
+									size="sm"
 								/>
-							</Form.Group>
-						</Col>
-						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>To Date</Form.Label>
+							</Col>
+							<Col md={6}>
+								<Form.Label>To</Form.Label>
 								<Form.Control
 									type="datetime-local"
 									value={filters.dateTo}
-									onChange={(e) => onFilterChange('dateTo', e.target.value)}
+									onChange={(e) => handleInputChange('dateTo', e.target.value)}
+									size="sm"
 								/>
-							</Form.Group>
-						</Col>
-					</Row>
-				</div>
+							</Col>
+						</Row>
+					</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
-					<Row>
-						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Min</Form.Label>
+					<div className="filter-section">
+						<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
+						<Row className="mb-3">
+							<Col md={6}>
+								<Form.Label>Min Temperature</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Min temp"
+									placeholder="Min °C"
 									value={filters.minTemperature}
-									onChange={(e) => onFilterChange('minTemperature', e.target.value)}
+									onChange={(e) => handleInputChange('minTemperature', e.target.value)}
+									size="sm"
 								/>
-							</Form.Group>
-						</Col>
-						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Max</Form.Label>
+							</Col>
+							<Col md={6}>
+								<Form.Label>Max Temperature</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Max temp"
+									placeholder="Max °C"
 									value={filters.maxTemperature}
-									onChange={(e) => onFilterChange('maxTemperature', e.target.value)}
+									onChange={(e) => handleInputChange('maxTemperature', e.target.value)}
+									size="sm"
 								/>
-							</Form.Group>
-						</Col>
-					</Row>
-				</div>
+							</Col>
+						</Row>
+					</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">💧 Humidity Range (%)</div>
-					<Row>
-						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Min</Form.Label>
+					<div className="filter-section">
+						<div className="filter-section-title">💧 Humidity Range (%)</div>
+						<Row className="mb-3">
+							<Col md={6}>
+								<Form.Label>Min Humidity</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Min humidity"
+									placeholder="Min %"
 									value={filters.minHumidity}
-									onChange={(e) => onFilterChange('minHumidity', e.target.value)}
+									onChange={(e) => handleInputChange('minHumidity', e.target.value)}
+									size="sm"
 								/>
-							</Form.Group>
-						</Col>
-						<Col md={6}>
-							<Form.Group className="mb-2">
-								<Form.Label>Max</Form.Label>
+							</Col>
+							<Col md={6}>
+								<Form.Label>Max Humidity</Form.Label>
 								<Form.Control
 									type="number"
-									placeholder="Max humidity"
+									placeholder="Max %"
 									value={filters.maxHumidity}
-									onChange={(e) => onFilterChange('maxHumidity', e.target.value)}
+									onChange={(e) => handleInputChange('maxHumidity', e.target.value)}
+									size="sm"
 								/>
-							</Form.Group>
-						</Col>
-					</Row>
-				</div>
+							</Col>
+						</Row>
+					</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">🌱 Binary Sensors</div>
-					<Row>
-						<Col md={4}>
-							<Form.Group className="mb-2">
+					<div className="filter-section">
+						<div className="filter-section-title">🌱 Soil & Water</div>
+						<Row className="mb-3">
+							<Col md={6}>
 								<Form.Label>Soil Moisture</Form.Label>
 								<Form.Select
 									value={filters.soilMoisture}
-									onChange={(e) => onFilterChange('soilMoisture', e.target.value)}
+									onChange={(e) => handleInputChange('soilMoisture', e.target.value)}
+									size="sm"
 								>
-									<option value="">All</option>
+									<option value="">Any</option>
 									<option value="0">Dry (0)</option>
 									<option value="1">Wet (1)</option>
 								</Form.Select>
-							</Form.Group>
-						</Col>
-						<Col md={4}>
-							<Form.Group className="mb-2">
+							</Col>
+							<Col md={6}>
 								<Form.Label>Water Level</Form.Label>
 								<Form.Select
 									value={filters.waterLevel}
-									onChange={(e) => onFilterChange('waterLevel', e.target.value)}
+									onChange={(e) => handleInputChange('waterLevel', e.target.value)}
+									size="sm"
 								>
-									<option value="">All</option>
-									<option value="0">None (0)</option>
-									<option value="1">Full (1)</option>
+									<option value="">Any</option>
+									<option value="0">Normal (0)</option>
+									<option value="1">Flooded (1)</option>
 								</Form.Select>
-							</Form.Group>
-						</Col>
-						<Col md={4}>
-							<Form.Group className="mb-2">
+							</Col>
+						</Row>
+					</div>
+
+					<div className="filter-section">
+						<div className="filter-section-title">🌧️ Weather & Devices</div>
+						<Row className="mb-3">
+							<Col md={6}>
 								<Form.Label>Rain Status</Form.Label>
 								<Form.Select
 									value={filters.rainStatus}
-									onChange={(e) => onFilterChange('rainStatus', e.target.value)}
+									onChange={(e) => handleInputChange('rainStatus', e.target.value)}
+									size="sm"
 								>
-									<option value="">All</option>
-									<option value="false">No Rain</option>
+									<option value="">Any</option>
 									<option value="true">Raining</option>
+									<option value="false">Not Raining</option>
 								</Form.Select>
-							</Form.Group>
-						</Col>
-					</Row>
-				</div>
+							</Col>
+							<Col md={6}>
+								<Form.Label>Device Type</Form.Label>
+								<Form.Select
+									value={filters.deviceType}
+									onChange={(e) => handleInputChange('deviceType', e.target.value)}
+									size="sm"
+								>
+									<option value="">All Devices</option>
+									<option value="light">Light</option>
+									<option value="pump">Pump</option>
+									<option value="door">Door</option>
+									<option value="window">Window</option>
+								</Form.Select>
+							</Col>
+						</Row>
+					</div>
 
-				<div className="filter-section">
-					<div className="filter-section-title">📄 Results</div>
-					<Form.Group className="mb-2">
-						<Form.Label>Page Size</Form.Label>
-						<Form.Select
-							value={filters.pageSize}
-							onChange={(e) => onFilterChange('pageSize', e.target.value)}
-						>
-							<option value="10">10 per page</option>
-							<option value="20">20 per page</option>
-							<option value="50">50 per page</option>
-							<option value="100">100 per page</option>
-						</Form.Select>
-					</Form.Group>
-				</div>
-
-				<div className="filter-actions">
-					<Button variant="outline-secondary" size="sm" onClick={onClearFilters}>
-						Clear All
+					<div className="filter-section">
+						<div className="filter-section-title">📄 Results Per Page</div>
+						<Row className="mb-3">
+							<Col md={6}>
+								<Form.Label>Page Size</Form.Label>
+								<Form.Select
+									value={filters.pageSize}
+									onChange={(e) => handleInputChange('pageSize', e.target.value)}
+									size="sm"
+								>
+									<option value="20">20 per page</option>
+									<option value="50">50 per page</option>
+									<option value="100">100 per page</option>
+									<option value="200">200 per page</option>
+								</Form.Select>
+							</Col>
+						</Row>
+					</div>
+				</Card.Body>
+				<Card.Footer className="d-flex justify-content-between">
+					<Button variant="outline-secondary" onClick={onClearFilters}>
+						🗑️ Clear All
 					</Button>
-					<Button variant="primary" size="sm" onClick={() => { onApplyFilters(); onToggleFilters(); }}>
-						Apply Filters
+					<Button variant="primary" onClick={onApplyFilters}>
+						✅ Apply Filters
 					</Button>
-				</div>
-			</div>
+				</Card.Footer>
+			</Card>
 		</div>
 	);
 };

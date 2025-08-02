@@ -35,11 +35,13 @@ export const useHistoryFilters = () => {
 
 	const applyFilters = () => {
 		setAppliedFilters({ ...filters });
+		setShowFilters(false); // Close filter menu after applying
 	};
 
 	const clearFilters = () => {
 		setFilters(initialFilters);
 		setAppliedFilters(null);
+		setShowFilters(false); // Close filter menu after clearing
 	};
 
 	const toggleFilters = () => {

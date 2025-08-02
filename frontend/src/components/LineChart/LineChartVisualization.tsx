@@ -109,7 +109,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 									}
 
 									// Format as DD/MM/YYYY HH:mm:ss
-									return date.toLocaleString('en-GB', {
+									return date.toLocaleString('vi-VN', {
 										day: '2-digit',
 										month: '2-digit',
 										year: 'numeric',
@@ -147,7 +147,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 					...baseOptions.scales?.x,
 					title: {
 						display: true,
-						text: 'Time (DD/MM/YYYY HH:mm:ss UTC+7)',
+						text: 'Time (UTC+7)',
 					},
 					ticks: {
 						callback: function (value: any) {

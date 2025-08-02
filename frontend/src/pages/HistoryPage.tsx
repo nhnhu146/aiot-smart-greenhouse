@@ -44,7 +44,6 @@ const HistoryPage: React.FC = () => {
 		sensorPagination,
 		devicePagination,
 		voicePagination,
-		loading,
 		handlePageChange: hookHandlePageChange,
 	} = useHistoryData(appliedFilters, sensorSort, deviceSort, voiceSort);
 
@@ -53,7 +52,7 @@ const HistoryPage: React.FC = () => {
 	};
 
 	const handleExportData = (format: 'json' | 'csv') => {
-		exportData(format, activeTab);
+		exportData(format, activeTab, appliedFilters);
 	};
 
 	const renderTabContent = () => {
@@ -65,7 +64,7 @@ const HistoryPage: React.FC = () => {
 						icon="📊"
 						pagination={sensorPagination}
 						onPageChange={handlePageChange}
-						isEmpty={sensorData.length === 0 && !loading.sensors}
+						isEmpty={sensorData.length === 0}
 						emptyMessage="No sensor data found. Try adjusting filters or check your connection."
 					>
 						<SensorDataTable
@@ -83,7 +82,7 @@ const HistoryPage: React.FC = () => {
 						icon="🎛️"
 						pagination={devicePagination}
 						onPageChange={handlePageChange}
-						isEmpty={deviceControls.length === 0 && !loading.controls}
+						isEmpty={deviceControls.length === 0}
 						emptyMessage="No device control data found. Try adjusting filters or check your connection."
 					>
 						<DeviceControlTable
@@ -101,7 +100,7 @@ const HistoryPage: React.FC = () => {
 						icon="🎤"
 						pagination={voicePagination}
 						onPageChange={handlePageChange}
-						isEmpty={voiceCommands.length === 0 && !loading.voice}
+						isEmpty={voiceCommands.length === 0}
 						emptyMessage="No voice commands found. Try adjusting filters or check your connection."
 					>
 						<VoiceCommandTable
@@ -117,8 +116,6 @@ const HistoryPage: React.FC = () => {
 		}
 	};
 
-	const isLoading = loading.sensors || loading.controls || loading.voice;
-
 	return (
 		<div className="history-container">
 			<Container fluid>
@@ -133,9 +130,8 @@ const HistoryPage: React.FC = () => {
 					filters={filters}
 					showFilters={showFilters}
 					onFilterChange={updateFilter}
-					onApplyFilters={applyFilters}
 					onClearFilters={clearFilters}
-					onToggleFilters={toggleFilters}
+					onApplyFilters={applyFilters}
 					hasActiveFilters={hasActiveFilters}
 				/>
 
@@ -182,16 +178,7 @@ const HistoryPage: React.FC = () => {
 					/>
 				</Tabs>
 
-				{isLoading ? (
-					<div className="loading-spinner">
-						<div className="spinner-border text-primary" role="status">
-							<span className="sr-only">Loading...</span>
-						</div>
-						<span className="ms-2">Loading data...</span>
-					</div>
-				) : (
-					renderTabContent()
-				)}
+				{renderTabContent()}
 			</Container>
 		</div>
 	);

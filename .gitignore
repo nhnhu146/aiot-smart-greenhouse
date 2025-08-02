@@ -9,6 +9,7 @@ multi-task
 
 # Temporary directories and files
 .copilot_temp/
+.copilot_temp/
 temp_*
 *.tmp
 *.temp

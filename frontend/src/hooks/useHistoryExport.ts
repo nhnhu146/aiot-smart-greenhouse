@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import apiClient from '@/lib/apiClient';
+import { FilterState } from '@/types/history';
 
 export const useHistoryExport = () => {
 	const [isExporting, setIsExporting] = useState(false);
 
-	const exportData = async (format: 'json' | 'csv', tab?: 'sensors' | 'controls' | 'voice') => {
+	const exportData = async (
+		format: 'json' | 'csv',
+		tab?: 'sensors' | 'controls' | 'voice',
+		filters?: FilterState
+	) => {
 		setIsExporting(true);
 		try {
 			let endpoint = '';
@@ -28,7 +33,29 @@ export const useHistoryExport = () => {
 					filename = `all-data-${new Date().toISOString().split('T')[0]}`;
 			}
 
-			const response = await apiClient.get(`${endpoint}?format=${format}&sortBy=timestamp&sortOrder=desc&limit=1000`);
+			// Build query parameters with filters
+			const params = new URLSearchParams();
+			params.append('format', format);
+			params.append('sortBy', 'createdAt');
+			params.append('sortOrder', 'desc');
+			params.append('limit', '10000'); // Higher limit for export
+
+			// Apply filters if provided
+			if (filters) {
+				if (filters.dateFrom && filters.dateFrom.trim()) params.append('dateFrom', filters.dateFrom);
+				if (filters.dateTo && filters.dateTo.trim()) params.append('dateTo', filters.dateTo);
+				if (filters.minTemperature && filters.minTemperature.trim()) params.append('minTemperature', filters.minTemperature);
+				if (filters.maxTemperature && filters.maxTemperature.trim()) params.append('maxTemperature', filters.maxTemperature);
+				if (filters.minHumidity && filters.minHumidity.trim()) params.append('minHumidity', filters.minHumidity);
+				if (filters.maxHumidity && filters.maxHumidity.trim()) params.append('maxHumidity', filters.maxHumidity);
+				if (filters.soilMoisture && filters.soilMoisture.trim()) params.append('soilMoisture', filters.soilMoisture);
+				if (filters.waterLevel && filters.waterLevel.trim()) params.append('waterLevel', filters.waterLevel);
+				if (filters.rainStatus && filters.rainStatus.trim()) params.append('rainStatus', filters.rainStatus);
+				if (filters.deviceType && filters.deviceType.trim()) params.append('deviceType', filters.deviceType);
+				if (filters.controlType && filters.controlType.trim()) params.append('action', filters.controlType);
+			}
+
+			const response = await apiClient.get(`${endpoint}?${params.toString()}`);
 
 			// Create and download file
 			const blob = new Blob([
