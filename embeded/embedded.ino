@@ -289,16 +289,16 @@ void loop() {
     return;
   }
 
-  if (++print_results >= (EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW)) {
-    ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.):\n",
-        result.timing.dsp, result.timing.classification, result.timing.anomaly);
-    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-      ei_printf("    %s: ", result.classification[ix].label);
-      ei_printf_float(result.classification[ix].value);
-      ei_printf("\n");
-    }
-    print_results = 0;
-  }
+  // if (++print_results >= (EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW)) {
+  //   ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.):\n",
+  //       result.timing.dsp, result.timing.classification, result.timing.anomaly);
+  //   for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+  //     ei_printf("    %s: ", result.classification[ix].label);
+  //     ei_printf_float(result.classification[ix].value);
+  //     ei_printf("\n");
+  //   }
+  //   print_results = 0;
+  // }
 
   float max_score = 0.0f;
   best_idx = 10;
@@ -672,7 +672,7 @@ void controlWindow(const char* value) {
 
 void updateWindowServoMovement() {
   while (currentWindowServoPos != targetWindowServoPos) {
-    if (isWindowServoMoving && millis() - lastWindowServoMoveTime >= 30) {
+    if (isWindowServoMoving && millis() - lastWindowServoMoveTime >= 15) {
       if (currentWindowServoPos < targetWindowServoPos) {
         currentWindowServoPos+=10;
       } else if (currentWindowServoPos > targetWindowServoPos) {
@@ -715,7 +715,7 @@ void controlDoor(const char* value) {
 
 void updateDoorServoMovement() {
   while (currentDoorServoPos != targetDoorServoPos) {
-    if (isDoorServoMoving && millis() - lastDoorServoMoveTime >= 30) {
+    if (isDoorServoMoving && millis() - lastDoorServoMoveTime >= 15) {
       if (currentDoorServoPos < targetDoorServoPos) {
         currentDoorServoPos+=10;
         lastDoorOpenTime = millis(); // Reset the last open time
