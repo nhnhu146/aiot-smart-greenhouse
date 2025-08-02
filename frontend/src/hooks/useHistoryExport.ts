@@ -40,19 +40,15 @@ export const useHistoryExport = () => {
 			params.append('sortOrder', 'desc');
 			params.append('limit', '10000'); // Higher limit for export
 
-			// Apply filters if provided
+			// Apply filters if provided - only add non-empty values
 			if (filters) {
-				if (filters.dateFrom && filters.dateFrom.trim()) params.append('dateFrom', filters.dateFrom);
-				if (filters.dateTo && filters.dateTo.trim()) params.append('dateTo', filters.dateTo);
-				if (filters.minTemperature && filters.minTemperature.trim()) params.append('minTemperature', filters.minTemperature);
-				if (filters.maxTemperature && filters.maxTemperature.trim()) params.append('maxTemperature', filters.maxTemperature);
-				if (filters.minHumidity && filters.minHumidity.trim()) params.append('minHumidity', filters.minHumidity);
-				if (filters.maxHumidity && filters.maxHumidity.trim()) params.append('maxHumidity', filters.maxHumidity);
-				if (filters.soilMoisture && filters.soilMoisture.trim()) params.append('soilMoisture', filters.soilMoisture);
-				if (filters.waterLevel && filters.waterLevel.trim()) params.append('waterLevel', filters.waterLevel);
-				if (filters.rainStatus && filters.rainStatus.trim()) params.append('rainStatus', filters.rainStatus);
-				if (filters.deviceType && filters.deviceType.trim()) params.append('deviceType', filters.deviceType);
-				if (filters.controlType && filters.controlType.trim()) params.append('action', filters.controlType);
+				Object.entries(filters).forEach(([key, value]) => {
+					if (value && value.trim() !== '') {
+						// Map filter keys to API parameter names
+						const paramName = key === 'controlType' ? 'action' : key;
+						params.append(paramName, value);
+					}
+				});
 			}
 
 			const response = await apiClient.get(`${endpoint}?${params.toString()}`);

@@ -69,6 +69,14 @@ class ApiClient {
 		});
 	}
 
+	// Generic PUT method
+	async put(endpoint: string, data?: any) {
+		return this.request(endpoint, {
+			method: 'PUT',
+			body: data ? JSON.stringify(data) : undefined,
+		});
+	}
+
 	// Sensor Data APIs
 	async getLatestSensorData(): Promise<SensorData> {
 		return this.request('/api/sensors/latest');

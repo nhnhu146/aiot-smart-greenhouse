@@ -20,7 +20,13 @@ export const useHistorySort = () => {
 		tab: 'voice'
 	});
 
-	const handleSort = (field: string, tab: 'sensors' | 'controls' | 'voice') => {
+	const [alertSort, setAlertSort] = useState<SortState>({
+		field: 'timestamp',
+		direction: 'desc',
+		tab: 'alerts'
+	});
+
+	const handleSort = (field: string, tab: 'sensors' | 'controls' | 'voice' | 'alerts') => {
 		const updateSort = (currentSort: SortState, setSort: (sort: SortState) => void) => {
 			if (currentSort.field === field) {
 				// Toggle direction
@@ -50,6 +56,9 @@ export const useHistorySort = () => {
 			case 'voice':
 				updateSort(voiceSort, setVoiceSort);
 				break;
+			case 'alerts':
+				updateSort(alertSort, setAlertSort);
+				break;
 		}
 	};
 
@@ -57,6 +66,7 @@ export const useHistorySort = () => {
 		sensorSort,
 		deviceSort,
 		voiceSort,
+		alertSort,
 		handleSort
 	};
 };

@@ -29,7 +29,7 @@ export interface FilterState {
 export interface SortState {
 	field: string;
 	direction: 'asc' | 'desc';
-	tab: 'sensors' | 'controls' | 'voice';
+	tab: 'sensors' | 'controls' | 'voice' | 'alerts';
 }
 
 export interface PaginationInfo {

@@ -26,5 +26,17 @@ export default defineConfig({
 				api: 'modern-compiler' // Use modern SASS API
 			}
 		}
+	},
+	build: {
+		rollupOptions: {
+			external: [],
+			output: {
+				manualChunks: undefined
+			}
+		},
+		// Ensure date-fns is properly bundled
+		commonjsOptions: {
+			include: [/date-fns/, /node_modules/]
+		}
 	}
 })

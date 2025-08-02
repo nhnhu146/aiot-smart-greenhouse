@@ -34,7 +34,15 @@ export const useHistoryFilters = () => {
 	};
 
 	const applyFilters = () => {
-		setAppliedFilters({ ...filters });
+		// Clean filters: only send non-empty values to prevent API issues
+		const cleanedFilters = { ...initialFilters };
+		Object.entries(filters).forEach(([key, value]) => {
+			if (value && value.trim() !== '') {
+				cleanedFilters[key as keyof FilterState] = value;
+			}
+		});
+
+		setAppliedFilters(cleanedFilters);
 		setShowFilters(false); // Close filter menu after applying
 	};
 

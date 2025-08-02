@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Form, Row, Col } from 'react-bootstrap';
+import UnsavedChangesWarning from '@/components/Common/UnsavedChangesWarning';
 
 interface ThresholdSettings {
 	temperatureThreshold: { min: number; max: number };
@@ -11,15 +12,22 @@ interface ThresholdSettings {
 interface ThresholdSettingsCardProps {
 	thresholds: ThresholdSettings;
 	onThresholdChange: (key: keyof ThresholdSettings, field: 'min' | 'max', value: number) => void;
+	hasUnsavedChanges?: boolean;
 }
 
-const ThresholdSettingsCard: React.FC<ThresholdSettingsCardProps> = ({ thresholds, onThresholdChange }) => {
+const ThresholdSettingsCard: React.FC<ThresholdSettingsCardProps> = ({
+	thresholds,
+	onThresholdChange,
+	hasUnsavedChanges = false
+}) => {
 	return (
 		<Card className="mb-4">
 			<Card.Header>
 				<h5 className="mb-0">📊 Sensor Thresholds</h5>
 			</Card.Header>
 			<Card.Body>
+				<UnsavedChangesWarning hasUnsavedChanges={hasUnsavedChanges} />
+
 				<Row>
 					<Col md={6}>
 						<h6>🌡️ Temperature (°C)</h6>

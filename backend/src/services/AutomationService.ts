@@ -30,6 +30,8 @@ class AutomationService {
 			console.log('🛑 Automation has been DISABLED - all automatic control stopped');
 		} else {
 			console.log('✅ Automation has been ENABLED - automatic control resumed');
+			// Immediately check automation with latest data when enabled
+			await this.processImmediateAutomationCheck();
 		}
 
 		this.broadcastAutomationStatus();

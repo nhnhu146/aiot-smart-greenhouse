@@ -12,6 +12,8 @@ export interface IAlert extends Document {
 	deviceType?: string;
 	timestamp: Date;
 	resolved: boolean;
+	acknowledged?: boolean;
+	acknowledgedAt?: Date;
 }
 
 const AlertSchema = new mongoose.Schema({
@@ -44,6 +46,13 @@ const AlertSchema = new mongoose.Schema({
 	resolved: {
 		type: Boolean,
 		default: false
+	},
+	acknowledged: {
+		type: Boolean,
+		default: false
+	},
+	acknowledgedAt: {
+		type: Date
 	}
 });
 
