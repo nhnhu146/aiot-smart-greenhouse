@@ -12,15 +12,15 @@ export const useHistoryExport = () => {
 
 			switch (tab || 'all') {
 				case 'sensors':
-					endpoint = '/api/history/sensors/export';
+					endpoint = '/api/history/export/sensors';
 					filename = `sensor-data-${new Date().toISOString().split('T')[0]}`;
 					break;
 				case 'controls':
-					endpoint = '/api/history/devices/export';
+					endpoint = '/api/history/export/device-controls';
 					filename = `device-controls-${new Date().toISOString().split('T')[0]}`;
 					break;
 				case 'voice':
-					endpoint = '/api/voice-commands/export';
+					endpoint = '/api/history/export/voice-commands';
 					filename = `voice-commands-${new Date().toISOString().split('T')[0]}`;
 					break;
 				default:

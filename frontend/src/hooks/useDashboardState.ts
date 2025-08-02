@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import { useAutomationContext } from '@/contexts/AutomationContext';
 
 export interface Activity {
 	title: string;
@@ -10,9 +11,12 @@ export interface Activity {
 
 export const useDashboardState = () => {
 	const { persistentSensorData, sendDeviceControl, isConnected } = useWebSocketContext();
+	const { state: automationState, toggleAutomation } = useAutomationContext();
 	const [switchStates, setSwitchStates] = useState(new Map<string, boolean>());
 	const [userInteraction, setUserInteraction] = useState(false);
-	const [autoMode, setAutoMode] = useState(false);
+
+	// Use automation status from shared context
+	const autoMode = automationState.automationEnabled;
 
 	const activities: Activity[] = [
 		{
@@ -66,10 +70,9 @@ export const useDashboardState = () => {
 	}, [sendDeviceControl, switchStates]);
 
 	const toggleAutoMode = useCallback(async () => {
-		const newAutoMode = !autoMode;
-		setAutoMode(newAutoMode);
+		await toggleAutomation();
 		setUserInteraction(false); // Enable auto control when turning on auto mode
-	}, [autoMode]);
+	}, [toggleAutomation]);
 
 	return {
 		persistentSensorData,
@@ -80,7 +83,6 @@ export const useDashboardState = () => {
 		activities,
 		handleDeviceToggle,
 		toggleAutoMode,
-		setUserInteraction,
-		setAutoMode
+		setUserInteraction
 	};
 };

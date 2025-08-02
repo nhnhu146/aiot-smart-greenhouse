@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spinner, Alert, Button } from 'react-bootstrap';
+import { Alert, Button } from 'react-bootstrap';
 
 interface LineChartControlsProps {
 	timeRange: '1h' | '24h' | '7d' | '30d';
@@ -31,11 +31,15 @@ const LineChartControls: React.FC<LineChartControlsProps> = ({
 						key={option.value}
 						variant={timeRange === option.value ? "primary" : "outline-primary"}
 						size="sm"
-						onClick={() => onTimeRangeChange(option.value)}
+						onClick={() => {
+							console.log(`Changing time range to: ${option.value}`); // Debug log
+							onTimeRangeChange(option.value);
+						}}
 						disabled={loading}
 						className="me-2"
+						title={`Show data for ${option.label}`}
 					>
-						{option.label}
+						{loading && timeRange === option.value ? '⏳' : option.label}
 					</Button>
 				))}
 			</div>
@@ -45,15 +49,9 @@ const LineChartControls: React.FC<LineChartControlsProps> = ({
 				size="sm"
 				onClick={onRefresh}
 				disabled={loading}
+				title="Refresh chart data"
 			>
-				{loading ? (
-					<>
-						<Spinner size="sm" className="me-1" />
-						Refreshing...
-					</>
-				) : (
-					'🔄 Refresh'
-				)}
+				{loading ? '🔄' : '🔄 Refresh'}
 			</Button>
 
 			{error && (

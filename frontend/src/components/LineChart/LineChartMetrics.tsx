@@ -21,11 +21,11 @@ const LineChartMetrics: React.FC<LineChartMetricsProps> = ({
 	data
 }) => {
 	const metrics = [
-		{ key: 'temperature', label: 'Temperature', color: '#ff6b6b', unit: '°C' },
-		{ key: 'humidity', label: 'Humidity', color: '#4dabf7', unit: '%' },
-		{ key: 'soilMoisture', label: 'Soil Moisture', color: '#69db7c', unit: '' },
-		{ key: 'waterLevel', label: 'Water Level', color: '#51cf66', unit: '' },
-		{ key: 'lightLevel', label: 'Light Level', color: '#ffd43b', unit: '' },
+		{ key: 'temperature', label: 'Temperature', color: '#B91C1C', unit: '°C' },
+		{ key: 'humidity', label: 'Humidity', color: '#1E40AF', unit: '%' },
+		{ key: 'soilMoisture', label: 'Soil Moisture', color: '#059669', unit: '' },
+		{ key: 'waterLevel', label: 'Water Level', color: '#0C4A6E', unit: '' },
+		{ key: 'lightLevel', label: 'Light Level', color: '#D97706', unit: '' },
 	];
 
 	const getLatestValue = (metric: string): number | null => {

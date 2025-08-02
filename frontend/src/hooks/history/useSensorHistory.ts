@@ -85,24 +85,11 @@ export const useSensorHistory = (
 		}
 	};
 
-	// Debounced useEffect to prevent excessive API calls
+	// Removed automatic refresh triggers to prevent annoying effects during filter/sort
+	// Users can manually refresh if needed
 	useEffect(() => {
-		// Clear existing timeout
-		if (fetchTimeoutRef.current) {
-			clearTimeout(fetchTimeoutRef.current);
-		}
-
-		// Set new timeout for debounced fetch
-		fetchTimeoutRef.current = setTimeout(() => {
-			fetchData();
-		}, 300); // 300ms debounce
-
-		// Cleanup timeout on unmount
-		return () => {
-			if (fetchTimeoutRef.current) {
-				clearTimeout(fetchTimeoutRef.current);
-			}
-		};
+		// Only fetch on mount or when filters/sort actually change
+		fetchData();
 	}, [filters, sort, pagination.page, pagination.limit]);
 
 	return {

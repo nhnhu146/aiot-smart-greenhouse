@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { useAutomation } from '@/hooks/useAutomation';
 import { useAutomationSettings } from '@/hooks/useAutomationSettings';
+import { useAutomationContext } from '@/contexts/AutomationContext';
 
 export const useAutomationPage = () => {
-	const { config: automationConfig, toggleAutomation, updating: hookUpdating } = useAutomation();
+	const { updating: hookUpdating } = useAutomation();
+	const { state: automationState, toggleAutomation } = useAutomationContext();
 	const {
 		settings,
 		setSettings,
@@ -23,14 +25,16 @@ export const useAutomationPage = () => {
 	// Check if any action is in progress
 	const isAnyActionInProgress = loading || saving || resetting || reloading || hookUpdating || runningCheck;
 
-	// Sync main automation toggle with the shared hook
-	const autoMode = automationConfig?.enabled ?? false;
+	// Use automation status from shared context (synced with Dashboard)
+	const autoMode = automationState.automationEnabled;
 
 	const handleAutomationToggle = async () => {
 		if (isAnyActionInProgress) return;
-		const newState = !autoMode;
-		await toggleAutomation();
-		setSettings(prev => ({ ...prev, automationEnabled: newState }));
+		const success = await toggleAutomation();
+		if (success) {
+			// Update local settings to match
+			setSettings(prev => ({ ...prev, automationEnabled: !autoMode }));
+		}
 	};
 
 	// Load settings on component mount

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useWebSocketContext } from '@/contexts/WebSocketContext';
+// Removed useWebSocketContext to prevent annoying refresh effects
 
 interface SensorData {
 	temperature?: number;
@@ -25,7 +25,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 	const [cachedData, setCachedData] = useState<SensorData[]>([]);
 
 	const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-	const { persistentSensorData } = useWebSocketContext();
+	// WebSocket context removed to prevent annoying refresh effects
 
 	// Debouncing refs
 	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -121,27 +121,28 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 		fetchData();
 	}, []);
 
-	// Debounced WebSocket updates - only refresh every 3 seconds
-	useEffect(() => {
-		if (persistentSensorData && !isInitialLoadRef.current) {
-			// Clear existing timeout
-			if (fetchTimeoutRef.current) {
-				clearTimeout(fetchTimeoutRef.current);
-			}
+	// Disabled automatic WebSocket updates to prevent annoying refresh effects
+	// Users can manually refresh using the refresh button if needed
+	// useEffect(() => {
+	// 	if (persistentSensorData && !isInitialLoadRef.current) {
+	// 		// Clear existing timeout
+	// 		if (fetchTimeoutRef.current) {
+	// 			clearTimeout(fetchTimeoutRef.current);
+	// 		}
 
-			// Set new timeout for debounced refresh
-			fetchTimeoutRef.current = setTimeout(() => {
-				fetchData();
-			}, 3000); // 3 second debounce
-		}
+	// 		// Set new timeout for debounced refresh
+	// 		fetchTimeoutRef.current = setTimeout(() => {
+	// 			fetchData();
+	// 		}, 3000); // 3 second debounce
+	// 	}
 
-		// Cleanup timeout on unmount
-		return () => {
-			if (fetchTimeoutRef.current) {
-				clearTimeout(fetchTimeoutRef.current);
-			}
-		};
-	}, [persistentSensorData]);
+	// 	// Cleanup timeout on unmount
+	// 	return () => {
+	// 		if (fetchTimeoutRef.current) {
+	// 			clearTimeout(fetchTimeoutRef.current);
+	// 		}
+	// 	};
+	// }, [persistentSensorData]);
 
 	return {
 		data,

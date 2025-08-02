@@ -66,37 +66,11 @@
 	margin-left: 10px;
 }
 
-/* Animation effects */
-@keyframes fadeInUp {
-	from {
-		opacity: 0;
-		transform: translateY(-10px);
-	}
+/* Animation effects - DISABLED for better UX */
+/* Removed animations to prevent annoying refresh effects during filter/sort operations */
 
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.fadeInUp {
-	animation: fadeInUp 0.3s ease;
-}
-
-/* Highlight animation for changed rows */
-@keyframes highlight-update {
-	0% {
-		background-color: rgba(40, 167, 69, 0.2);
-	}
-
-	100% {
-		background-color: transparent;
-	}
-}
-
-.row-changed {
-	animation: highlight-update 2s ease;
-}
+/* Highlight animation for changed rows - DISABLED for better UX */
+/* Removed table row animations to improve user experience */
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

@@ -116,20 +116,7 @@
 	white-space: nowrap;
 }
 
-/* Highlight animation for changed rows */
-@keyframes highlight-update {
-	0% {
-		background-color: rgba(40, 167, 69, 0.2);
-	}
-
-	100% {
-		background-color: transparent;
-	}
-}
-
-.row-changed {
-	animation: highlight-update 2s ease;
-}
+/* Highlight animation for changed rows - DISABLED for better UX */
 
 @media (max-width: 768px) {
 	.table-responsive {

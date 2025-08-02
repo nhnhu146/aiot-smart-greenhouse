@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './styles/globals.scss'
 import { WebSocketProvider } from './contexts/WebSocketContext'
+import { AutomationProvider } from './contexts/AutomationContext'
 import authService from './lib/authService'
 
 // Layout components
@@ -38,27 +39,29 @@ function App() {
 	return (
 		<Router>
 			<WebSocketProvider>
-				<Routes>
-					{/* Root redirect */}
-					<Route path="/" element={<RootRedirect />} />
+				<AutomationProvider>
+					<Routes>
+						{/* Root redirect */}
+						<Route path="/" element={<RootRedirect />} />
 
-					{/* Auth routes */}
-					<Route path="/landing" element={<AuthLayout><LandingPage /></AuthLayout>} />
-					<Route path="/signin" element={<AuthLayout><SignInPage /></AuthLayout>} />
-					<Route path="/signup" element={<AuthLayout><SignUpPage /></AuthLayout>} />
-					<Route path="/forgot-password" element={<AuthLayout><ForgotPasswordPage /></AuthLayout>} />
-					<Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
+						{/* Auth routes */}
+						<Route path="/landing" element={<AuthLayout><LandingPage /></AuthLayout>} />
+						<Route path="/signin" element={<AuthLayout><SignInPage /></AuthLayout>} />
+						<Route path="/signup" element={<AuthLayout><SignUpPage /></AuthLayout>} />
+						<Route path="/forgot-password" element={<AuthLayout><ForgotPasswordPage /></AuthLayout>} />
+						<Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
 
-					{/* Protected routes */}
-					<Route path="/dashboard" element={<DefaultLayout><DashboardPage /></DefaultLayout>} />
-					<Route path="/history" element={<DefaultLayout><HistoryPage /></DefaultLayout>} />
-					<Route path="/automode" element={<DefaultLayout><AutoModePage /></DefaultLayout>} />
-					<Route path="/settings" element={<DefaultLayout><SettingsPage /></DefaultLayout>} />
-					<Route path="/examples" element={<DefaultLayout><ExamplesPage /></DefaultLayout>} />
+						{/* Protected routes */}
+						<Route path="/dashboard" element={<DefaultLayout><DashboardPage /></DefaultLayout>} />
+						<Route path="/history" element={<DefaultLayout><HistoryPage /></DefaultLayout>} />
+						<Route path="/automode" element={<DefaultLayout><AutoModePage /></DefaultLayout>} />
+						<Route path="/settings" element={<DefaultLayout><SettingsPage /></DefaultLayout>} />
+						<Route path="/examples" element={<DefaultLayout><ExamplesPage /></DefaultLayout>} />
 
-					{/* Catch all - redirect to home */}
-					<Route path="*" element={<Navigate to="/" replace />} />
-				</Routes>
+						{/* Catch all - redirect to home */}
+						<Route path="*" element={<Navigate to="/" replace />} />
+					</Routes>
+				</AutomationProvider>
 			</WebSocketProvider>
 		</Router>
 	)

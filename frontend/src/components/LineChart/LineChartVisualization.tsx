@@ -55,12 +55,15 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 		}
 
 		// Use ChartUtils to process and validate data with proper timestamp handling
-		const validData = ChartUtils.filterValidData(data.map(item => ({
+		const dataWithNormalizedTimestamps = data.map(item => ({
 			...item,
-			timestamp: item.createdAt || item.timestamp || new Date().toISOString()
-		})));
+			timestamp: ChartUtils.normalizeTimestamp(item.createdAt || item.timestamp || new Date().toISOString())
+		}));
+
+		const validData = ChartUtils.filterValidData(dataWithNormalizedTimestamps);
 
 		if (validData.length === 0) {
+			console.warn('No valid data points after filtering');
 			return {
 				labels: [],
 				datasets: []
@@ -71,7 +74,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 		return ChartUtils.formatForChart(validData, selectedMetrics);
 	};
 
-	// Chart options with improved tooltip formatting
+	// Chart options with improved tooltip formatting and date handling
 	const getChartOptions = () => {
 		const baseOptions = ChartUtils.getChartOptions();
 
@@ -85,15 +88,26 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 					callbacks: {
 						title: (context: any) => {
 							if (context[0]?.label) {
-								const date = new Date(context[0].label);
-								// Format as HH:mm:ss for better readability
-								return date.toLocaleString('en-US', {
-									hour: '2-digit',
-									minute: '2-digit',
-									second: '2-digit',
-									hour12: false,
-									timeZone: 'Asia/Ho_Chi_Minh'
-								});
+								try {
+									const date = new Date(context[0].label);
+									if (isNaN(date.getTime())) {
+										return 'Invalid Date';
+									}
+									// Format as DD/MM/YYYY HH:mm:ss with Vietnam timezone
+									return date.toLocaleString('en-GB', {
+										day: '2-digit',
+										month: '2-digit',
+										year: 'numeric',
+										hour: '2-digit',
+										minute: '2-digit',
+										second: '2-digit',
+										hour12: false,
+										timeZone: 'Asia/Ho_Chi_Minh'
+									});
+								} catch (error) {
+									console.error('Error formatting tooltip date:', error);
+									return 'Invalid Date';
+								}
 							}
 							return '';
 						},
@@ -105,7 +119,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 							if (label.includes('Temperature')) return `${label}: ${value.toFixed(1)}°C`;
 							if (label.includes('Humidity')) return `${label}: ${value.toFixed(1)}%`;
 							if (label.includes('Soil') || label.includes('Water') || label.includes('Light')) {
-								return `${label}: ${value === 1 ? 'Yes' : 'No'}`;
+								return `${label}: ${value === 1 ? 'Active' : 'Inactive'}`;
 							}
 							return `${label}: ${value.toFixed(1)}`;
 						}
@@ -118,32 +132,42 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 					...baseOptions.scales?.x,
 					title: {
 						display: true,
-						text: 'Time (HH:mm:ss)',
+						text: 'Time (DD/MM/YYYY HH:mm:ss UTC+7)',
 					},
+					ticks: {
+						callback: function (value: any) {
+							try {
+								// Use the value directly as it should be a timestamp
+								const date = new Date(value);
+								if (isNaN(date.getTime())) {
+									return 'Invalid';
+								}
+								// Show only time for better readability
+								return date.toLocaleString('en-GB', {
+									hour: '2-digit',
+									minute: '2-digit',
+									second: '2-digit',
+									hour12: false,
+									timeZone: 'Asia/Ho_Chi_Minh'
+								});
+							} catch (error) {
+								return 'Invalid';
+							}
+						}
+					}
 				}
 			}
 		};
 	};
 
-	// Skeleton loading for better UX
+	// Simple loading state without animation
 	if (loading && (!data || data.length === 0)) {
 		return (
 			<div className="chart-container" style={{ height: '400px', width: '100%' }}>
-				<div className="chart-skeleton">
-					<div className="skeleton-bars">
-						{[...Array(8)].map((_, i) => (
-							<div
-								key={i}
-								className="skeleton-bar"
-								style={{
-									height: `${Math.random() * 200 + 50}px`,
-									animationDelay: `${i * 0.1}s`
-								}}
-							/>
-						))}
-					</div>
-					<div className="skeleton-loading-text">
-						<span>📊 Loading chart data...</span>
+				<div className="d-flex justify-content-center align-items-center h-100">
+					<div className="text-center">
+						<div className="text-muted mb-2" style={{ fontSize: '2rem' }}>📊</div>
+						<p className="text-muted">Loading chart data...</p>
 					</div>
 				</div>
 			</div>
