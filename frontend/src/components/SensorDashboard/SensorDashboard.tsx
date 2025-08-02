@@ -4,6 +4,8 @@
 
 import React from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import HighlightWrapper from '@/components/HighlightWrapper/HighlightWrapper';
+import '@/components/HighlightWrapper/HighlightWrapper.css';
 import './SensorDashboard.css';
 
 // Format time to English format with Vietnam timezone
@@ -260,14 +262,19 @@ const SensorDashboard: React.FC = () => {
 
 			<div className="sensor-grid">
 				{sensorCards.map(({ key, title, unit, icon, color }) => (
-					<SensorCard
+					<HighlightWrapper
 						key={key}
-						title={title}
-						value={sensors[key as keyof typeof sensors].value}
-						unit={unit}
-						icon={icon}
-						color={color}
-					/>
+						trigger={sensors[key as keyof typeof sensors].value}
+						className="sensor-card-highlight"
+					>
+						<SensorCard
+							title={title}
+							value={sensors[key as keyof typeof sensors].value}
+							unit={unit}
+							icon={icon}
+							color={color}
+						/>
+					</HighlightWrapper>
 				))}
 			</div>
 

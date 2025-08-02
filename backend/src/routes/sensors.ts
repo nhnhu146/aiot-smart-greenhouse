@@ -5,6 +5,7 @@ import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
 import { formatVietnamTimestamp } from '../utils/timezone';
 import { DataMergerService } from '../services/DataMergerService';
+import { countService } from '../services';
 
 const router = Router();
 
@@ -366,6 +367,52 @@ router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(async (req:
 	res.setHeader('Content-Type', 'text/csv');
 	res.setHeader('Content-Disposition', `attachment; filename=sensor-data-${Date.now()}.csv`);
 	res.send(csvContent);
+}));
+
+// GET /api/sensors/count - Get count of sensor data
+router.get('/count', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
+	const {
+		from,
+		to,
+		minTemperature,
+		maxTemperature,
+		minHumidity,
+		maxHumidity,
+		minSoilMoisture,
+		maxSoilMoisture,
+		minWaterLevel,
+		maxWaterLevel,
+		soilMoisture,
+		waterLevel,
+		rainStatus
+	} = req.query as any;
+
+	const filters = {
+		from,
+		to,
+		minTemperature,
+		maxTemperature,
+		minHumidity,
+		maxHumidity,
+		minSoilMoisture,
+		maxSoilMoisture,
+		minWaterLevel,
+		maxWaterLevel,
+		soilMoisture,
+		waterLevel,
+		rainStatus
+	};
+
+	const count = await countService.countSensors(filters);
+
+	const response: APIResponse = {
+		success: true,
+		message: 'Sensor data count retrieved successfully',
+		data: { count },
+		timestamp: formatVietnamTimestamp()
+	};
+
+	res.json(response);
 }));
 
 export default router;

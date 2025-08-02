@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middleware';
-import { voiceCommandService } from '../services';
+import { voiceCommandService, countService } from '../services';
 import { VoiceCommand } from '../models';
 import { APIResponse } from '../types';
 
@@ -101,6 +101,43 @@ router.post('/process', asyncHandler(async (req: Request, res: Response) => {
 		const response: APIResponse = {
 			success: false,
 			message: 'Failed to process voice command',
+			timestamp: new Date().toISOString()
+		};
+		res.status(500).json(response);
+	}
+}));
+
+/**
+ * @route GET /api/voice-commands/count - Get count of voice commands
+ * @desc Get total count of voice commands with optional filters
+ * @access Public
+ */
+router.get('/count', asyncHandler(async (req: Request, res: Response) => {
+	try {
+		const { from, to, processed, minConfidence } = req.query as any;
+
+		const filters = {
+			from,
+			to,
+			processed: processed !== undefined ? processed === 'true' : undefined,
+			minConfidence: minConfidence ? parseFloat(minConfidence) : undefined
+		};
+
+		const count = await countService.countVoiceCommands(filters);
+
+		const response: APIResponse = {
+			success: true,
+			message: 'Voice commands count retrieved successfully',
+			data: { count },
+			timestamp: new Date().toISOString()
+		};
+
+		res.json(response);
+	} catch (error) {
+		console.error('[VOICE-COMMANDS-COUNT] Error:', error);
+		const response: APIResponse = {
+			success: false,
+			message: 'Failed to get voice commands count',
 			timestamp: new Date().toISOString()
 		};
 		res.status(500).json(response);

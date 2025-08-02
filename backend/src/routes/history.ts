@@ -5,6 +5,7 @@ import { QueryParamsSchema } from '../schemas';
 import { APIResponse } from '../types';
 import { formatVietnamTimestamp } from '../utils/timezone';
 import { DataMergerService } from '../services/DataMergerService';
+import { countService } from '../services';
 
 const router = Router();
 
@@ -660,6 +661,29 @@ router.get('/export/voice-commands', validateQuery(QueryParamsSchema), asyncHand
 	res.setHeader('Content-Type', 'text/csv');
 	res.setHeader('Content-Disposition', 'attachment; filename="voice-commands.csv"');
 	res.send(csv);
+}));
+
+// GET /api/history/device-controls/count - Get count of device controls
+router.get('/device-controls/count', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
+	const { from, to, deviceType, action } = req.query as any;
+
+	const filters = {
+		from,
+		to,
+		deviceType,
+		action
+	};
+
+	const count = await countService.countDeviceControls(filters);
+
+	const response: APIResponse = {
+		success: true,
+		message: 'Device controls count retrieved successfully',
+		data: { count },
+		timestamp: formatVietnamTimestamp()
+	};
+
+	res.json(response);
 }));
 
 export default router;

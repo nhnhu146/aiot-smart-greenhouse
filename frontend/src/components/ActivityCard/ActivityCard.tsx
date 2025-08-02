@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import HighlightWrapper from '@/components/HighlightWrapper/HighlightWrapper';
+import '@/components/HighlightWrapper/HighlightWrapper.css';
 import './ActivityCard.css';
 
 type ActivityCardProps = {
@@ -32,19 +34,24 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ title, icon, switchState, o
 	}, [switchState]);
 
 	return (
-		<div
-			className={`activity-card ${localActive ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
-			onClick={handleCardClick}
-			style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
+		<HighlightWrapper
+			trigger={localActive}
+			className="activity-card-highlight"
 		>
-			<div className="activity-card-body">
-				<div className="activity-icon">{icon}</div>
-				<div className="activity-title">
-					{title}
-					{disabled && <small className="auto-mode-text">Auto Mode Active</small>}
+			<div
+				className={`activity-card ${localActive ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+				onClick={handleCardClick}
+				style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
+			>
+				<div className="activity-card-body">
+					<div className="activity-icon">{icon}</div>
+					<div className="activity-title">
+						{title}
+						{disabled && <small className="auto-mode-text">Auto Mode Active</small>}
+					</div>
 				</div>
 			</div>
-		</div>
+		</HighlightWrapper>
 	);
 };
 

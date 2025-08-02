@@ -1,0 +1,70 @@
+/* HighlightWrapper Component Styles */
+
+.highlight-update {
+	animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+	0% {
+		background-color: rgba(40, 167, 69, 0.3);
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+	}
+
+	25% {
+		background-color: rgba(40, 167, 69, 0.2);
+		transform: scale(1.02);
+		box-shadow: 0 0 0 10px rgba(40, 167, 69, 0.2);
+	}
+
+	50% {
+		background-color: rgba(40, 167, 69, 0.1);
+		transform: scale(1.01);
+		box-shadow: 0 0 0 15px rgba(40, 167, 69, 0.1);
+	}
+
+	75% {
+		background-color: rgba(40, 167, 69, 0.05);
+		transform: scale(1.005);
+		box-shadow: 0 0 0 10px rgba(40, 167, 69, 0.05);
+	}
+
+	100% {
+		background-color: transparent;
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+	}
+}
+
+/* Alternative highlight styles for different contexts */
+.highlight-update.sensor-card {
+	border-radius: 12px;
+	transition: all 0.3s ease;
+}
+
+.highlight-update.activity-card {
+	border-radius: 16px;
+	transition: all 0.3s ease;
+}
+
+.highlight-update.device-control {
+	border-radius: 8px;
+	transition: all 0.3s ease;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+	.highlight-update {
+		animation: highlight-simple 1s ease-in-out;
+	}
+
+	@keyframes highlight-simple {
+		0% {
+			background-color: rgba(40, 167, 69, 0.2);
+		}
+
+		100% {
+			background-color: transparent;
+		}
+	}
+}

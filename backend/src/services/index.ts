@@ -5,5 +5,6 @@ export { AlertService, alertService } from './AlertService';
 export { EmailService, emailService } from './EmailService';
 export { webSocketService } from './WebSocketService';
 export { DataMergerService } from './DataMergerService';
+export { CountService, countService } from './CountService';
 export { default as automationService } from './AutomationService';
 export { VoiceCommandService, voiceCommandService } from './VoiceCommandService';

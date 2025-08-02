@@ -108,6 +108,7 @@ int currentDoorServoPos = 90;
 int targetDoorServoPos = 90;
 bool isDoorServoMoving = false;
 
+size_t best_idx = 0;
 
 // Constant and pins
 unsigned long lastSendTime1 = 0;
@@ -115,7 +116,7 @@ unsigned long lastSendTime2 = 0;
 unsigned long lastSendTime3 = 0;
 unsigned long lastMotionCheck = 0;
 unsigned long lastWaterCheck = 0;
-int i = 0; // Counter variable
+int i = 0; // Biến đếm
 int lastPIRState = LOW; // Track PIR state changes
 
 // Error counting for system recovery
@@ -126,6 +127,11 @@ bool lastDoorCommand = 0;
 bool lastWindowCommand = 0;
 bool lastPumpCommand = 0;
 bool lastLightCommand = 0;
+int FloatSwitchValue = 0;
+
+const unsigned long DOOR_TIMEOUT = 2000;
+unsigned long lastDoorOpenTime = 0;
+
 
 int rainvalue = 0;
 
@@ -141,6 +147,7 @@ int rainvalue = 0;
 void setup() {
   Serial.begin(115200);
   Serial.println(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
+  delay(2000);
   setup_wifi();
   // summary of inferencing settings (from model_metadata.h)
   Serial.println("Booting in MIC MODE");
@@ -213,21 +220,19 @@ void loop() {
   float t = dht.readTemperature();
 
   int PIRValue = digitalRead(PIR_in_pin);
-  int FloatSwitchValue = digitalRead(float_switch);
+  FloatSwitchValue = digitalRead(float_switch);
+
   updateDoorServoMovement();
   updateWindowServoMovement();
+  //controlPump(moisture == HIGH ? "0" : "1");
+
+
   if (millis() - lastMotionCheck > 1000) {
     lastMotionCheck = millis();
-    // if (PIRValue == HIGH && lastPIRState == LOW) {
-    //   controlDoor("1");
-    //   Serial.println("Motion detected and sent!");
-    //   lastPIRState = HIGH;
-    // } else if (PIRValue == LOW && lastPIRState == HIGH) {
-    //   controlDoor("0");
-    //   Serial.println("Motion stopped");
-    //   lastPIRState = LOW;
-    // }
+
     controlDoor(PIRValue == HIGH ? "1" : "0");
+    if (rainvalue == HIGH)
+      controlWindow("0");
 
     if (millis() - lastSendTime2 > 5000) {
       lastSendTime2 = millis();
@@ -237,7 +242,6 @@ void loop() {
       sendTemperatureValue(t);
       sendHumidityValue(h);
       sendSoilMoistureValue(moisture);
-      controlPump(moisture == HIGH ? "0" : "1");
       sendLightLevelValue(Photon_value);
       sendRainSensorValue(rainvalue);
       sendPlantHeightValue(distanceCm);
@@ -245,14 +249,13 @@ void loop() {
       // print on LCD
       char line1[17];
       char line2[17];
-      
 
       const char* myCString = FloatSwitchValue ? "ON" : "OFF";
       snprintf(line1, sizeof(line1), "T: %.1fC H: %.0f%%", t, h);
       snprintf(line2, sizeof(line2), "S: %d W: %d P: %s",
               moisture,
               FloatSwitchValue,
-              FloatSwitchValue ? "ON" : "OFF");
+              lastPumpCommand ? "ON" : "OFF");
 
       lcd.setCursor(0, 0);
       lcd.print(line1);
@@ -298,19 +301,33 @@ void loop() {
   }
 
   float max_score = 0.0f;
-  size_t best_idx = 10;
+  best_idx = 10;
 
-  for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+  for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT - 1; ix++) {
       if (result.classification[ix].value > max_score) {
           max_score = result.classification[ix].value;
           best_idx = ix;
-      } 
+      }
   }
 
   if (max_score > CONFIDENCE_THRESHOLD){
+    
     const char* best_label = result.classification[best_idx].label;
     ei_printf("Voice command detected: %s (%.2f)\n", best_label, max_score);
     sendVoiceCommand(best_label, max_score);
+    
+    if (best_idx == 0)
+      controlDoor("0");
+    else if (best_idx == 1)
+      controlWindow("0");
+    else if (best_idx == 2)
+      controlDoor("1");
+    else if (best_idx == 3)
+      controlWindow("1");
+    else if (best_idx == 4)
+      controlLights("1");
+    else if (best_idx == 5)
+      controlLights("0");
     
   }
 }
@@ -661,10 +678,9 @@ void updateWindowServoMovement() {
       } else if (currentWindowServoPos > targetWindowServoPos) {
         currentWindowServoPos-=10;
       } else {
-        isWindowServoMoving = false; // Reached target position
+        isWindowServoMoving = false; // Đã đến vị trí đích
         break;
       }
-
       windowServo.write(currentWindowServoPos);
       lastWindowServoMoveTime = millis();
     }
@@ -680,24 +696,9 @@ void updateWindowServoMovement() {
  *
  * @return void
  */
-// void controlDoor(const char* value) {
-//   if (strcmp(value, "0") == 0 && lastDoorCommand == 1) { // Compare C-style strings correctly
-//     lastDoorCommand = 0;
-//     for(int posDegrees = 160; posDegrees >= 90; posDegrees--) {
-//       doorServo.write(posDegrees);
-//       delay(20);
-//     }
-//   } else if (strcmp(value, "1") == 0 && lastDoorCommand == 0){
-//     lastDoorCommand = 1;
-//     for(int posDegrees = 90; posDegrees <= 160; posDegrees++) {
-//       doorServo.write(posDegrees);
-//       delay(20);
-//     } 
-//   }
-// }
 
 void controlDoor(const char* value) {
-  if (strcmp(value, "0") == 0 && lastDoorCommand == 1) {
+  if (strcmp(value, "0") == 0 && lastDoorCommand == 1 && millis() - lastDoorOpenTime > DOOR_TIMEOUT ) {
     lastDoorCommand = 0;
     currentDoorServoPos = 160;
     targetDoorServoPos = 90;
@@ -717,10 +718,11 @@ void updateDoorServoMovement() {
     if (isDoorServoMoving && millis() - lastDoorServoMoveTime >= 30) {
       if (currentDoorServoPos < targetDoorServoPos) {
         currentDoorServoPos+=10;
+        lastDoorOpenTime = millis(); // Reset the last open time
       } else if (currentDoorServoPos > targetDoorServoPos) {
         currentDoorServoPos-=10;
       } else {
-        isDoorServoMoving = false; // Reached target position
+        isDoorServoMoving = false; // Đã đến vị trí đích
         break;
       }
 
@@ -740,11 +742,11 @@ void updateDoorServoMovement() {
  * @return void
  */
 void controlPump(const char* value) {
-  if (strcmp(value, "0") == 0 && lastPumpCommand == 1) { // Compare C-style strings correctly
+  if (strcmp(value, "0") == 0 && lastPumpCommand == 1 || FloatSwitchValue == 0) { // Compare C-style strings correctly
     lastPumpCommand = 0;
     digitalWrite(pump_pin, LOW);
   }
-  else if (strcmp(value, "1") == 0 && lastPumpCommand == 0) {
+  else if (strcmp(value, "1") == 0 && lastPumpCommand == 0 && FloatSwitchValue == 1) {
     lastPumpCommand = 1;
     digitalWrite(pump_pin, HIGH);
   }
