@@ -23,8 +23,8 @@ const initialFilters: FilterState = {
 export const useHistoryFilters = () => {
 	const [filters, setFilters] = useState<FilterState>(initialFilters);
 	const [showFilters, setShowFilters] = useState(false);
-	// Initialize appliedFilters with initialFilters so data loads immediately
-	const [appliedFilters, setAppliedFilters] = useState<FilterState>(initialFilters);
+	// Don't initialize appliedFilters with empty values - wait for user to apply filters
+	const [appliedFilters, setAppliedFilters] = useState<FilterState | null>(null);
 
 	const updateFilter = (field: keyof FilterState, value: string) => {
 		setFilters(prev => ({
@@ -39,7 +39,7 @@ export const useHistoryFilters = () => {
 
 	const clearFilters = () => {
 		setFilters(initialFilters);
-		setAppliedFilters(initialFilters);
+		setAppliedFilters(null);
 	};
 
 	const toggleFilters = () => {
@@ -47,6 +47,7 @@ export const useHistoryFilters = () => {
 	};
 
 	const hasActiveFilters = () => {
+		if (!appliedFilters) return false;
 		return Object.entries(appliedFilters).some(([key, value]) => {
 			if (key === 'pageSize') return false;
 			return value !== '';
@@ -56,7 +57,7 @@ export const useHistoryFilters = () => {
 	return {
 		filters,
 		showFilters,
-		appliedFilters,
+		appliedFilters: appliedFilters || initialFilters, // Use initialFilters as fallback
 		updateFilter,
 		applyFilters,
 		clearFilters,

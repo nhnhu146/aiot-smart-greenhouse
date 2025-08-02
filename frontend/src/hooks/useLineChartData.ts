@@ -44,7 +44,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 			const to = now.toISOString();
 
 			const response = await fetch(
-				`${API_BASE_URL}/api/sensors?from=${from}&to=${to}&limit=20&sortBy=createdAt&sortOrder=desc`
+				`${API_BASE_URL}/api/history/sensors?from=${from}&to=${to}&limit=20&sortBy=createdAt&sortOrder=desc`
 			);
 
 			if (!response.ok) {
@@ -53,9 +53,9 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 
 			const result = await response.json();
 
-			if (result.success && result.data) {
-				// The API returns data directly in result.data, not result.data.sensors
-				const rawData = Array.isArray(result.data) ? result.data : [result.data];
+			if (result.success && result.data && result.data.sensors) {
+				// The API returns data in result.data.sensors
+				const rawData = Array.isArray(result.data.sensors) ? result.data.sensors : [result.data.sensors];
 
 				// Filter out data with null timestamps and limit to 20 points
 				const validData = rawData

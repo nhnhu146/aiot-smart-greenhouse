@@ -66,14 +66,14 @@ export default function useWebSocket(): UseWebSocketReturn {
 	// Use requestAnimationFrame to prevent UI blocking
 	const updateSensorData = useCallback((data: any) => {
 		requestAnimationFrame(() => {
-			// Normalize sensor data format to handle both formats:
-			// Backend format: { topic, sensor, data: { value, timestamp, quality, merged }, timestamp }
+			// Normalize sensor data format to handle service.backup format:
+			// Service.backup format: { topic, sensor, data: { value, timestamp, quality, merged }, timestamp }
 			// Legacy format: { sensor, data, timestamp, value }
 
 			let normalizedData: SensorData;
 
 			if (data.sensor && data.data && typeof data.data === 'object' && data.data.value !== undefined) {
-				// New backend format
+				// New service.backup format
 				normalizedData = {
 					sensor: data.sensor,
 					data: data.data,
@@ -81,6 +81,8 @@ export default function useWebSocket(): UseWebSocketReturn {
 					topic: data.topic,
 					value: data.data.value
 				};
+
+				console.log(`📊 Received merged sensor data: ${data.sensor} = ${data.data.value} (quality: ${data.data.quality || 'unknown'})`);
 			} else if (data.type && data.value !== undefined) {
 				// Direct backend format from MQTT handler
 				normalizedData = {
@@ -196,10 +198,71 @@ export default function useWebSocket(): UseWebSocketReturn {
 		// Data events - Use callbacks to prevent UI blocking
 		newSocket.on('sensor:data', updateSensorData);
 		newSocket.on('sensor-data', updateSensorData); // Legacy compatibility
+
+		// Individual sensor channels (service.backup format)
+		newSocket.on('sensor:temperature', updateSensorData);
+		newSocket.on('sensor:humidity', updateSensorData);
+		newSocket.on('sensor:soil', updateSensorData);
+		newSocket.on('sensor:water', updateSensorData);
+		newSocket.on('sensor:light', updateSensorData);
+		newSocket.on('sensor:height', updateSensorData);
+		newSocket.on('sensor:rain', updateSensorData);
+
+		// Legacy individual sensor channels
+		newSocket.on('sensor-temperature', updateSensorData);
+		newSocket.on('sensor-humidity', updateSensorData);
+		newSocket.on('sensor-soil', updateSensorData);
+		newSocket.on('sensor-water', updateSensorData);
+		newSocket.on('sensor-light', updateSensorData);
+		newSocket.on('sensor-height', updateSensorData);
+		newSocket.on('sensor-rain', updateSensorData);
+
 		newSocket.on('device:status', updateDeviceStatus);
 		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts); // Legacy compatibility
+
+		// Additional service.backup channels
+		newSocket.on('device-control-confirmation', (controlData: any) => {
+			console.log('Device control confirmation:', controlData);
+		});
+
+		newSocket.on('voice-command', (voiceData: any) => {
+			console.log('Voice command received:', voiceData);
+		});
+
+		newSocket.on('voice-command-history', (voiceData: any) => {
+			console.log('Voice command history update:', voiceData);
+		});
+
+		newSocket.on('automation-status', (automationData: any) => {
+			console.log('Automation status update:', automationData);
+		});
+
+		newSocket.on('automation-status-update', (automationData: any) => {
+			console.log('Automation status detailed update:', automationData);
+		});
+
+		newSocket.on('system-status', (systemData: any) => {
+			console.log('System status update:', systemData);
+		});
+
+		newSocket.on('config-update', (configData: any) => {
+			console.log('Configuration update:', configData);
+		});
+
+		newSocket.on('priority-alert', (alertData: any) => {
+			console.log('Priority alert received:', alertData);
+			updateAlerts(alertData);
+		});
+
+		newSocket.on('heartbeat', (heartbeatData: any) => {
+			console.log('Heartbeat received:', heartbeatData);
+		});
+
+		newSocket.on('connection-status', (statusData: any) => {
+			console.log('Connection status update:', statusData);
+		});
 
 		newSocket.on('notification', (notification: any) => {
 			// Handle notifications here (could show toast, etc.)

@@ -29,33 +29,7 @@ router.get('/', validateQuery(QueryParamsSchema), asyncHandler(async (req: Reque
 	res.json(response);
 }));
 
-// GET /api/devices/:deviceType - Lấy trạng thái thiết bị theo loại
-router.get('/:deviceType', asyncHandler(async (req: Request, res: Response) => {
-	const { deviceType } = req.params;
-
-	if (!['light', 'pump', 'door', 'window'].includes(deviceType)) {
-		throw new AppError('Invalid device type', 400);
-	}
-
-	const device = await DeviceStatus.findOne({ deviceType })
-		.sort({ updatedAt: -1 })
-		.lean();
-
-	if (!device) {
-		throw new AppError('Device not found', 404);
-	}
-
-	const response: APIResponse = {
-		success: true,
-		message: `${deviceType} status retrieved successfully`,
-		data: device,
-		timestamp: new Date().toISOString()
-	};
-
-	res.json(response);
-}));
-
-// GET /api/devices/status - Lấy tổng quan trạng thái tất cả thiết bị
+// GET /api/devices/status - Lấy tổng quan trạng thái tất cả thiết bị (MUST be before /:deviceType)
 router.get('/status', asyncHandler(async (req: Request, res: Response) => {
 	const devices = await DeviceStatus.find().lean();
 
@@ -77,6 +51,32 @@ router.get('/status', asyncHandler(async (req: Request, res: Response) => {
 		success: true,
 		message: 'Device status overview retrieved successfully',
 		data: devicesSummary,
+		timestamp: new Date().toISOString()
+	};
+
+	res.json(response);
+}));
+
+// GET /api/devices/:deviceType - Lấy trạng thái thiết bị theo loại (MUST be after /status)
+router.get('/:deviceType', asyncHandler(async (req: Request, res: Response) => {
+	const { deviceType } = req.params;
+
+	if (!['light', 'pump', 'door', 'window'].includes(deviceType)) {
+		throw new AppError('Invalid device type', 400);
+	}
+
+	const device = await DeviceStatus.findOne({ deviceType })
+		.sort({ updatedAt: -1 })
+		.lean();
+
+	if (!device) {
+		throw new AppError('Device not found', 404);
+	}
+
+	const response: APIResponse = {
+		success: true,
+		message: `${deviceType} status retrieved successfully`,
+		data: device,
 		timestamp: new Date().toISOString()
 	};
 
