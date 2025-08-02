@@ -1,0 +1,187 @@
+import { Request, Response } from 'express';
+import { z } from 'zod';
+import { AutomationSettings } from '../../models';
+import { APIResponse } from '../../types';
+import { AutomationConfigSchema, SensorTriggerSchema } from './AutomationValidation';
+
+export class AutomationController {
+	/**
+	 * Get automation configuration
+	 */
+	static async getConfiguration(req: Request, res: Response) {
+		try {
+			let settings = await AutomationSettings.findOne();
+
+			// Create default settings if none exist
+			if (!settings) {
+				settings = new AutomationSettings();
+				await settings.save();
+			}
+
+			// Ensure AutomationService is loaded with latest config
+			const { automationService } = await import('../../services');
+			await automationService.reloadConfiguration();
+
+			const response: APIResponse = {
+				success: true,
+				data: settings,
+				message: 'Automation configuration retrieved successfully',
+				timestamp: new Date().toISOString()
+			};
+
+			res.json(response);
+		} catch (error) {
+			console.error('[AUTOMATION-GET] Error:', error);
+			const response: APIResponse = {
+				success: false,
+				message: 'Failed to retrieve automation configuration',
+				timestamp: new Date().toISOString()
+			};
+			res.status(500).json(response);
+		}
+	}
+
+	/**
+	 * Update automation configuration
+	 */
+	static async updateConfiguration(req: Request, res: Response) {
+		try {
+			const validatedData = AutomationConfigSchema.parse(req.body);
+
+			let settings = await AutomationSettings.findOne();
+
+			if (!settings) {
+				settings = new AutomationSettings();
+			}
+
+			// Update all fields
+			Object.assign(settings, validatedData);
+			await settings.save();
+
+			console.log(`⚙️ Automation configuration updated:`, validatedData);
+
+			// Reload automation service and trigger immediate check
+			const { automationService } = await import('../../services');
+			await automationService.reloadConfiguration();
+
+			if (settings.automationEnabled) {
+				await automationService.processImmediateAutomationCheck();
+				console.log('⚡ Immediate automation check triggered after config update');
+			}
+
+			const response: APIResponse = {
+				success: true,
+				data: settings,
+				message: 'Automation configuration updated successfully',
+				timestamp: new Date().toISOString()
+			};
+
+			res.json(response);
+		} catch (error) {
+			console.error('[AUTOMATION-PUT] Error:', error);
+			const response: APIResponse = {
+				success: false,
+				message: error instanceof z.ZodError ? 'Invalid automation configuration' : 'Failed to update automation configuration',
+				timestamp: new Date().toISOString()
+			};
+			res.status(500).json(response);
+		}
+	}
+
+	/**
+	 * Toggle automation on/off
+	 */
+	static async toggleAutomation(req: Request, res: Response) {
+		try {
+			const { automationService } = await import('../../services');
+			const success = await automationService.toggleAutomation();
+
+			if (success) {
+				const settings = await AutomationSettings.findOne();
+
+				const response: APIResponse = {
+					success: true,
+					data: { enabled: settings?.automationEnabled ?? false },
+					message: `Automation ${settings?.automationEnabled ? 'enabled' : 'disabled'} successfully`,
+					timestamp: new Date().toISOString()
+				};
+
+				res.json(response);
+			} else {
+				throw new Error('Failed to toggle automation');
+			}
+		} catch (error) {
+			console.error('[AUTOMATION-TOGGLE] Error:', error);
+			const response: APIResponse = {
+				success: false,
+				message: 'Failed to toggle automation',
+				timestamp: new Date().toISOString()
+			};
+			res.status(500).json(response);
+		}
+	}
+
+	/**
+	 * Get current automation status
+	 */
+	static async getStatus(req: Request, res: Response) {
+		try {
+			const { automationService } = await import('../../services');
+			const status = automationService.getAutomationStatus();
+
+			const response: APIResponse = {
+				success: true,
+				data: status,
+				message: 'Automation status retrieved successfully',
+				timestamp: new Date().toISOString()
+			};
+
+			res.json(response);
+		} catch (error) {
+			console.error('[AUTOMATION-STATUS] Error:', error);
+			const response: APIResponse = {
+				success: false,
+				message: 'Failed to get automation status',
+				timestamp: new Date().toISOString()
+			};
+			res.status(500).json(response);
+		}
+	}
+
+	/**
+	 * Reset to default settings
+	 */
+	static async resetToDefaults(req: Request, res: Response) {
+		try {
+			await AutomationSettings.deleteMany({});
+			const defaultSettings = new AutomationSettings();
+			await defaultSettings.save();
+
+			// Reload the AutomationService with new configuration
+			const { automationService } = await import('../../services');
+			await automationService.reloadConfiguration();
+
+			// Trigger immediate automation check with reset settings
+			if (defaultSettings.automationEnabled) {
+				await automationService.processImmediateAutomationCheck();
+			}
+
+			const response: APIResponse = {
+				success: true,
+				data: defaultSettings,
+				message: 'Automation settings reset to defaults',
+				timestamp: new Date().toISOString()
+			};
+
+			res.json(response);
+		} catch (error) {
+			console.error('[AUTOMATION-RESET] Error:', error);
+			const response: APIResponse = {
+				success: false,
+				message: 'Failed to reset automation settings',
+				timestamp: new Date().toISOString()
+			};
+			res.status(500).json(response);
+		}
+	}
+}
