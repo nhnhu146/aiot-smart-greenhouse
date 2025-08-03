@@ -37,8 +37,8 @@ bool setup_mic = true;
 // ==============================
 // Wi-Fi Configuration
 // ==============================
-const char* ssid = "47/52/11";
-const char* password = "12345789";
+const char* ssid = "HCMUS-Phonghoc";
+const char* password = "khtn@phonghoc";
 
 // ==============================
 // MQTT Broker Configuration
@@ -233,41 +233,40 @@ void loop() {
     controlDoor(PIRValue == HIGH ? "1" : "0");
     if (rainvalue == HIGH)
       controlWindow("0");
+  }
+  if (millis() - lastSendTime2 > 5000) {
+    lastSendTime2 = millis();
+    lcd.clear();
 
-    if (millis() - lastSendTime2 > 5000) {
-      lastSendTime2 = millis();
-      lcd.clear();
+    sendWaterLevelValue(FloatSwitchValue);
+    sendTemperatureValue(t);
+    sendHumidityValue(h);
+    sendSoilMoistureValue(moisture);
+    sendLightLevelValue(Photon_value);
+    sendRainSensorValue(rainvalue);
+    sendPlantHeightValue(distanceCm);
 
-      sendWaterLevelValue(FloatSwitchValue);
-      sendTemperatureValue(t);
-      sendHumidityValue(h);
-      sendSoilMoistureValue(moisture);
-      sendLightLevelValue(Photon_value);
-      sendRainSensorValue(rainvalue);
-      sendPlantHeightValue(distanceCm);
+    // print on LCD
+    char line1[17];
+    char line2[17];
 
-      // print on LCD
-      char line1[17];
-      char line2[17];
+    const char* myCString = FloatSwitchValue ? "ON" : "OFF";
+    snprintf(line1, sizeof(line1), "T: %.1fC H: %.0f%%", t, h);
+    snprintf(line2, sizeof(line2), "S: %d W: %d P: %s",
+            moisture,
+            FloatSwitchValue,
+            lastPumpCommand ? "ON" : "OFF");
 
-      const char* myCString = FloatSwitchValue ? "ON" : "OFF";
-      snprintf(line1, sizeof(line1), "T: %.1fC H: %.0f%%", t, h);
-      snprintf(line2, sizeof(line2), "S: %d W: %d P: %s",
-              moisture,
-              FloatSwitchValue,
-              lastPumpCommand ? "ON" : "OFF");
+    lcd.setCursor(0, 0);
+    lcd.print(line1);
+    lcd.setCursor(0, 1);
+    lcd.print(line2);
+  }
 
-      lcd.setCursor(0, 0);
-      lcd.print(line1);
-      lcd.setCursor(0, 1);
-      lcd.print(line2);
-    }
-
-    if (!client.connected() && WiFi.status() != WL_CONNECTED) {
-      Serial.println("System unhealthy, attempting recovery...");
-      setup_wifi();
-      reconnect();
-    }
+  if (!client.connected() && WiFi.status() != WL_CONNECTED) {
+    Serial.println("System unhealthy, attempting recovery...");
+    setup_wifi();
+    reconnect();
   }
   
   bool m = microphone_inference_record();
