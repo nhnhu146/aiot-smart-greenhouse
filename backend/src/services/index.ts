@@ -11,3 +11,4 @@ export { default as automationService } from './AutomationService';
 export { VoiceCommandService, voiceCommandService } from './VoiceCommandService';
 export { MQTTMessageHandler } from './mqtt/MQTTMessageHandler';
 export { VoiceCommandOptimizer } from './voice/VoiceCommandOptimizer';
+export { DeviceStateService, deviceStateService } from './DeviceStateService';

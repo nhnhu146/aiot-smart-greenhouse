@@ -1,4 +1,5 @@
 import { VoiceCommand } from '../models';
+import { deviceStateService } from './DeviceStateService';
 import { webSocketService } from './WebSocketService';
 import { mqttService } from './MQTTService';
 
@@ -61,36 +62,26 @@ export class VoiceCommandService {
 
 		// Map voice commands to device actions
 		if (cmd.includes('open') && cmd.includes('door')) {
-			mqttService.publishDeviceControl('door', 'open');
-		}
+			}
 		else if (cmd.includes('close') && cmd.includes('door')) {
-			mqttService.publishDeviceControl('door', 'close');
-		}
+			}
 		else if (cmd.includes('open') && cmd.includes('window')) {
-			mqttService.publishDeviceControl('window', 'open');
-		}
+			}
 		else if (cmd.includes('close') && cmd.includes('window')) {
-			mqttService.publishDeviceControl('window', 'close');
-		}
+			}
 		else if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('light')) {
-			mqttService.publishDeviceControl('light', 'on');
-		}
+			}
 		else if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('light')) {
-			mqttService.publishDeviceControl('light', 'off');
-		}
+			}
 		else if (cmd.includes('turn') && cmd.includes('on') && cmd.includes('pump')) {
-			mqttService.publishDeviceControl('pump', 'on');
-		}
+			}
 		else if (cmd.includes('turn') && cmd.includes('off') && cmd.includes('pump')) {
-			mqttService.publishDeviceControl('pump', 'off');
-		}
+			}
 		// Auto mode commands
 		else if (cmd.includes('auto') && cmd.includes('mode')) {
-			mqttService.publish('greenhouse/system/mode', 'auto');
-		}
+			}
 		else if (cmd.includes('manual') && cmd.includes('mode')) {
-			mqttService.publish('greenhouse/system/mode', 'manual');
-		}
+			}
 
 		console.log(`🎤 Voice command executed: "${command}"`);
 	}

@@ -218,7 +218,20 @@ export default function useWebSocket(): UseWebSocketReturn {
 		newSocket.on('sensor-rain', updateSensorData);
 
 		newSocket.on('device:status', updateDeviceStatus);
-		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
+
+		// Device state update listeners for new state management
+		newSocket.on('device:state-update', (stateData: any) => {
+			console.log('📡 Device state update received:', stateData);
+			updateDeviceStatus(stateData);
+		});
+
+		// Individual device state listeners
+		['light', 'pump', 'door', 'window'].forEach(deviceType => {
+			newSocket.on(`device:${deviceType}:state`, (stateData: any) => {
+				console.log(`📡 ${deviceType} state update:`, stateData);
+				updateDeviceStatus(stateData);
+			});
+		});		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts); // Legacy compatibility
 

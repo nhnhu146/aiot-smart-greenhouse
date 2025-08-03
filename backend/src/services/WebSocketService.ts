@@ -366,6 +366,36 @@ class WebSocketService {
 			console.log('✅ WebSocket service shutdown complete');
 		}
 	}
+	// Broadcast device state updates specifically for frontend synchronization
+	broadcastDeviceStateUpdate(deviceType: string, state: {
+		status: boolean;
+		isOnline: boolean;
+		lastCommand: string | null;
+		updatedAt: Date;
+	}) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`📡 Broadcasting device state update: ${deviceType} = ${state.status ? 'ON' : 'OFF'}`);
+
+		const stateData = {
+			deviceType,
+			status: state.status,
+			isOnline: state.isOnline,
+			lastCommand: state.lastCommand,
+			updatedAt: state.updatedAt,
+			timestamp: new Date().toISOString()
+		};
+
+		// Emit to device state channel
+		this.io.emit('device:state-update', stateData);
+		
+		// Also emit to specific device channel for targeted updates
+		this.io.emit(`device:${deviceType}:state`, stateData);
+	}
+
 }
 
 export const webSocketService = new WebSocketService();

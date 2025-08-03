@@ -1,6 +1,7 @@
 import { webSocketService } from '../WebSocketService';
 import { alertService } from '../AlertService';
 import { mqttService } from '../MQTTService';
+import { deviceStateService } from '../DeviceStateService';
 import DeviceStatus from '../../models/DeviceStatus';
 import VoiceCommand from '../../models/VoiceCommand';
 import SensorData from '../../models/SensorData';
@@ -75,32 +76,11 @@ export class MQTTMessageHandler {
 		// Execute device control IMMEDIATELY without saving to database first
 		const deviceAction = this.mapCommandToDevice(cmd);
 		if (deviceAction) {
-			// Send MQTT command immediately
-			mqttService.publishDeviceControl(deviceAction.device, deviceAction.action);
-
-			// Update device status in database (non-blocking)
+			// Update device state using DeviceStateService (non-blocking)
 			setImmediate(async () => {
 				try {
-					const updateData = {
-						deviceId: `greenhouse_${deviceAction.device}`,
-						deviceType: deviceAction.device,
-						status: (deviceAction.action === 'on' || deviceAction.action === 'open'),
-						isOnline: true,
-						lastCommand: deviceAction.action
-					};
-
-					await DeviceStatus.findOneAndUpdate(
-						{ deviceType: deviceAction.device },
-						updateData,
-						{ upsert: true, new: true }
-					);
-
-					// Broadcast device status update via WebSocket
-					webSocketService.broadcastDeviceStatus(deviceAction.device, {
-						device: deviceAction.device,
-						status: deviceAction.action === 'on' || deviceAction.action === 'open' ? 'on' : 'off',
-						timestamp: new Date().toISOString()
-					});
+					const status = (deviceAction.action === 'on' || deviceAction.action === 'open');
+					await deviceStateService.updateDeviceState(deviceAction.device, status, deviceAction.action);
 
 				} catch (error) {
 					console.error('Error updating device status:', error);

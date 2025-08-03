@@ -46,7 +46,9 @@ export const useDashboardState = () => {
 	];
 
 	// Handle device toggle for new DeviceControlCenter
+	// Legacy device toggle function - now handled by DeviceControlCenter internally
 	const handleDeviceToggle = useCallback(async (device: string) => {
+		console.log('⚠️ Legacy handleDeviceToggle called - this should be handled by DeviceControlCenter');
 		const currentState = switchStates.get(device) || false;
 		const newState = !currentState;
 

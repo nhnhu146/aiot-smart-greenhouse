@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { DeviceStatus, DeviceHistory } from '../../models';
 import { validateBody, asyncHandler, AppError } from '../../middleware';
 import { DeviceControlSchema } from '../../schemas';
-import { mqttService } from '../../services';
+import { mqttService, deviceStateService } from '../../services';
 import { APIResponse, DeviceControl } from '../../types';
 
 const router = Router();
@@ -32,17 +32,9 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 		// Send simple MQTT command (0/1 values)
 		await mqttService.publishDeviceControl(deviceType, mqttCommand);
 
-		// Update device status in database
+		// Update device state using DeviceStateService
 		const status = (action === 'on' || action === 'open');
-		await DeviceStatus.findOneAndUpdate(
-			{ deviceType },
-			{
-				deviceId: `greenhouse_${deviceType}`,
-				deviceType,
-				status
-			},
-			{ upsert: true, new: true }
-		);
+		await deviceStateService.updateDeviceState(deviceType, status, action);
 
 		// Record device control history
 		const deviceHistory = new DeviceHistory({

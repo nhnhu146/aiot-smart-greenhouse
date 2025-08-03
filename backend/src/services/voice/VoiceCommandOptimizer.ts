@@ -1,5 +1,5 @@
 import { webSocketService } from '../WebSocketService';
-import { mqttService } from '../MQTTService';
+import { deviceStateService } from '../DeviceStateService';
 import DeviceStatus from '../../models/DeviceStatus';
 import VoiceCommand from '../../models/VoiceCommand';
 
@@ -12,32 +12,48 @@ export class VoiceCommandOptimizer {
 			// Step 1: Parse and validate command (< 1ms)
 			const deviceAction = this.parseCommand(command);
 			if (!deviceAction) {
-				console.warn(`Unrecognized voice command: ${command}`);
+				console.warn(`❓ Unrecognized voice command: ${command}`);
 				return;
 			}
 
-			// Step 2: Send MQTT command IMMEDIATELY (< 5ms)
-			mqttService.publishDeviceControl(deviceAction.device, deviceAction.action);
+			const { device, action } = deviceAction;
+			const status = (action === 'on' || action === 'open');
 
-			// Step 3: Update UI immediately via WebSocket (< 10ms)  
-			webSocketService.broadcastDeviceStatus(deviceAction.device, {
-				device: deviceAction.device,
-				status: deviceAction.action === 'on' || deviceAction.action === 'open' ? 'on' : 'off',
-				timestamp: new Date().toISOString()
-			});
+			// Step 2: Update device state using DeviceStateService (< 10ms)
+			await deviceStateService.updateDeviceState(device, status, action);
 
-			// Step 4: Background database operations (non-blocking)
-			setImmediate(() => {
-				this.updateDatabaseAsync(command, confidence, deviceAction);
+			// Step 3: Background database operations (non-blocking)
+			setImmediate(async () => {
+				try {
+					// Save voice command
+					const voiceCommand = new VoiceCommand({
+						command: command.toLowerCase().trim(),
+						confidence,
+						timestamp: new Date(),
+						processed: true
+					});
+					await voiceCommand.save();
+
+					// Broadcast voice command history
+					webSocketService.broadcastVoiceCommand({
+						id: (voiceCommand as any)._id.toString(),
+						command: voiceCommand.command,
+						confidence: voiceCommand.confidence,
+						timestamp: voiceCommand.timestamp.toISOString(),
+						processed: true
+					});
+
+				} catch (error) {
+					console.error('Error saving voice command:', error);
+				}
 			});
 
 			const endTime = process.hrtime.bigint();
-			const executionTime = Number(endTime - startTime) / 1000000; // Convert to ms
-
-			console.log(`🚀 Voice command executed in ${executionTime.toFixed(2)}ms: ${command}`);
+			const executionTime = Number(endTime - startTime) / 1000000; // Convert to milliseconds
+			console.log(`🎤 Voice command processed in ${executionTime.toFixed(2)}ms: "${command}" -> ${device} ${action}`);
 
 		} catch (error) {
-			console.error('Error in voice command optimization:', error);
+			console.error(`❌ Error processing voice command: ${command}`, error);
 		}
 	}
 
@@ -69,45 +85,5 @@ export class VoiceCommandOptimizer {
 		}
 
 		return null;
-	}
-
-	private static async updateDatabaseAsync(
-		command: string,
-		confidence: number | null,
-		deviceAction: { device: string, action: string }
-	): Promise<void> {
-		try {
-			// Update device status
-			await DeviceStatus.findOneAndUpdate(
-				{ deviceType: deviceAction.device },
-				{
-					deviceId: `greenhouse_${deviceAction.device}`,
-					deviceType: deviceAction.device,
-					status: deviceAction.action === 'on' || deviceAction.action === 'open'
-				},
-				{ upsert: true, new: true }
-			);
-
-			// Save voice command
-			const voiceCommand = new VoiceCommand({
-				command: command.toLowerCase().trim(),
-				confidence,
-				timestamp: new Date(),
-				processed: true
-			});
-			await voiceCommand.save();
-
-			// Broadcast voice command history
-			webSocketService.broadcastVoiceCommand({
-				id: (voiceCommand as any)._id.toString(),
-				command: voiceCommand.command,
-				confidence: voiceCommand.confidence,
-				timestamp: voiceCommand.timestamp.toISOString(),
-				processed: true
-			});
-
-		} catch (error) {
-			console.error('Error in async database update:', error);
-		}
 	}
 }
