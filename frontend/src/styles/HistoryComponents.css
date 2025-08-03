@@ -67,10 +67,10 @@
 }
 
 /* Animation effects - DISABLED for better UX */
-/* Removed animations to prevent annoying refresh effects during filter/sort operations */
+/* Removed all animations to prevent annoying refresh effects during filter/sort operations */
 
 /* Highlight animation for changed rows - DISABLED for better UX */
-/* Removed table row animations to improve user experience */
+/* Removed all table row animations to improve user experience */
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

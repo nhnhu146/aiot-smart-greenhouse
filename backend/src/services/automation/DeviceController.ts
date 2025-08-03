@@ -15,12 +15,11 @@ export class DeviceController {
 				deviceId: `greenhouse_${device}`,
 				deviceType: device,
 				action: action,
+				status: action === 'on' || action === 'open',
 				controlType: 'auto',
 				timestamp: new Date(),
-				reason: reason
-			});
-
-			await deviceHistory.save();
+				triggeredBy: reason
+			}); await deviceHistory.save();
 
 			// Broadcast device control to WebSocket clients
 			webSocketService.broadcastDeviceControl({

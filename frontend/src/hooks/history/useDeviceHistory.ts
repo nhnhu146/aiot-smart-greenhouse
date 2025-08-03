@@ -29,6 +29,15 @@ export const useDeviceHistory = (
 	};
 
 	const fetchData = async () => {
+		// Debounce API calls - 5 seconds minimum between requests
+		const now = Date.now();
+		const MIN_INTERVAL = 5000;
+		if (now - (window as any).__lastDeviceHistoryFetch < MIN_INTERVAL) {
+			console.log('⏳ Device history fetch skipped - too soon');
+			return;
+		}
+		(window as any).__lastDeviceHistoryFetch = now;
+
 		setLoading(true);
 		try {
 			const params = buildParams();
@@ -53,7 +62,7 @@ export const useDeviceHistory = (
 			const paginationData = responseData.data?.pagination || responseData.pagination || pagination;
 			setPagination(paginationData);
 		} catch (error) {
-						setData([]);
+			setData([]);
 		} finally {
 			setLoading(false);
 		}
@@ -75,6 +84,6 @@ export const useDeviceHistory = (
 	return {
 		data,
 		loading,
-		refresh: fetchData
+		refreshData: fetchData
 	};
 };

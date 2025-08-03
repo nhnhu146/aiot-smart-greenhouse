@@ -1,8 +1,8 @@
-// SensorDashboard component - Uses WebSocket data only (as requested)
+// SensorDashboard component - Uses WebSocket data only (optimized version)
 // This component shows real-time sensor data from MQTT/WebSocket
 // Chart components use API data for historical/processed data
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import HighlightWrapper from '@/components/Common/HighlightWrapper';
 import SensorCard from './components/SensorCard';
@@ -34,179 +34,191 @@ const formatTimeEN = (timestamp?: string | Date) => {
 	});
 };
 
-const SensorDashboard: React.FC = () => {
+const SensorDashboard: React.FC = memo(() => {
 	const { persistentSensorData, isConnected } = useWebSocketContext();
-	const [sensors, setSensors] = React.useState({
-		temperature: { value: '--', timestamp: null },
-		humidity: { value: '--', timestamp: null },
-		soil: { value: '--', timestamp: null },
-		water: { value: '--', timestamp: null },
-		light: { value: '--', timestamp: null },
-		rain: { value: '--', timestamp: null },
-		height: { value: '--', timestamp: null } // Plant height
-	});
-	const [lastUpdateTime, setLastUpdateTime] = React.useState<string>('');
-	const [highlight, setHighlight] = React.useState(false);
 
-	// Trigger highlight effect when data changes
-	const triggerHighlight = React.useCallback(() => {
-		setHighlight(true);
-		setTimeout(() => setHighlight(false), 1000);
-	}, []);
+	// Memoize sensor data processing to prevent unnecessary re-renders
+	const sensors = useMemo(() => {
+		const defaultSensors = {
+			temperature: { value: '--', timestamp: null },
+			humidity: { value: '--', timestamp: null },
+			soil: { value: '--', timestamp: null },
+			water: { value: '--', timestamp: null },
+			light: { value: '--', timestamp: null },
+			rain: { value: '--', timestamp: null },
+			height: { value: '--', timestamp: null }
+		};
 
-	React.useEffect(() => {
-		if (persistentSensorData && isConnected) {
-			const updatedSensors = { ...sensors };
-			let latestTimestamp = '';
-			let hasUpdates = false;
+		if (!persistentSensorData) return defaultSensors;
 
-			// Update each sensor that has data
-			Object.entries(persistentSensorData).forEach(([sensorType, sensorInfo]: [string, any]) => {
-				if (sensorInfo && sensorInfo.value !== undefined && sensorInfo.value !== null) {
-					// Only update with valid numeric values
-					const numericValue = parseFloat(sensorInfo.value);
-					if (!isNaN(numericValue)) {
-						// Special handling for binary sensors (soil, water, light, rain)
-						let formattedValue: string;
-						if (['soil', 'water', 'light', 'rain'].includes(sensorType)) {
-							// For binary sensors, show status text instead of numbers
-							if (sensorType === 'soil') {
-								formattedValue = numericValue === 1 ? 'Wet' : 'Dry';
-							} else if (sensorType === 'water') {
-								formattedValue = numericValue === 1 ? 'Full' : 'Low';
-							} else if (sensorType === 'light') {
-								formattedValue = numericValue === 1 ? 'Bright' : 'Dark';
-							} else if (sensorType === 'rain') {
-								formattedValue = numericValue === 1 ? 'Raining' : 'Clear';
-							} else {
-								formattedValue = numericValue.toString();
-							}
+		const processedSensors: any = {};
+
+		Object.entries(persistentSensorData).forEach(([sensorType, sensorInfo]: [string, any]) => {
+			if (sensorInfo && sensorInfo.value !== undefined && sensorInfo.value !== null) {
+				const numericValue = parseFloat(sensorInfo.value);
+				if (!isNaN(numericValue)) {
+					let formattedValue: string;
+
+					// Special handling for binary sensors
+					if (['soil', 'water', 'light', 'rain'].includes(sensorType)) {
+						if (sensorType === 'soil') {
+							formattedValue = numericValue === 1 ? 'Wet' : 'Dry';
+						} else if (sensorType === 'water') {
+							formattedValue = numericValue === 1 ? 'Full' : 'Low';
+						} else if (sensorType === 'light') {
+							formattedValue = numericValue === 1 ? 'Bright' : 'Dark';
+						} else if (sensorType === 'rain') {
+							formattedValue = numericValue === 1 ? 'Raining' : 'No Rain';
 						} else {
-							formattedValue = numericValue.toFixed(1); // Format other sensors with 1 decimal
+							formattedValue = numericValue.toFixed(1);
 						}
-
-						// Check if this is a new value
-						const currentValue = sensors[sensorType as keyof typeof sensors]?.value;
-						if (currentValue !== formattedValue) {
-							hasUpdates = true;
-						}
-
-						updatedSensors[sensorType as keyof typeof sensors] = {
-							value: formattedValue,
-							timestamp: sensorInfo.timestamp
-						};
-
-						// Track latest update time
-						if (!latestTimestamp || new Date(sensorInfo.timestamp) > new Date(latestTimestamp)) {
-							latestTimestamp = sensorInfo.timestamp;
-						}
+					} else {
+						formattedValue = numericValue.toFixed(1);
 					}
+
+					processedSensors[sensorType] = {
+						value: formattedValue,
+						timestamp: sensorInfo.timestamp || new Date().toISOString()
+					};
 				}
-			});
-
-			setSensors(updatedSensors);
-			if (latestTimestamp) {
-				setLastUpdateTime(formatTimeEN(latestTimestamp));
 			}
+		});
 
-			// Trigger highlight effect when new data arrives
-			if (hasUpdates) {
-				triggerHighlight();
-			}
+		return {
+			...defaultSensors,
+			...processedSensors
+		};
+	}, [persistentSensorData]);
 
-		} else if (!isConnected) {
-			// Show loading when disconnected but don't clear existing data immediately
-		}
-	}, [persistentSensorData, isConnected, triggerHighlight]);
+	// Memoize last update time to prevent unnecessary calculations
+	const lastUpdateTime = useMemo(() => {
+		const timestamps = Object.values(sensors)
+			.map((sensor: any) => sensor.timestamp)
+			.filter(Boolean) as string[];
 
-	const sensorCards = [
-		{
-			key: 'temperature',
-			title: 'Temperature',
-			unit: '°C',
-			icon: '🌡️',
-			color: 'danger'
-		},
-		{
-			key: 'humidity',
-			title: 'Humidity',
-			unit: '%',
-			icon: '💧',
-			color: 'info'
-		},
-		{
-			key: 'soil',
-			title: 'Soil Moisture',
-			unit: '', // Binary: Wet/Dry
-			icon: '🌱',
-			color: 'success'
-		},
-		{
-			key: 'water',
-			title: 'Water Level',
-			unit: '', // Binary: None/Full
-			icon: '🚰',
-			color: 'primary'
-		},
-		{
-			key: 'light',
-			title: 'Light Level',
-			unit: '', // Binary: Dark/Bright
-			icon: '☀️',
-			color: 'warning'
-		},
-		{
-			key: 'rain',
-			title: 'Rain Status',
-			unit: '', // Binary: No Rain/Raining
-			icon: '🌧️',
-			color: 'secondary'
-		},
-		{
-			key: 'height',
-			title: 'Plant Height',
-			unit: 'cm',
-			icon: '📏',
-			color: 'info'
-		}
-	];
+		if (timestamps.length === 0) return '';
+
+		const latestTimestamp = timestamps.reduce((latest, current) =>
+			new Date(current) > new Date(latest) ? current : latest
+		);
+
+		return formatTimeEN(latestTimestamp);
+	}, [sensors]);	// Memoize connection status message
+	const connectionStatus = useMemo(() => {
+		return isConnected ? 'Connected' : 'Disconnected';
+	}, [isConnected]);
 
 	return (
-		<div className={`sensor-dashboard ${highlight ? 'highlight' : ''}`}>
-			<div className="dashboard-header">
-				<h2 className="dashboard-title">Sensor Dashboard</h2>
-				<div className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
-					{isConnected ? '🟢 Live Data' : '🔴 Disconnected'}
+		<div className="sensor-dashboard">
+			<div className="d-flex justify-content-between align-items-center mb-4">
+				<h2>🌱 Sensor Dashboard</h2>
+				<div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+					<span className="status-dot"></span>
+					{connectionStatus}
 				</div>
 			</div>
 
-			<div className="sensor-grid">
-				{sensorCards.map(({ key, title, unit, icon, color }) => (
-					<HighlightWrapper
-						key={key}
-						trigger={sensors[key as keyof typeof sensors].value}
-						className="sensor-card-highlight"
-					>
+			{lastUpdateTime && (
+				<div className="last-update mb-3">
+					<small className="text-muted">Last updated: {lastUpdateTime}</small>
+				</div>
+			)}
+
+			<div className="row">
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.temperature.value}>
 						<SensorCard
-							title={title}
-							value={sensors[key as keyof typeof sensors].value}
-							unit={unit}
-							icon={icon}
-							color={color}
+							title="Temperature"
+							value={sensors.temperature.value}
+							unit="°C"
+							icon="🌡️"
+							color="text-danger"
 						/>
 					</HighlightWrapper>
-				))}
+				</div>
+
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.humidity.value}>
+						<SensorCard
+							title="Humidity"
+							value={sensors.humidity.value}
+							unit="%"
+							icon="💧"
+							color="text-info"
+						/>
+					</HighlightWrapper>
+				</div>
+
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.soil.value}>
+						<SensorCard
+							title="Soil Moisture"
+							value={sensors.soil.value}
+							unit=""
+							icon="🌱"
+							color="text-success"
+						/>
+					</HighlightWrapper>
+				</div>
+
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.water.value}>
+						<SensorCard
+							title="Water Level"
+							value={sensors.water.value}
+							unit=""
+							icon="🚰"
+							color="text-primary"
+						/>
+					</HighlightWrapper>
+				</div>
+
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.light.value}>
+						<SensorCard
+							title="Light Level"
+							value={sensors.light.value}
+							unit=""
+							icon="☀️"
+							color="text-warning"
+						/>
+					</HighlightWrapper>
+				</div>
+
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.rain.value}>
+						<SensorCard
+							title="Rain Status"
+							value={sensors.rain.value}
+							unit=""
+							icon="🌧️"
+							color="text-secondary"
+						/>
+					</HighlightWrapper>
+				</div>
+
+				<div className="col-md-6 col-lg-3 mb-3">
+					<HighlightWrapper trigger={sensors.height.value}>
+						<SensorCard
+							title="Plant Height"
+							value={sensors.height.value}
+							unit="cm"
+							icon="📏"
+							color="text-success"
+						/>
+					</HighlightWrapper>
+				</div>
 			</div>
 
-			{lastUpdateTime && (
-				<div className="last-update">
-					<small>
-						Last update: {lastUpdateTime} (UTC+7)
-					</small>
+			{!isConnected && (
+				<div className="alert alert-warning mt-3">
+					<strong>⚠️ Connection Lost:</strong> Real-time data is unavailable. Showing last known values.
 				</div>
 			)}
 		</div>
 	);
-};
+});
+
+SensorDashboard.displayName = 'SensorDashboard';
 
 export default SensorDashboard;

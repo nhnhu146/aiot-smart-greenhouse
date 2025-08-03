@@ -4,14 +4,12 @@ import { Button } from 'react-bootstrap';
 interface HistoryHeaderProps {
 	onToggleFilters: () => void;
 	onExportData: (format: 'json' | 'csv') => void;
-	isExporting: boolean;
 	hasActiveFilters: boolean;
 }
 
 const HistoryHeader: React.FC<HistoryHeaderProps> = ({
 	onToggleFilters,
 	onExportData,
-	isExporting,
 	hasActiveFilters
 }) => {
 	return (
@@ -30,18 +28,16 @@ const HistoryHeader: React.FC<HistoryHeaderProps> = ({
 				<Button
 					variant="outline-success"
 					onClick={() => onExportData('json')}
-					disabled={isExporting}
 					className="me-2"
 				>
-					{isExporting ? "📤 Exporting..." : "📤 Export JSON"}
+					📤 Export JSON
 				</Button>
 
 				<Button
 					variant="outline-info"
 					onClick={() => onExportData('csv')}
-					disabled={isExporting}
 				>
-					{isExporting ? "📤 Exporting..." : "📤 Export CSV"}
+					📤 Export CSV
 				</Button>
 			</div>
 		</div>

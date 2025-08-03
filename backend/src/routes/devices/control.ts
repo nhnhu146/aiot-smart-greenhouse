@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { DeviceStatus, DeviceHistory } from '../../models';
 import { validateBody, asyncHandler, AppError } from '../../middleware';
 import { DeviceControlSchema } from '../../schemas';
-import { mqttService, deviceStateService } from '../../services';
+import { mqttService, deviceStateService, webSocketService } from '../../services';
 import { APIResponse, DeviceControl } from '../../types';
 
 const router = Router();
@@ -50,6 +50,17 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 
 		await deviceHistory.save();
 
+		// Broadcast device control completion to WebSocket clients
+		webSocketService.broadcastDeviceControl({
+			controlId: generatedControlId,
+			deviceType,
+			action,
+			status,
+			source: 'manual',
+			timestamp: new Date().toISOString(),
+			success: true
+		});
+
 		const response: APIResponse = {
 			success: true,
 			message: `${deviceType} ${action} command sent successfully`,
@@ -57,6 +68,7 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 				deviceType,
 				action,
 				status,
+				controlId: generatedControlId,
 				timestamp: new Date().toISOString(),
 				...(duration && { duration })
 			},

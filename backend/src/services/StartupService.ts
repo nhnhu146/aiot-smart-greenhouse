@@ -54,7 +54,7 @@ export class StartupService {
 				const httpServer = server.listen(port, () => {
 					console.log(`🌟 Server running on port ${port}`);
 					console.log(`🔗 API endpoint: http://localhost:${port}${process.env.API_PREFIX || '/api'}`);
-					console.log(`📚 Health check: http://localhost:${port}${process.env.API_PREFIX || '/api'}/health`);
+					// Health check endpoint available at: /api/health
 					console.log(`🌱 Environment: ${process.env.NODE_ENV || 'development'}`);
 					console.log(`👤 Default Admin User: admin/admin`);
 					resolve(httpServer);

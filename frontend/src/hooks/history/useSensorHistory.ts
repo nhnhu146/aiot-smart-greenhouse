@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { FilterState, SortState, PaginationInfo } from '@/types/history';
 import apiClient from '@/lib/apiClient';
 
@@ -15,6 +15,7 @@ export const useSensorHistory = (
 	// Debouncing refs
 	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const lastFetchTimeRef = useRef<number>(0);
+	const lastFiltersRef = useRef<string>('');
 
 	const buildParams = () => {
 		const params: any = {
@@ -42,10 +43,17 @@ export const useSensorHistory = (
 		return params;
 	};
 
-	const fetchData = async () => {
-		// Debounce: prevent multiple rapid calls
+	const fetchData = useCallback(async (forceRefresh = false) => {
+		// Check if filters changed - if so, force refresh
+		const currentFiltersStr = JSON.stringify(filters) + JSON.stringify(sort) + JSON.stringify(pagination);
+		const filtersChanged = currentFiltersStr !== lastFiltersRef.current;
+		lastFiltersRef.current = currentFiltersStr;
+
+		// Prevent excessive API calls only if filters haven't changed
 		const now = Date.now();
-		if (now - lastFetchTimeRef.current < 500) {
+		const MIN_FETCH_INTERVAL = forceRefresh || filtersChanged ? 0 : 3000;
+		if (!forceRefresh && !filtersChanged && (now - lastFetchTimeRef.current < MIN_FETCH_INTERVAL)) {
+			console.log('⏳ Sensor history fetch skipped - too soon since last fetch');
 			return;
 		}
 		lastFetchTimeRef.current = now;
@@ -55,8 +63,8 @@ export const useSensorHistory = (
 			clearTimeout(fetchTimeoutRef.current);
 		}
 
-		// Show cached data immediately for better UX
-		if (cachedData.length > 0) {
+		// Only show cached data if filters haven't changed
+		if (!filtersChanged && cachedData.length > 0) {
 			setData(cachedData);
 		}
 
@@ -65,7 +73,7 @@ export const useSensorHistory = (
 			const params = buildParams();
 			const response = await apiClient.get('/api/history/sensors', { params });
 
-			// Standardized API response format handling
+			// Standardized API response format handling - only support data.sensors format
 			let newData = [];
 			let paginationData = pagination;
 
@@ -73,54 +81,70 @@ export const useSensorHistory = (
 				if (response.data.sensors) {
 					newData = response.data.sensors;
 					paginationData = response.data.pagination || pagination;
-				} else if (Array.isArray(response.data)) {
-					newData = response.data;
+				} else {
+					console.warn('API response missing data.sensors format, using fallback');
+					newData = [];
 				}
-			} else if (response && Array.isArray(response)) {
-				newData = response;
+			} else {
+				console.warn('Invalid API response format');
+				newData = [];
 			}
 
+			// Always update data and cache when we have a successful response
 			setData(newData);
 			setCachedData(newData);
 			setPagination(paginationData);
+
 		} catch (error) {
-			// Keep cached data on error for better UX
-			if (cachedData.length > 0) {
-				setData(cachedData);
-			} else {
+			console.error('Failed to fetch sensor history:', error);
+			// On error, keep showing cached data if available
+			if (cachedData.length === 0) {
 				setData([]);
 			}
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [filters, sort, pagination, cachedData, setPagination]);
 
-	// Add dependency array to prevent unnecessary fetches
+	// Effect to fetch data when dependencies change
 	useEffect(() => {
 		fetchData();
-	}, [
-		filters.dateFrom,
-		filters.dateTo,
-		filters.minTemperature,
-		filters.maxTemperature,
-		filters.minHumidity,
-		filters.maxHumidity,
-		filters.minSoilMoisture,
-		filters.maxSoilMoisture,
-		filters.minWaterLevel,
-		filters.maxWaterLevel,
-		filters.soilMoisture,
-		filters.waterLevel,
-		filters.rainStatus,
-		sort.field,
-		sort.direction,
-		pagination.page,
-		pagination.limit
-	]);
+	}, [fetchData]);
+
+	// Global refresh function that can be called when settings change
+	const refreshData = useCallback(() => {
+		console.log('🔄 Refreshing sensor history data after settings change');
+		setCachedData([]); // Clear cache
+		fetchData(true); // Force refresh
+	}, [fetchData]);
+
+	// Listen for custom refresh events (when settings change)
+	useEffect(() => {
+		const handleSettingsChange = () => {
+			refreshData();
+		};
+
+		window.addEventListener('settingsChanged', handleSettingsChange);
+		window.addEventListener('boardChanged', handleSettingsChange);
+
+		return () => {
+			window.removeEventListener('settingsChanged', handleSettingsChange);
+			window.removeEventListener('boardChanged', handleSettingsChange);
+		};
+	}, [refreshData]);
+
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	return {
 		data,
 		loading,
-		refresh: fetchData
+		refreshData
 	};
 };

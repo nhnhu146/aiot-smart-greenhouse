@@ -111,9 +111,9 @@ export const useHistoryData = (
 	};
 
 	const refreshData = (tab?: 'sensors' | 'controls' | 'voice') => {
-		if (!tab || tab === 'sensors') sensorHistory.refresh();
-		if (!tab || tab === 'controls') deviceHistory.refresh();
-		if (!tab || tab === 'voice') voiceHistory.refresh();
+		if (!tab || tab === 'sensors') sensorHistory.refreshData();
+		if (!tab || tab === 'controls') deviceHistory.refreshData();
+		if (!tab || tab === 'voice') voiceHistory.refreshData();
 	};
 
 	// Effect to update page size when filters change

@@ -39,7 +39,7 @@ const HistoryPage: React.FC = () => {
 		handleSort
 	} = useHistorySort();
 
-	const { isExporting, exportData } = useHistoryExport();
+	const { exportData } = useHistoryExport();
 
 	const {
 		sensorData,
@@ -73,7 +73,6 @@ const HistoryPage: React.FC = () => {
 
 	const {
 		data: alertData,
-		loading: alertLoading,
 		acknowledgeAlert
 	} = useAlertHistory(alertFilters, alertSort, alertPagination, setAlertPagination);
 
@@ -196,7 +195,6 @@ const HistoryPage: React.FC = () => {
 				<HistoryHeader
 					onToggleFilters={toggleFilters}
 					onExportData={handleExportData}
-					isExporting={isExporting || alertLoading}
 					hasActiveFilters={hasActiveFilters}
 				/>
 

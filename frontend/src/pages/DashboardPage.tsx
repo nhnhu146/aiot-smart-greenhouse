@@ -15,7 +15,6 @@ import './DashboardPage.css';
 const DashboardPage = () => {
 	const {
 		persistentSensorData,
-		isConnected,
 		switchStates,
 		userInteraction,
 		autoMode,
@@ -24,7 +23,7 @@ const DashboardPage = () => {
 		toggleAutoMode
 	} = useDashboardState();
 
-	const { data, isUsingMockData, isLoading } = useSensorData(persistentSensorData, isConnected);
+	const { data, isUsingMockData, isLoading } = useSensorData(persistentSensorData);
 	const { latestVoiceCommand, formatDateTime } = useVoiceCommands();
 
 	// Show loading state only if we have no data and are still loading

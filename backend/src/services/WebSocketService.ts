@@ -51,10 +51,42 @@ class WebSocketService {
 				timestamp: new Date().toISOString()
 			});
 
-			// Handle real-time chart data requests
-			socket.on('request-chart-data', () => {
+			// Handle real-time chart data requests - send latest sensor data
+			socket.on('request-chart-data', async () => {
 				console.log(`📊 Chart data requested by ${socket.id}`);
-				this.sendLatestChartData(socket);
+
+				try {
+					// Get latest sensor data from database
+					const latestData = await SensorData.findOne()
+						.sort({ createdAt: -1 })
+						.lean();
+
+					if (latestData) {
+						// Send standardized response format
+						socket.emit('chart-data-response', {
+							success: true,
+							data: {
+								sensors: [latestData]
+							},
+							timestamp: new Date().toISOString()
+						});
+					} else {
+						socket.emit('chart-data-response', {
+							success: false,
+							message: 'No sensor data available',
+							data: { sensors: [] },
+							timestamp: new Date().toISOString()
+						});
+					}
+				} catch (error) {
+					console.error('Error fetching chart data:', error);
+					socket.emit('chart-data-response', {
+						success: false,
+						message: 'Error fetching sensor data',
+						data: { sensors: [] },
+						timestamp: new Date().toISOString()
+					});
+				}
 			});
 
 			// Handle client disconnect
@@ -72,7 +104,7 @@ class WebSocketService {
 		console.log('✅ WebSocket service initialized');
 	}
 
-	// Broadcast sensor data to all connected clients (only merged data)
+	// Broadcast sensor data to all connected clients (standardized format)
 	async broadcastSensorData(topic: string, data: SensorDataInterface) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -80,9 +112,6 @@ class WebSocketService {
 		}
 
 		try {
-			// Ensure data is merged before broadcasting
-			const dataMergerService = DataMergerService.getInstance();
-
 			// Get the latest merged sensor data from database
 			const latestData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
@@ -93,78 +122,40 @@ class WebSocketService {
 				return;
 			}
 
-			// Extract the relevant sensor value from merged data
-			let mergedValue = data.value;
-			const sensorType = data.type;
-
-			// Use the merged value from database if available
-			switch (sensorType) {
-				case 'temperature':
-					mergedValue = latestData.temperature ?? data.value;
-					break;
-				case 'humidity':
-					mergedValue = latestData.humidity ?? data.value;
-					break;
-				case 'soil':
-					mergedValue = latestData.soilMoisture ?? data.value;
-					break;
-				case 'water':
-					mergedValue = latestData.waterLevel ?? data.value;
-					break;
-				case 'light':
-					mergedValue = latestData.lightLevel ?? data.value;
-					break;
-				case 'height':
-					mergedValue = latestData.plantHeight ?? data.value;
-					break;
-				case 'rain':
-					mergedValue = latestData.rainStatus ?? data.value;
-					break;
-			}
-
-			const sensorUpdate = {
-				topic,
-				sensor: data.type,
+			// Create standardized WebSocket response format matching REST API
+			const standardizedResponse = {
+				success: true,
 				data: {
-					value: mergedValue,
-					timestamp: data.timestamp,
-					quality: latestData.dataQuality || 'merged',
-					merged: true
+					sensors: [latestData]
 				},
-				timestamp: data.timestamp
+				eventType: 'sensor:data',
+				timestamp: new Date().toISOString()
 			};
 
-			console.log(`📡 Broadcasting merged sensor data: ${data.type} = ${mergedValue}`);
+			// Broadcast standardized sensor data
+			this.io.emit('sensor:data', standardizedResponse);
 
-			// Emit to general sensor data channel
-			this.io.emit('sensor:data', sensorUpdate);
-
-			// Also emit to specific sensor channel for targeted listening
-			this.io.emit(`sensor:${data.type}`, sensorUpdate);
-
-			// Legacy format for backward compatibility
-			this.io.emit('sensor-data', sensorUpdate);
-			this.io.emit(`sensor-${data.type}`, sensorUpdate);
+			console.log(`📡 Broadcasting sensor data: ${data.type} = ${data.value}`);
 
 		} catch (error) {
-			console.error('❌ Error broadcasting merged sensor data:', error);
+			console.error('❌ Error broadcasting sensor data:', error);
 
-			// Fallback to original data if merge fails
-			const sensorUpdate = {
-				topic,
-				sensor: data.type,
+			// Fallback to original data if fetch fails
+			const fallbackResponse = {
+				success: true,
 				data: {
-					value: data.value,
-					timestamp: data.timestamp,
-					quality: data.quality || 'fallback'
+					sensors: [{
+						[data.type]: data.value,
+						timestamp: data.timestamp,
+						createdAt: data.timestamp,
+						dataQuality: data.quality || 'fallback'
+					}]
 				},
+				eventType: 'sensor:data',
 				timestamp: data.timestamp
 			};
 
-			this.io.emit('sensor:data', sensorUpdate);
-			this.io.emit(`sensor:${data.type}`, sensorUpdate);
-			this.io.emit('sensor-data', sensorUpdate);
-			this.io.emit(`sensor-${data.type}`, sensorUpdate);
+			this.io.emit('sensor:data', fallbackResponse);
 		}
 	}
 
@@ -225,7 +216,7 @@ class WebSocketService {
 
 		// Send high priority alerts to specific channel
 		if (alert.level === 'critical' || alert.level === 'high') {
-			this.io.emit('priority-alert', alert);
+			this.io.emit('alert:priority', alert);
 		}
 	}
 
@@ -324,7 +315,7 @@ class WebSocketService {
 	broadcastConfigUpdate(config: any) {
 		if (!this.io) return;
 
-		this.io.emit('config-update', {
+		this.io.emit('system:config-update', {
 			...config,
 			timestamp: new Date().toISOString()
 		});
@@ -349,11 +340,8 @@ class WebSocketService {
 
 		console.log(`⚙️ Broadcasting automation status: ${automationStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
 
-		// Emit to all clients
-		this.io.emit('automation-status', automationStatus);
-
-		// Also emit to automation channel
-		this.io.emit('automation-status-update', automationStatus);
+		// Emit standardized automation update event
+		this.io.emit('automation:update', automationStatus);
 	}
 
 	// Get connection statistics
@@ -375,16 +363,6 @@ class WebSocketService {
 		});
 	}
 
-	// Send latest chart data to specific client
-	private sendLatestChartData(socket: Socket) {
-		// This would fetch latest sensor data from database
-		// For now, send a placeholder response
-		socket.emit('chart-data-response', {
-			timestamp: new Date().toISOString(),
-			message: 'Chart data request received - implement database fetch here'
-		});
-	}
-
 	// Graceful shutdown
 	shutdown() {
 		if (this.io) {
@@ -399,6 +377,7 @@ class WebSocketService {
 			console.log('✅ WebSocket service shutdown complete');
 		}
 	}
+
 	// Broadcast device state updates specifically for frontend synchronization
 	broadcastDeviceStateUpdate(deviceType: string, state: {
 		status: boolean;

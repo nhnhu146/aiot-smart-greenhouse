@@ -33,13 +33,9 @@ export class WebSocketBroadcaster {
 
 		console.log(`📡 Broadcasting sensor data: ${data.type} = ${mergedValue ?? data.value}`);
 
-		// Emit to general sensor data channel
+		// Emit to standardized sensor data channels only
 		this.io.emit('sensor:data', sensorUpdate);
 		this.io.emit(`sensor:${data.type}`, sensorUpdate);
-
-		// Legacy format for backward compatibility
-		this.io.emit('sensor-data', sensorUpdate);
-		this.io.emit(`sensor-${data.type}`, sensorUpdate);
 	}
 
 	// Broadcast device status to all connected clients

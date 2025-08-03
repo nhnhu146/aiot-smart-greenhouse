@@ -206,10 +206,29 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		// Data events - Use callbacks to prevent UI blocking
-		newSocket.on('sensor:data', updateSensorData);
-		newSocket.on('sensor-data', updateSensorData); // Legacy compatibility
+		// Handle standardized sensor:data format (data.sensors[])
+		newSocket.on('sensor:data', (standardizedData: any) => {
+			if (standardizedData.success && standardizedData.data && standardizedData.data.sensors) {
+				const sensorData = standardizedData.data.sensors[0];
+				
+				// Convert standardized format to internal format
+				for (const [sensorType, value] of Object.entries(sensorData)) {
+					if (sensorType !== 'timestamp' && sensorType !== 'createdAt' && sensorType !== 'dataQuality') {
+						const internalData = {
+							sensor: sensorType,
+							data: { value: value as number, quality: sensorData.dataQuality || 'good' },
+							timestamp: sensorData.timestamp || sensorData.createdAt || new Date().toISOString(),
+							value: value as number
+						};
+						updateSensorData(internalData);
+					}
+				}
+			}
+		});
 
-		// Individual sensor channels (service.backup format)
+		newSocket.on('sensor:data', updateSensorData);
+
+		// Individual sensor channels (standardized format)
 		newSocket.on('sensor:temperature', updateSensorData);
 		newSocket.on('sensor:humidity', updateSensorData);
 		newSocket.on('sensor:soil', updateSensorData);
@@ -218,18 +237,8 @@ export default function useWebSocket(): UseWebSocketReturn {
 		newSocket.on('sensor:height', updateSensorData);
 		newSocket.on('sensor:rain', updateSensorData);
 
-		// Legacy individual sensor channels
-		newSocket.on('sensor-temperature', updateSensorData);
-		newSocket.on('sensor-humidity', updateSensorData);
-		newSocket.on('sensor-soil', updateSensorData);
-		newSocket.on('sensor-water', updateSensorData);
-		newSocket.on('sensor-light', updateSensorData);
-		newSocket.on('sensor-height', updateSensorData);
-		newSocket.on('sensor-rain', updateSensorData);
-
 		// Standardized device events
 		newSocket.on('device:status', updateDeviceStatus);
-		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
 
 		// Device state update listeners for new state management
 		newSocket.on('device:state:update', (stateData: any) => {
@@ -243,20 +252,16 @@ export default function useWebSocket(): UseWebSocketReturn {
 			});
 		});
 
+		// Standardized alerts
+		newSocket.on('alert:new', updateAlerts);
+		newSocket.on('alert', updateAlerts);
+
 		// Device control confirmations
 		newSocket.on('device:control', (_controlData: any) => {
 			// Device control confirmation received
 		});
 
-		// Standardized alerts
-		newSocket.on('alert:new', updateAlerts);
-		newSocket.on('alert', updateAlerts); // Legacy compatibility
-
-		// Additional service.backup channels
-		newSocket.on('device-control-confirmation', (_controlData: any) => {
-			// Device control confirmation received
-		});
-
+		// Voice commands
 		newSocket.on('voice-command', (_voiceData: any) => {
 			// Voice command received
 		});
@@ -265,23 +270,17 @@ export default function useWebSocket(): UseWebSocketReturn {
 			// Voice command history update received
 		});
 
-		newSocket.on('automation-status', (_automationData: any) => {
+		// Automation status
+		newSocket.on('automation:update', (_automationData: any) => {
 			// Automation status update received
 		});
 
-		newSocket.on('automation-status-update', (_automationData: any) => {
-			// Automation status detailed update received
-		});
-
+		// System status
 		newSocket.on('system-status', (_systemData: any) => {
 			// System status update received
 		});
 
-		newSocket.on('config-update', (_configData: any) => {
-			// Configuration update received
-		});
-
-		newSocket.on('priority-alert', (alertData: any) => {
+		newSocket.on('alert:priority', (alertData: any) => {
 			updateAlerts(alertData);
 		});
 
@@ -310,8 +309,8 @@ export default function useWebSocket(): UseWebSocketReturn {
 			}));
 		});
 
-		newSocket.on('automation:settings-update', (data: any) => {
-			setAutomationSettings(data.settings);
+		newSocket.on('automation:update', (data: any) => {
+			setAutomationSettings(data.settings || data);
 		});
 
 		newSocket.on('settings:threshold-update', (data: any) => {

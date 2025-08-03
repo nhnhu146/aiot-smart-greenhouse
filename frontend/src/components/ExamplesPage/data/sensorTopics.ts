@@ -29,37 +29,34 @@ export const sensorTopics = [
 	{
 		"name": "Soil Moisture Sensor",
 		"topic": "greenhouse/sensors/soil",
-		"description": "Soil moisture level reading (GPIO 36)",
-		"dataType": "Float",
-		"unit": "V",
+		"description": "Binary soil moisture sensor reading (GPIO 36)",
+		"dataType": "Binary",
+		"unit": "0/1",
 		"examples": [
-			{ "value": 2.8, "description": "Current soil moisture" },
-			{ "value": 1.5, "description": "Dry soil condition" },
-			{ "value": 3.2, "description": "Wet soil condition" }
+			{ "value": "0", "description": "Dry soil - needs watering" },
+			{ "value": "1", "description": "Wet soil - adequately watered" }
 		]
 	},
 	{
 		"name": "Light Level Sensor",
 		"topic": "greenhouse/sensors/light",
-		"description": "Light intensity reading (GPIO 34)",
-		"dataType": "Float",
-		"unit": "V",
+		"description": "Binary light intensity sensor reading (GPIO 34)",
+		"dataType": "Binary",
+		"unit": "0/1",
 		"examples": [
-			{ "value": 1.2, "description": "Current light level" },
-			{ "value": 0.5, "description": "Low light condition" },
-			{ "value": 2.0, "description": "Bright light condition" }
+			{ "value": "0", "description": "Dark condition - light needed" },
+			{ "value": "1", "description": "Bright condition - sufficient light" }
 		]
 	},
 	{
 		"name": "Water Level Sensor",
 		"topic": "greenhouse/sensors/water",
-		"description": "Water tank level reading (GPIO 35)",
-		"dataType": "Float",
-		"unit": "V",
+		"description": "Binary water tank level sensor reading (GPIO 35)",
+		"dataType": "Binary",
+		"unit": "0/1",
 		"examples": [
-			{ "value": 2.1, "description": "Current water level" },
-			{ "value": 0.8, "description": "Low water level" },
-			{ "value": 3.0, "description": "Full water tank" }
+			{ "value": "0", "description": "Empty/Low water tank" },
+			{ "value": "1", "description": "Full water tank" }
 		]
 	}
 ];

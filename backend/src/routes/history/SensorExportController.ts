@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
-import { formatVietnamTimestamp } from '../../utils/timezone';
+import { formatVietnamTimestamp, formatVietnamTimestampISO } from '../../utils/timezone';
 
 export class SensorExportController {
 	async exportSensorData(req: Request, res: Response): Promise<void> {
@@ -19,29 +19,36 @@ export class SensorExportController {
 			.lean();
 
 		if (format === 'csv') {
-			// Generate CSV
-			const csvHeader = 'Timestamp,Temperature (°C),Humidity (%),Soil Moisture,Water Level\n';
+			// Generate CSV with UTC+7 formatted timestamps
+			const csvHeader = 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level\n';
 			const csvRows = sensorData.map(data => {
 				const timestamp = formatVietnamTimestamp(data.createdAt);
-				return `${timestamp},${data.temperature},${data.humidity},${data.soilMoisture},${data.waterLevel}`;
+				return `"${timestamp}",${data.temperature || ''},${data.humidity || ''},${data.soilMoisture || ''},${data.waterLevel || ''}`;
 			}).join('\n');
 
 			const csvContent = csvHeader + csvRows;
 
-			res.setHeader('Content-Type', 'text/csv');
+			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
 			res.setHeader('Content-Disposition', 'attachment; filename=sensor-data.csv');
 			res.send(csvContent);
 		} else {
-			// JSON format
+			// JSON format with UTC+7 timestamps
+			const formattedData = sensorData.map(data => ({
+				...data,
+				timestamp: formatVietnamTimestampISO(data.createdAt),
+				createdAt: formatVietnamTimestampISO(data.createdAt)
+			}));
+
 			const response: APIResponse = {
 				success: true,
 				message: 'Sensor data exported successfully',
 				data: {
-					sensors: sensorData,
-					exportedAt: new Date().toISOString(),
-					totalRecords: sensorData.length
+					sensors: formattedData,
+					exportedAt: formatVietnamTimestampISO(new Date()),
+					totalRecords: sensorData.length,
+					timezone: 'UTC+7'
 				},
-				timestamp: new Date().toISOString()
+				timestamp: formatVietnamTimestampISO(new Date())
 			};
 
 			res.json(response);

@@ -166,6 +166,7 @@ export class MQTTHandler {
 
 				// Broadcast updated sensor data via WebSocket
 				try {
+					// Use standardized format for WebSocket broadcast
 					webSocketService.broadcastSensorData(`greenhouse/sensors/${sensorType}`, {
 						type: sensorType,
 						value: value,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import apiClient from '@/lib/apiClient';
 
 export interface AlertHistoryItem {
@@ -40,7 +40,20 @@ export const useAlertHistory = (
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// Debouncing and rate limiting to prevent excessive API calls
+	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const lastFetchTimeRef = useRef<number>(0);
+
 	const fetchData = async () => {
+		// Prevent excessive API calls - minimum 3 seconds between requests
+		const now = Date.now();
+		const MIN_FETCH_INTERVAL = 3000;
+		if (now - lastFetchTimeRef.current < MIN_FETCH_INTERVAL) {
+			console.log('⏳ Alert history fetch skipped - too soon since last fetch');
+			return;
+		}
+		lastFetchTimeRef.current = now;
+
 		setLoading(true);
 		setError(null);
 
@@ -68,15 +81,30 @@ export const useAlertHistory = (
 			}
 
 		} catch (err) {
-						setError(err instanceof Error ? err.message : 'Unknown error occurred');
+			setError(err instanceof Error ? err.message : 'Unknown error occurred');
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	// Debounced effect to reduce API calls
 	useEffect(() => {
-		fetchData();
-	}, [filters, sort, pagination.page, pagination.limit]);
+		// Clear any pending timeout
+		if (fetchTimeoutRef.current) {
+			clearTimeout(fetchTimeoutRef.current);
+		}
+
+		// Debounce the fetchData call to prevent excessive API calls
+		fetchTimeoutRef.current = setTimeout(() => {
+			fetchData();
+		}, 500); // 500ms debounce
+
+		return () => {
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current);
+			}
+		};
+	}, [filters.dateFrom, filters.dateTo, filters.severity, filters.type, filters.acknowledged, sort.field, sort.direction, pagination.page, pagination.limit]);
 
 	const acknowledgeAlert = async (alertId: string) => {
 		try {
@@ -84,7 +112,7 @@ export const useAlertHistory = (
 			// Refresh data after acknowledgment
 			await fetchData();
 		} catch (err) {
-						throw err;
+			throw err;
 		}
 	};
 

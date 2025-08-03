@@ -36,6 +36,15 @@ export const useVoiceHistory = (
 	};
 
 	const fetchData = async () => {
+		// Debounce API calls - 5 seconds minimum between requests
+		const now = Date.now();
+		const MIN_INTERVAL = 5000;
+		if (now - (window as any).__lastVoiceHistoryFetch < MIN_INTERVAL) {
+			console.log('⏳ Voice history fetch skipped - too soon');
+			return;
+		}
+		(window as any).__lastVoiceHistoryFetch = now;
+
 		setLoading(true);
 		try {
 			const params = buildParams();
@@ -60,7 +69,7 @@ export const useVoiceHistory = (
 			const paginationData = responseData.data?.pagination || responseData.pagination || pagination;
 			setPagination(paginationData);
 		} catch (error) {
-						setData([]);
+			setData([]);
 		} finally {
 			setLoading(false);
 		}
@@ -81,6 +90,6 @@ export const useVoiceHistory = (
 	return {
 		data,
 		loading,
-		refresh: fetchData
+		refreshData: fetchData
 	};
 };

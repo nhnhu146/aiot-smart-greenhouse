@@ -30,16 +30,13 @@ export class SensorHistoryController {
 		const fromDate = dateFrom || from;
 		const toDate = dateTo || to;
 
-		// Default to last 24 hours if no date range specified
-		if (!fromDate && !toDate) {
-			const last24Hours = new Date();
-			last24Hours.setHours(last24Hours.getHours() - 24);
-			query.createdAt = { $gte: last24Hours };
-		} else if (fromDate || toDate) {
+		// Apply date filters only if specified
+		if (fromDate || toDate) {
 			query.createdAt = {};
 			if (fromDate) query.createdAt.$gte = new Date(fromDate);
 			if (toDate) query.createdAt.$lte = new Date(toDate);
 		}
+		// Note: If no date range specified, fetch all data (no default 24h filter)
 
 		// Add range filters
 		if (minTemperature && !isNaN(parseFloat(minTemperature))) {

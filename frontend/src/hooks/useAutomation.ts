@@ -38,7 +38,7 @@ export const useAutomation = () => {
 			}
 		} catch (err) {
 			setError('Failed to load automation config');
-					} finally {
+		} finally {
 			setLoading(false);
 		}
 	}, []);
@@ -51,7 +51,7 @@ export const useAutomation = () => {
 				setStatus(automationStatus);
 			}
 		} catch (err) {
-					}
+		}
 	}, []);
 
 	// Update automation configuration
@@ -70,7 +70,7 @@ export const useAutomation = () => {
 			return false;
 		} catch (err) {
 			setError('Failed to update automation config');
-						return false;
+			return false;
 		} finally {
 			setUpdating(false);
 		}
@@ -92,7 +92,7 @@ export const useAutomation = () => {
 			return false;
 		} catch (err) {
 			setError('Failed to toggle automation');
-						return false;
+			return false;
 		} finally {
 			setUpdating(false);
 		}
@@ -107,7 +107,7 @@ export const useAutomation = () => {
 			}
 			return success;
 		} catch (err) {
-						return false;
+			return false;
 		}
 	}, [loadStatus]);
 
@@ -134,14 +134,8 @@ export const useAutomation = () => {
 		loadStatus();
 	}, [loadConfig, loadStatus]);
 
-	// Poll status periodically
-	useEffect(() => {
-		const interval = setInterval(() => {
-			loadStatus();
-		}, 10000); // Check every 10 seconds
-
-		return () => clearInterval(interval);
-	}, [loadStatus]);
+	// Removed automatic polling to reduce API calls
+	// Status updates now come from WebSocket or manual refresh
 
 	return {
 		config,

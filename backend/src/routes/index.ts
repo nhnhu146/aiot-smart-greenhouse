@@ -14,6 +14,7 @@ import dataRouter from './data';
 import automationRouter from './automation';
 import voiceCommandsRouter from './voiceCommands';
 import alertHistoryRouter from './alertHistory';
+import chatRouter from './chat';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.use('/data', dataRouter);
 router.use('/automation', automationRouter);
 router.use('/voice-commands', voiceCommandsRouter);
 router.use('/alert-history', alertHistoryRouter);
+router.use('/chat', chatRouter);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

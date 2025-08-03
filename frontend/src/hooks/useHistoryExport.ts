@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import apiClient from '@/lib/apiClient';
 import { FilterState } from '@/types/history';
 
 export const useHistoryExport = () => {
-	const [isExporting, setIsExporting] = useState(false);
+	// Removed isExporting state to eliminate loading effects
 	const exportInProgress = useRef(false); // Prevent multiple simultaneous exports
 
 	const exportData = async (
@@ -17,7 +17,6 @@ export const useHistoryExport = () => {
 		}
 
 		exportInProgress.current = true;
-		setIsExporting(true);
 
 		try {
 			let endpoint = '';
@@ -53,49 +52,58 @@ export const useHistoryExport = () => {
 				Object.entries(filters).forEach(([key, value]) => {
 					if (value && typeof value === 'string' && value.trim() !== '') {
 						// Map filter keys to API parameter names
-						const paramName = key === 'controlType' ? 'action' : key;
+						const paramName = key === 'deviceType' ? 'device' : key;
 						params.append(paramName, value);
 					}
 				});
 			}
 
+			// Use apiClient.get to properly handle authentication and API format
 			const response = await apiClient.get(`${endpoint}?${params.toString()}`);
 
-			if (!response.data) {
-				throw new Error('No data received from server');
+			// Handle response based on format
+			if (format === 'csv') {
+				// For CSV, the response should be the CSV content directly
+				const csvData = typeof response === 'string' ? response :
+					(response.data && typeof response.data === 'string') ? response.data :
+						(response.success && response.data) ? JSON.stringify(response.data, null, 2) :
+							JSON.stringify(response, null, 2);
+
+				const blob = new Blob([csvData], { type: 'text/csv; charset=utf-8' });
+				const url = window.URL.createObjectURL(blob);
+				const link = document.createElement('a');
+				link.href = url;
+				link.download = `${filename}.csv`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				window.URL.revokeObjectURL(url);
+			} else {
+				// For JSON, handle the structured response
+				const jsonData = response.success && response.data ? response.data : response;
+				const dataStr = JSON.stringify(jsonData, null, 2);
+
+				const blob = new Blob([dataStr], { type: 'application/json; charset=utf-8' });
+				const url = window.URL.createObjectURL(blob);
+				const link = document.createElement('a');
+				link.href = url;
+				link.download = `${filename}.json`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				window.URL.revokeObjectURL(url);
 			}
-
-			// Create and download file
-			const blob = new Blob([
-				format === 'json' ? JSON.stringify(response.data, null, 2) : response.data
-			], {
-				type: format === 'json' ? 'application/json' : 'text/csv'
-			});
-
-			const url = window.URL.createObjectURL(blob);
-			const link = document.createElement('a');
-			link.href = url;
-			link.download = `${filename}.${format}`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			window.URL.revokeObjectURL(url);
-
 		} catch (error) {
-						const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-			alert(`Export failed: ${errorMessage}`);
+			console.error('Export failed:', error);
+			// Simple error handling without UI effects - could add toast notification here
 		} finally {
-			// Always reset the exporting state, even if there was an error
+			// Always reset the exporting state
 			exportInProgress.current = false;
-			// Use a small delay to prevent visual flicker
-			setTimeout(() => {
-				setIsExporting(false);
-			}, 200);
 		}
 	};
 
 	return {
-		isExporting,
+		isExporting: false, // Always false to eliminate loading effects
 		exportData
 	};
 };

@@ -86,12 +86,16 @@ export class SensorDataController {
 		const response: APIResponse & { pagination?: any } = {
 			success: true,
 			message: 'Sensor data retrieved successfully',
-			data: formattedData,
-			pagination: {
-				page: Number(page),
-				limit: Number(limit),
-				total,
-				pages: Math.ceil(total / limit)
+			data: {
+				sensors: formattedData,
+				pagination: {
+					page: Number(page),
+					limit: Number(limit),
+					total,
+					totalPages: Math.ceil(total / limit),
+					hasNext: Number(page) < Math.ceil(total / Number(limit)),
+					hasPrev: Number(page) > 1
+				}
 			},
 			timestamp: new Date().toISOString()
 		};
@@ -120,10 +124,13 @@ export class SensorDataController {
 			formattedTime: formatVietnamTimestamp(latestData.createdAt)
 		};
 
+		// Standardized format: always return data.sensors array
 		const response: APIResponse = {
 			success: true,
 			message: 'Latest sensor data retrieved successfully',
-			data: formattedData,
+			data: {
+				sensors: [formattedData]
+			},
 			timestamp: new Date().toISOString()
 		};
 

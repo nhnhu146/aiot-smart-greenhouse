@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-// Removed useWebSocketContext to prevent annoying refresh effects
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 interface SensorData {
 	temperature?: number;
@@ -7,6 +7,7 @@ interface SensorData {
 	soilMoisture?: number;
 	waterLevel?: number;
 	lightLevel?: number;
+	plantHeight?: number;
 	timestamp?: string;
 	createdAt?: string;
 }
@@ -15,60 +16,38 @@ interface UseLineChartDataReturn {
 	data: SensorData[];
 	loading: boolean;
 	error: string | null;
-	fetchData: (timeRange?: '1h' | '24h' | '7d' | '30d') => Promise<void>;
+	fetchData: (limit?: number) => Promise<void>;
 }
 
 export const useLineChartData = (): UseLineChartDataReturn => {
 	const [data, setData] = useState<SensorData[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [cachedData, setCachedData] = useState<SensorData[]>([]);
+	const [hasInitialLoad, setHasInitialLoad] = useState(false);
+	const maxDataPoints = 50; // Limit data points for performance
 
+	const { socket } = useWebSocketContext();
 	const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-	// WebSocket context removed to prevent annoying refresh effects
 
-	// Debouncing refs
-	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	// Track initial load to prevent excessive API calls
 	const lastFetchTimeRef = useRef<number>(0);
-	const isInitialLoadRef = useRef<boolean>(true);
 
-	const fetchData = async (timeRange: '1h' | '24h' | '7d' | '30d' = '24h') => {
-		// Debounce: prevent multiple rapid calls
+	const fetchData = async (limit: number = maxDataPoints) => {
+		// Only allow fetch on initial load or explicit user request (button click)
 		const now = Date.now();
-		if (now - lastFetchTimeRef.current < 1000 && !isInitialLoadRef.current) {
+		if (hasInitialLoad && now - lastFetchTimeRef.current < 30000) {
+			console.log('⏳ Fetch prevented - use WebSocket data for updates');
 			return;
 		}
 		lastFetchTimeRef.current = now;
 
-		// Clear any pending timeout
-		if (fetchTimeoutRef.current) {
-			clearTimeout(fetchTimeoutRef.current);
-		}
-
 		try {
-			// Show cached data immediately for better UX
-			if (cachedData.length > 0 && !isInitialLoadRef.current) {
-				setData(cachedData);
-			}
-
 			setLoading(true);
 			setError(null);
 
-			// Calculate time range
-			const now = new Date();
-			const timeRanges = {
-				'1h': 1 * 60 * 60 * 1000,
-				'24h': 24 * 60 * 60 * 1000,
-				'7d': 7 * 24 * 60 * 60 * 1000,
-				'30d': 30 * 24 * 60 * 60 * 1000,
-			};
-
-			const from = new Date(now.getTime() - timeRanges[timeRange]).toISOString();
-			const to = now.toISOString();
-
-			// Increase limit to 50 data points for better chart visualization
+			// Get latest N records without time filtering - sort by createdAt desc to get most recent
 			const response = await fetch(
-				`${API_BASE_URL}/api/history/sensors?from=${from}&to=${to}&limit=50&sortBy=createdAt&sortOrder=desc`
+				`${API_BASE_URL}/api/history/sensors?limit=${limit}&sortBy=createdAt&sortOrder=desc`
 			);
 
 			if (!response.ok) {
@@ -76,74 +55,98 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 			}
 
 			const result = await response.json();
+			console.log('🔍 API Response:', { success: result.success, dataCount: result.data?.sensors?.length });
 
 			if (result.success && result.data && result.data.sensors) {
-				// The API returns data in result.data.sensors
-				const rawData = Array.isArray(result.data.sensors) ? result.data.sensors : [result.data.sensors];
+				// Use standardized format - only data.sensors format is supported
+				const rawDataArray = Array.isArray(result.data.sensors) ? result.data.sensors : [result.data.sensors];
+				console.log('📊 Raw data count:', rawDataArray.length);
 
-				// Filter out data with null timestamps and limit to appropriate number of points
-				const validData = rawData
+				// Filter and format data with proper validation
+				const validData = rawDataArray
 					.filter((item: SensorData) => {
 						const timestamp = item.createdAt || item.timestamp;
-						return timestamp && timestamp !== null && timestamp !== 'Invalid Date';
+						const isValid = timestamp && timestamp !== null && timestamp !== 'Invalid Date';
+						if (!isValid) {
+							console.warn('⚠️ Invalid timestamp for item:', item);
+						}
+						return isValid;
 					})
 					.map((item: SensorData) => ({
 						...item,
-						// Ensure proper timestamp format
 						timestamp: item.createdAt || item.timestamp,
 						createdAt: item.createdAt
 					}))
-					.slice(0, 50) // Increase to 50 data points for better visualization
+					.slice(0, maxDataPoints)
 					.reverse(); // Reverse to get chronological order
 
+				console.log('✅ Valid data count:', validData.length);
 				setData(validData);
-				setCachedData(validData); // Cache for next fetch
+				setHasInitialLoad(true);
 			} else {
-				console.error('Invalid response format - API returned:', result);
+				console.error('❌ Invalid response format - API returned:', result);
 				throw new Error(`API returned invalid format: missing data.sensors`);
 			}
 		} catch (err) {
-						setError(err instanceof Error ? err.message : 'Unknown error');
-
-			// Keep cached data on error for better UX
-			if (cachedData.length > 0) {
-				setData(cachedData);
-			} else {
+			setError(err instanceof Error ? err.message : 'Unknown error');
+			if (!hasInitialLoad) {
 				setData([]);
 			}
 		} finally {
 			setLoading(false);
-			isInitialLoadRef.current = false;
 		}
 	};
 
-	// Auto-fetch data on mount
+	// Append new sensor data from WebSocket to existing array (optimized for performance)
+	const appendWebSocketData = (newSensorData: any) => {
+		if (!hasInitialLoad || !newSensorData) return;
+
+		setData(prevData => {
+			// Create new sensor data point from WebSocket data
+			const newDataPoint: SensorData = {
+				temperature: newSensorData.temperature,
+				humidity: newSensorData.humidity,
+				soilMoisture: newSensorData.soilMoisture,
+				waterLevel: newSensorData.waterLevel,
+				lightLevel: newSensorData.lightLevel,
+				plantHeight: newSensorData.plantHeight,
+				timestamp: new Date().toISOString(),
+				createdAt: new Date().toISOString()
+			};
+
+			// Add new data point and keep only maxDataPoints (sliding window)
+			const updatedData = [...prevData, newDataPoint].slice(-maxDataPoints);
+			return updatedData;
+		});
+	};
+
+	// Initial load only - no automatic refresh
 	useEffect(() => {
-		fetchData();
+		if (!hasInitialLoad) {
+			fetchData();
+		}
 	}, []);
 
-	// Disabled automatic WebSocket updates to prevent annoying refresh effects
-	// Users can manually refresh using the refresh button if needed
-	// useEffect(() => {
-	// 	if (persistentSensorData && !isInitialLoadRef.current) {
-	// 		// Clear existing timeout
-	// 		if (fetchTimeoutRef.current) {
-	// 			clearTimeout(fetchTimeoutRef.current);
-	// 		}
+	// WebSocket data integration - append new data instead of full refetch
+	useEffect(() => {
+		if (!socket || !hasInitialLoad) return;
 
-	// 		// Set new timeout for debounced refresh
-	// 		fetchTimeoutRef.current = setTimeout(() => {
-	// 			fetchData();
-	// 		}, 3000); // 3 second debounce
-	// 	}
+		const handleSensorData = (eventData: any) => {
+			// Handle standardized WebSocket format: { success: true, data: { sensors: [...] } }
+			if (eventData?.success && eventData?.data?.sensors && Array.isArray(eventData.data.sensors)) {
+				const latestSensor = eventData.data.sensors[0];
+				if (latestSensor) {
+					appendWebSocketData(latestSensor);
+				}
+			}
+		};
 
-	// 	// Cleanup timeout on unmount
-	// 	return () => {
-	// 		if (fetchTimeoutRef.current) {
-	// 			clearTimeout(fetchTimeoutRef.current);
-	// 		}
-	// 	};
-	// }, [persistentSensorData]);
+		socket.on('sensor:data', handleSensorData);
+
+		return () => {
+			socket.off('sensor:data', handleSensorData);
+		};
+	}, [socket, hasInitialLoad]);
 
 	return {
 		data,

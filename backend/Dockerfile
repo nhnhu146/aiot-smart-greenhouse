@@ -61,8 +61,8 @@ RUN \
 # Production stage - Use reliable base image
 FROM node:20-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache \
+# Update package index and install dumb-init for proper signal handling
+RUN apk update && apk add --no-cache \
 	curl \
 	dumb-init \
 	&& rm -rf /var/cache/apk/*

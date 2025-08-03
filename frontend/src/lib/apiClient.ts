@@ -87,11 +87,15 @@ class ApiClient {
 
 	// Sensor Data APIs
 	async getLatestSensorData(): Promise<SensorData> {
-		return this.request('/api/sensors/latest');
+		const response = await this.request('/api/sensors/latest');
+		// Handle standardized format only: data.sensors[0]
+		return response?.data?.sensors?.[0] || response?.data || response;
 	}
 
 	async getSensorHistory(limit = 100): Promise<SensorData[]> {
-		return this.request(`/api/history/sensors?limit=${limit}`);
+		const response = await this.request(`/api/history/sensors?limit=${limit}&sortBy=createdAt&sortOrder=desc`);
+		// Handle nested format for history
+		return response?.data?.sensors || response?.data || [];
 	}
 
 	async sendSensorData(data: Omit<SensorData, '_id' | 'timestamp'>): Promise<{ success: boolean; id: string; message: string }> {

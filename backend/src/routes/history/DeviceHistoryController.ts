@@ -62,6 +62,9 @@ export class DeviceHistoryController {
 		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'createdAt'];
 		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'timestamp';
 
+		// Log sort parameters for debugging
+		console.log(`🔍 DeviceHistory sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
+
 		const query: any = {};
 
 		// Handle date filters - support both from/to and dateFrom/dateTo

@@ -58,7 +58,7 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 			const states = await deviceStateService.getAllStates();
 			setDeviceStates(states);
 		} catch (error) {
-					}
+		}
 	}, []);
 
 	const handleDeviceToggle = useCallback(async (device: string) => {
@@ -95,6 +95,11 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 
 			// Update backend state explicitly
 			await deviceStateService.updateDeviceState(device, newState, action);
+
+			// Dispatch board change event to refresh history data
+			window.dispatchEvent(new CustomEvent('boardChanged', {
+				detail: { device, action, newState }
+			}));
 
 		} catch (error) {
 			console.error(`❌ Error controlling device ${device}:`, error);

@@ -40,6 +40,7 @@ const SensorDataTable: React.FC<SensorDataTableProps> = ({ data, sortState, onSo
 
 	const formatBinaryValue = (value: number | boolean | undefined, trueLabel: string, falseLabel: string) => {
 		if (value === undefined || value === null) return 'N/A';
+		// Handle both numeric (0/1) and boolean values
 		const isTrue = value === 1 || value === true;
 		return isTrue ? trueLabel : falseLabel;
 	};
@@ -82,22 +83,22 @@ const SensorDataTable: React.FC<SensorDataTableProps> = ({ data, sortState, onSo
 							<td>{item.temperature?.toFixed(1) || "N/A"}</td>
 							<td>{item.humidity?.toFixed(1) || "N/A"}</td>
 							<td>
-								<Badge bg={item.soilMoisture ? 'success' : 'danger'}>
+								<Badge bg={item.soilMoisture === 1 ? 'success' : item.soilMoisture === 0 ? 'danger' : 'secondary'}>
 									{formatBinaryValue(item.soilMoisture, 'Wet (1)', 'Dry (0)')}
 								</Badge>
 							</td>
 							<td>
-								<Badge bg={item.waterLevel ? 'warning' : 'success'}>
-									{formatBinaryValue(item.waterLevel, 'Flooded (1)', 'Normal (0)')}
+								<Badge bg={item.waterLevel === 1 ? 'success' : item.waterLevel === 0 ? 'danger' : 'secondary'}>
+									{formatBinaryValue(item.waterLevel, 'Full (1)', 'Empty (0)')}
 								</Badge>
 							</td>
 							<td>
-								<Badge bg={item.lightLevel ? 'warning' : 'secondary'}>
+								<Badge bg={item.lightLevel === 1 ? 'warning' : item.lightLevel === 0 ? 'secondary' : 'light'}>
 									{formatBinaryValue(item.lightLevel, 'Bright (1)', 'Dark (0)')}
 								</Badge>
 							</td>
 							<td>
-								<Badge bg={item.rainStatus ? 'primary' : 'warning'}>
+								<Badge bg={item.rainStatus === 1 || item.rainStatus === true ? 'primary' : item.rainStatus === 0 || item.rainStatus === false ? 'warning' : 'light'}>
 									{formatBinaryValue(item.rainStatus, '🌧️ Raining', '☀️ Clear')}
 								</Badge>
 							</td>

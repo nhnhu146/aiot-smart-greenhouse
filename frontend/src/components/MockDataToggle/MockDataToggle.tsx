@@ -11,9 +11,18 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 	const [isLoading, setIsLoading] = useState(false);
 
 	useEffect(() => {
-		// On mount, check the current mock data status
+		// On mount, check the current mock data status from user settings only
+		// Mock data should only be enabled by explicit user configuration
 		const currentState = mockDataService.isUsingMockData();
-		setIsMockEnabled(currentState);
+
+		// Ensure mock data is never enabled by default or fallback
+		if (currentState && !localStorage.getItem('user_mock_data_preference')) {
+			// If mock data is somehow enabled without user preference, disable it
+			mockDataService.setUseMockData(false);
+			setIsMockEnabled(false);
+		} else {
+			setIsMockEnabled(currentState);
+		}
 	}, []);
 
 	// Toggle mock data function
@@ -21,6 +30,9 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 		setIsLoading(true);
 		try {
 			const newState = !isMockEnabled;
+
+			// Store user preference explicitly in localStorage (ban.instructions.md compliance)
+			localStorage.setItem('user_mock_data_preference', newState.toString());
 
 			mockDataService.setUseMockData(newState);
 			setIsMockEnabled(newState);
@@ -35,7 +47,10 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 				setIsLoading(false);
 			}, 300);
 		} catch (error) {
-						setIsLoading(false);
+			console.error('❌ Failed to toggle mock data:', error);
+			setIsMockEnabled(!isMockEnabled); // Revert on error
+		} finally {
+			setIsLoading(false);
 		}
 	};
 

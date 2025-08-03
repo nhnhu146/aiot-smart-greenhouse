@@ -4,9 +4,10 @@ export const SensorDataSchema = z.object({
 	temperature: z.number().min(-50).max(100),
 	humidity: z.number().min(0).max(100),
 	soilMoisture: z.number().min(0).max(1), // Binary: 0=dry, 1=wet
-	waterLevel: z.number().min(0).max(100),
+	waterLevel: z.number().min(0).max(1), // Binary: 0=empty, 1=full
+	lightLevel: z.number().min(0).max(1), // Binary: 0=dark, 1=bright
 	plantHeight: z.number().min(0),
-	rainStatus: z.boolean(),
+	rainStatus: z.number().min(0).max(1), // Binary: 0=no rain, 1=raining
 	timestamp: z.date().optional()
 });
 
@@ -55,7 +56,9 @@ export const AlertCreateSchema = z.object({
 
 export const QueryParamsSchema = z.object({
 	page: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1)).optional(),
-	limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(1000)).optional(),
+	limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(10000)).optional(),
+	pageSize: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(10000)).optional(),
+	format: z.enum(['json', 'csv']).optional(),
 	from: z.string().transform(val => new Date(val)).pipe(z.date()).optional(),
 	to: z.string().transform(val => new Date(val)).pipe(z.date()).optional(),
 	deviceType: z.enum(['light', 'pump', 'door', 'window']).optional(),
@@ -75,8 +78,8 @@ export const QueryParamsSchema = z.object({
 	rainStatus: z.string().transform(val => val === 'true').pipe(z.boolean()).optional(),
 	// Control type filter
 	controlType: z.enum(['auto', 'manual']).optional(),
-	// Sort options
-	sortBy: z.enum(['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel']).optional(),
+	// Sort options - including both sensor and device control fields
+	sortBy: z.enum(['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel', 'deviceType', 'action', 'status']).optional(),
 	sortOrder: z.enum(['asc', 'desc']).optional()
 });
 

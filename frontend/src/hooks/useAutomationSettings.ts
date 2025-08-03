@@ -60,7 +60,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to load automation settings');
 			}
 		} catch (error) {
-						showMessage('danger', 'Failed to load automation settings');
+			showMessage('danger', 'Failed to load automation settings');
 		} finally {
 			isLoading(false);
 		}
@@ -81,11 +81,14 @@ export const useAutomationSettings = () => {
 				setOriginalSettings(settings);
 				setHasUnsavedChanges(false);
 				showMessage('success', 'Settings saved successfully!');
+
+				// Dispatch custom event to refresh history data
+				window.dispatchEvent(new CustomEvent('settingsChanged', { detail: settings }));
 			} else {
 				showMessage('danger', data.message || 'Failed to save settings');
 			}
 		} catch (error) {
-						showMessage('danger', 'Failed to save settings');
+			showMessage('danger', 'Failed to save settings');
 		} finally {
 			setSaving(false);
 		}
@@ -109,7 +112,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to reset settings');
 			}
 		} catch (error) {
-						showMessage('danger', 'Failed to reset settings');
+			showMessage('danger', 'Failed to reset settings');
 		} finally {
 			setResetting(false);
 		}
@@ -130,7 +133,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to run automation check');
 			}
 		} catch (error) {
-						showMessage('danger', 'Failed to run automation check');
+			showMessage('danger', 'Failed to run automation check');
 		} finally {
 			setRunningCheck(false);
 		}
