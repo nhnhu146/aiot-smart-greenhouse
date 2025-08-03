@@ -9,9 +9,9 @@ export class DeviceVoiceExportController {
 
 		const query: any = {};
 		if (from || to) {
-			query.timestamp = {};
-			if (from) query.timestamp.$gte = from;
-			if (to) query.timestamp.$lte = to;
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = from;
+			if (to) query.createdAt.$lte = to;
 		}
 
 		const deviceHistory = await DeviceHistory.find(query)
@@ -22,7 +22,7 @@ export class DeviceVoiceExportController {
 			// Generate CSV with UTC+7 formatted timestamps
 			const csvHeader = 'Timestamp (UTC+7),Device ID,Device Type,Action,Control Type,User ID\n';
 			const csvRows = deviceHistory.map(device => {
-				const timestamp = formatVietnamTimestamp(device.timestamp);
+				const timestamp = formatVietnamTimestamp(device.createdAt);
 				return `"${timestamp}","${device.deviceId || ''}","${device.deviceType || ''}","${device.action || ''}","${device.controlType || ''}","${device.userId || 'System'}"`;
 			}).join('\n');
 
@@ -35,7 +35,7 @@ export class DeviceVoiceExportController {
 			// JSON format with UTC+7 timestamps
 			const formattedData = deviceHistory.map(device => ({
 				...device,
-				timestamp: formatVietnamTimestampISO(device.timestamp)
+				timestamp: formatVietnamTimestampISO(device.createdAt)
 			}));
 
 			const response: APIResponse = {
@@ -72,7 +72,7 @@ export class DeviceVoiceExportController {
 			// Generate CSV with UTC+7 formatted timestamps
 			const csvHeader = 'Timestamp (UTC+7),Command,Confidence\n';
 			const csvRows = voiceCommands.map(command => {
-				const timestamp = formatVietnamTimestamp(command.timestamp);
+				const timestamp = formatVietnamTimestamp(command.createdAt);
 				return `"${timestamp}","${(command.command || '').replace(/"/g, '""')}","${command.confidence || ''}"`;
 			}).join('\n');
 
@@ -85,7 +85,7 @@ export class DeviceVoiceExportController {
 			// JSON format with UTC+7 timestamps
 			const formattedData = voiceCommands.map(command => ({
 				...command,
-				timestamp: formatVietnamTimestampISO(command.timestamp)
+				timestamp: formatVietnamTimestampISO(command.createdAt)
 			}));
 
 			const response: APIResponse = {

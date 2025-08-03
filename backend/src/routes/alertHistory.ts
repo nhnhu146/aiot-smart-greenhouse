@@ -9,7 +9,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 		const {
 			page = 1,
 			limit = 20,
-			sortBy = 'timestamp',
+			sortBy = 'createdAt',
 			sortOrder = 'desc',
 			dateFrom,
 			dateTo,
@@ -22,9 +22,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
 		// Date range filter
 		if (dateFrom || dateTo) {
-			filters.timestamp = {};
-			if (dateFrom) filters.timestamp.$gte = new Date(dateFrom as string);
-			if (dateTo) filters.timestamp.$lte = new Date(dateTo as string);
+			filters.createdAt = {};
+			if (dateFrom) filters.createdAt.$gte = new Date(dateFrom as string);
+			if (dateTo) filters.createdAt.$lte = new Date(dateTo as string);
 		}
 
 		// Severity filter
@@ -97,9 +97,9 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
 
 		// Apply same filters as main endpoint
 		if (dateFrom || dateTo) {
-			filters.timestamp = {};
-			if (dateFrom) filters.timestamp.$gte = new Date(dateFrom as string);
-			if (dateTo) filters.timestamp.$lte = new Date(dateTo as string);
+			filters.createdAt = {};
+			if (dateFrom) filters.createdAt.$gte = new Date(dateFrom as string);
+			if (dateTo) filters.createdAt.$lte = new Date(dateTo as string);
 		}
 
 		if (severity && severity !== '') filters.level = severity;
@@ -109,7 +109,7 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
 		}
 
 		const alerts = await Alert.find(filters)
-			.sort({ timestamp: -1 })
+			.sort({ createdAt: -1 })
 			.limit(Number(limit))
 			.lean();
 
@@ -117,7 +117,7 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
 			// Generate CSV
 			const csvHeader = 'Timestamp,Type,Level,Message,Value,Acknowledged\n';
 			const csvRows = alerts.map(alert =>
-				`"${alert.timestamp}","${alert.type}","${alert.level}","${alert.message}","${alert.value || ''}","${alert.acknowledged || false}"`
+				`"${alert.createdAt}","${alert.type}","${alert.level}","${alert.message}","${alert.value || ''}","${alert.acknowledged || false}"`
 			).join('\n');
 
 			res.setHeader('Content-Type', 'text/csv');

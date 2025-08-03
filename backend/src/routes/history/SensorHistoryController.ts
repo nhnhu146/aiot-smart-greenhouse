@@ -24,6 +24,13 @@ export class SensorHistoryController {
 			sortOrder = 'desc'
 		} = req.query as any;
 
+		// Validate sortBy parameter - include all possible sort fields for sensor data
+		const validSortFields = ['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel', 'lightIntensity', 'rainStatus'];
+		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+
+		// Log sort parameters for debugging
+		console.log(`🔍 SensorHistory sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
+
 		const query: any = {};
 
 		// Handle date filters - support both from/to and dateFrom/dateTo
@@ -68,7 +75,7 @@ export class SensorHistoryController {
 
 		// Build sort object
 		const sortObj: any = {};
-		sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+		sortObj[actualSortBy] = sortOrder === 'asc' ? 1 : -1;
 
 		// Smart merge for sensors: only if duplicates exist
 		const mergerService = DataMergerService.getInstance();

@@ -9,19 +9,19 @@ export const useHistorySort = () => {
 	});
 
 	const [deviceSort, setDeviceSort] = useState<SortState>({
-		field: 'timestamp',
+		field: 'createdAt',
 		direction: 'desc',
 		tab: 'controls'
 	});
 
 	const [voiceSort, setVoiceSort] = useState<SortState>({
-		field: 'timestamp',
+		field: 'createdAt',
 		direction: 'desc',
 		tab: 'voice'
 	});
 
 	const [alertSort, setAlertSort] = useState<SortState>({
-		field: 'timestamp',
+		field: 'createdAt',
 		direction: 'desc',
 		tab: 'alerts'
 	});

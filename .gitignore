@@ -126,3 +126,4 @@ helper_*.py
 *_summary.md
 *_analysis.md
 /.serena
+/.serena/

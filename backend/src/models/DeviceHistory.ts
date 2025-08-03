@@ -10,9 +10,10 @@ export interface IDeviceHistory extends Document {
 	userId?: string; // for manual control
 	duration?: number; // in seconds, for pump
 	sensorValue?: number; // value that triggered the action
-	timestamp: Date;
 	success: boolean;
 	errorMessage?: string;
+	createdAt?: Date;
+	updatedAt?: Date;
 }
 
 const DeviceHistorySchema: Schema = new Schema({
@@ -60,11 +61,6 @@ const DeviceHistorySchema: Schema = new Schema({
 		type: Number,
 		required: false // sensor value that triggered auto action
 	},
-	timestamp: {
-		type: Date,
-		default: Date.now,
-		index: true
-	},
 	success: {
 		type: Boolean,
 		default: true
@@ -74,14 +70,14 @@ const DeviceHistorySchema: Schema = new Schema({
 		required: false
 	}
 }, {
-	timestamps: true,
+	timestamps: true, // Use MongoDB's createdAt/updatedAt instead of custom timestamp
 	versionKey: false
-});
+});;
 
 // Indexes for efficient queries
-DeviceHistorySchema.index({ timestamp: -1 }); // Time-based queries
-DeviceHistorySchema.index({ deviceType: 1, timestamp: -1 }); // Device-specific history
-DeviceHistorySchema.index({ controlType: 1, timestamp: -1 }); // Auto vs manual queries
-DeviceHistorySchema.index({ deviceId: 1, controlType: 1, timestamp: -1 }); // Composite queries
+DeviceHistorySchema.index({ createdAt: -1 }); // Time-based queries
+DeviceHistorySchema.index({ deviceType: 1, createdAt: -1 }); // Device-specific history
+DeviceHistorySchema.index({ controlType: 1, createdAt: -1 }); // Auto vs manual queries
+DeviceHistorySchema.index({ deviceId: 1, controlType: 1, createdAt: -1 }); // Composite queries
 
 export default mongoose.model<IDeviceHistory>('DeviceHistory', DeviceHistorySchema);

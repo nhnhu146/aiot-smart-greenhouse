@@ -66,36 +66,6 @@ export const useHistoryData = (
 	const deviceHistory = useDeviceHistory(filters, deviceSort, devicePagination, setDevicePagination);
 	const voiceHistory = useVoiceHistory(filters, voiceSort, voicePagination, setVoicePagination);
 
-	// Client-side sorting to prevent re-fetching
-	const sortData = (data: any[], sortState: SortState) => {
-		if (!data || data.length === 0) return data;
-
-		return [...data].sort((a, b) => {
-			let aVal = a[sortState.field];
-			let bVal = b[sortState.field];
-
-			// Handle date fields
-			if (sortState.field === 'timestamp' || sortState.field === 'createdAt') {
-				aVal = new Date(aVal).getTime();
-				bVal = new Date(bVal).getTime();
-			}
-
-			// Handle numeric fields
-			if (typeof aVal === 'number' && typeof bVal === 'number') {
-				return sortState.direction === 'asc' ? aVal - bVal : bVal - aVal;
-			}
-
-			// Handle string fields
-			if (typeof aVal === 'string' && typeof bVal === 'string') {
-				return sortState.direction === 'asc'
-					? aVal.localeCompare(bVal)
-					: bVal.localeCompare(aVal);
-			}
-
-			return 0;
-		});
-	};
-
 	const handlePageChange = (tab: 'sensors' | 'controls' | 'voice', page: number) => {
 		switch (tab) {
 			case 'sensors':
@@ -125,9 +95,9 @@ export const useHistoryData = (
 	}, [filters.pageSize]);
 
 	return {
-		sensorData: sortData(sensorHistory.data, sensorSort),
-		deviceControls: sortData(deviceHistory.data, deviceSort),
-		voiceCommands: sortData(voiceHistory.data, voiceSort),
+		sensorData: sensorHistory.data,
+		deviceControls: deviceHistory.data,
+		voiceCommands: voiceHistory.data,
 		sensorPagination,
 		devicePagination,
 		voicePagination,

@@ -20,9 +20,19 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 			dateTo,
 			from,
 			to,
-			sortBy = 'timestamp',
+			command,
+			processed,
+			minConfidence,
+			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
+
+		// Validate sortBy parameter - include all possible sort fields for voice commands
+		const validSortFields = ['createdAt', 'command', 'confidence', 'processed'];
+		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+
+		// Log sort parameters for debugging
+		console.log(`🔍 VoiceCommands sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
 
 		const query: any = {};
 
@@ -32,16 +42,31 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
 		// Filter by date range if provided
 		if (fromDate || toDate) {
-			query.timestamp = {};
-			if (fromDate) query.timestamp.$gte = new Date(fromDate);
-			if (toDate) query.timestamp.$lte = new Date(toDate);
+			query.createdAt = {};
+			if (fromDate) query.createdAt.$gte = new Date(fromDate);
+			if (toDate) query.createdAt.$lte = new Date(toDate);
+		}
+
+		// Command text filter (case-insensitive search)
+		if (command && command.trim() !== '') {
+			query.command = { $regex: command.trim(), $options: 'i' };
+		}
+
+		// Processed status filter
+		if (processed !== undefined && processed !== '') {
+			query.processed = processed === 'true';
+		}
+
+		// Minimum confidence filter
+		if (minConfidence && !isNaN(parseFloat(minConfidence))) {
+			query.confidence = { $gte: parseFloat(minConfidence) };
 		}
 
 		const skip = (page - 1) * limit;
 
 		// Build sort object
 		const sortObj: any = {};
-		sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+		sortObj[actualSortBy] = sortOrder === 'asc' ? 1 : -1;
 
 		const [commands, total] = await Promise.all([
 			VoiceCommand.find(query)
@@ -52,10 +77,16 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 			VoiceCommand.countDocuments(query)
 		]);
 
+		// Format timestamps for consistent display
+		const formattedCommands = commands.map(cmd => ({
+			...cmd,
+			timestamp: cmd.createdAt ? cmd.createdAt.toISOString() : new Date().toISOString()
+		}));
+
 		const response: APIResponse = {
 			success: true,
 			data: {
-				voiceCommands: commands,
+				voiceCommands: formattedCommands,
 				pagination: {
 					page,
 					limit,
@@ -63,6 +94,21 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 					totalPages: Math.ceil(total / limit),
 					hasNext: page < Math.ceil(total / limit),
 					hasPrev: page > 1
+				},
+				filters: {
+					applied: {
+						dateFrom: fromDate,
+						dateTo: toDate,
+						command,
+						processed,
+						minConfidence,
+						sortBy: actualSortBy,
+						sortOrder
+					},
+					available: {
+						sortFields: validSortFields,
+						processedOptions: [true, false]
+					}
 				}
 			},
 			message: 'Voice commands retrieved successfully',

@@ -39,7 +39,7 @@ export class VoiceCommandOptimizer {
 						id: (voiceCommand as any)._id.toString(),
 						command: voiceCommand.command,
 						confidence: voiceCommand.confidence,
-						timestamp: voiceCommand.timestamp.toISOString(),
+						timestamp: voiceCommand.createdAt?.toISOString() || new Date().toISOString(),
 						processed: true
 					});
 

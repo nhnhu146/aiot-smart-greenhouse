@@ -9,9 +9,9 @@ export class DeviceHistoryController {
 
 		const query: any = {};
 		if (from || to) {
-			query.timestamp = {};
-			if (from) query.timestamp.$gte = from;
-			if (to) query.timestamp.$lte = to;
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = from;
+			if (to) query.createdAt.$lte = to;
 		}
 
 		const skip = (page - 1) * limit;
@@ -59,13 +59,13 @@ export class DeviceHistoryController {
 			userId,
 			triggeredBy,
 			success,
-			sortBy = 'timestamp',
+			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
 
 		// Validate sortBy parameter - include all possible sort fields
-		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'controlType', 'triggeredBy', 'userId', 'deviceId', 'success'];
-		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'timestamp';
+		const validSortFields = ['createdAt', 'deviceType', 'action', 'status', 'controlType', 'triggeredBy', 'userId', 'deviceId', 'success'];
+		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
 
 		// Log sort parameters for debugging
 		console.log(`🔍 DeviceHistory sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
@@ -77,9 +77,9 @@ export class DeviceHistoryController {
 		const toDate = dateTo || to;
 
 		if (fromDate || toDate) {
-			query.timestamp = {};
-			if (fromDate) query.timestamp.$gte = new Date(fromDate);
-			if (toDate) query.timestamp.$lte = new Date(toDate);
+			query.createdAt = {};
+			if (fromDate) query.createdAt.$gte = new Date(fromDate);
+			if (toDate) query.createdAt.$lte = new Date(toDate);
 		}
 
 		// Device filters
@@ -133,7 +133,7 @@ export class DeviceHistoryController {
 		// Format timestamps for consistent display
 		const formattedDeviceControls = deviceControls.map(control => ({
 			...control,
-			timestamp: control.timestamp ? control.timestamp.toISOString() : new Date().toISOString()
+			timestamp: control.createdAt ? control.createdAt.toISOString() : new Date().toISOString()
 		}));
 
 		const response: APIResponse = {
@@ -175,9 +175,9 @@ export class DeviceHistoryController {
 		try {
 			const query: any = {};
 			if (from || to) {
-				query.timestamp = {};
-				if (from) query.timestamp.$gte = from;
-				if (to) query.timestamp.$lte = to;
+				query.createdAt = {};
+			if (from) query.createdAt.$gte = from;
+			if (to) query.createdAt.$lte = to;
 			}
 
 			const count = await DeviceHistory.countDocuments(query);

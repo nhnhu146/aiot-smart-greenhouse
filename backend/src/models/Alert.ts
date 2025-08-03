@@ -10,10 +10,11 @@ export interface IAlert extends Document {
 		max?: number;
 	};
 	deviceType?: string;
-	timestamp: Date;
 	resolved: boolean;
 	acknowledged?: boolean;
 	acknowledgedAt?: Date;
+	createdAt?: Date;
+	updatedAt?: Date;
 }
 
 const AlertSchema = new mongoose.Schema({
@@ -39,10 +40,6 @@ const AlertSchema = new mongoose.Schema({
 		max: Number
 	},
 	deviceType: String,
-	timestamp: {
-		type: Date,
-		default: Date.now
-	},
 	resolved: {
 		type: Boolean,
 		default: false
@@ -54,7 +51,9 @@ const AlertSchema = new mongoose.Schema({
 	acknowledgedAt: {
 		type: Date
 	}
-});
+}, {
+	timestamps: true // Use MongoDB's createdAt/updatedAt instead of custom timestamp
+});;
 
 const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
 

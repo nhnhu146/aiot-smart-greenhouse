@@ -13,7 +13,7 @@ export class VoiceCommandService {
 			const voiceCommand = new VoiceCommand({
 				command: command.toLowerCase().trim(),
 				confidence,
-				timestamp: new Date(),
+				// timestamps: true will auto-generate createdAt/updatedAt
 				processed: false
 			});
 
@@ -32,7 +32,7 @@ export class VoiceCommandService {
 				id: (voiceCommand._id as any)?.toString() || 'unknown',
 				command: voiceCommand.command,
 				confidence: voiceCommand.confidence,
-				timestamp: voiceCommand.timestamp.toISOString(),
+				timestamp: voiceCommand.createdAt?.toISOString() || new Date().toISOString(),
 				processed: true
 			});
 
@@ -46,7 +46,7 @@ export class VoiceCommandService {
 				const voiceCommand = new VoiceCommand({
 					command: command.toLowerCase().trim(),
 					confidence,
-					timestamp: new Date(),
+					// timestamps: true will auto-generate createdAt/updatedAt
 					processed: true,
 					errorMessage: error instanceof Error ? error.message : 'Unknown error'
 				});
@@ -89,7 +89,7 @@ export class VoiceCommandService {
 	async getVoiceCommands(limit: number = 50): Promise<any[]> {
 		try {
 			const commands = await VoiceCommand.find()
-				.sort({ timestamp: -1 })
+				.sort({ createdAt: -1 })
 				.limit(limit)
 				.lean();
 
@@ -97,7 +97,7 @@ export class VoiceCommandService {
 				id: cmd._id?.toString() || 'unknown',
 				command: cmd.command,
 				confidence: cmd.confidence,
-				timestamp: cmd.timestamp,
+				timestamp: cmd.createdAt,
 				processed: cmd.processed,
 				errorMessage: cmd.errorMessage
 			}));
