@@ -44,6 +44,12 @@ interface UseWebSocketReturn {
 	alerts: Alert[];
 	sendDeviceControl: (deviceType: string, action: string) => Promise<any>;
 	clearAlerts: () => void;
+	// Enhanced state synchronization
+	deviceStates: any;
+	automationSettings: any;
+	thresholdSettings: any;
+	emailSettings: any;
+	userSettings: any;
 }
 
 export default function useWebSocket(): UseWebSocketReturn {
@@ -61,6 +67,14 @@ export default function useWebSocket(): UseWebSocketReturn {
 	});
 	const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
 	const [alerts, setAlerts] = useState<Alert[]>([]);
+
+	// Enhanced state synchronization
+	const [deviceStates, setDeviceStates] = useState<any>({});
+	const [automationSettings, setAutomationSettings] = useState<any>({});
+	const [thresholdSettings, setThresholdSettings] = useState<any>({});
+	const [emailSettings, setEmailSettings] = useState<any>({});
+	const [userSettings, setUserSettings] = useState<any>({});
+
 	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
 	// Use requestAnimationFrame to prevent UI blocking
@@ -231,7 +245,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 				console.log(`📡 ${deviceType} state update:`, stateData);
 				updateDeviceStatus(stateData);
 			});
-		});		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
+		}); newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts); // Legacy compatibility
 
@@ -282,6 +296,55 @@ export default function useWebSocket(): UseWebSocketReturn {
 			console.log('Received notification:', notification);
 		});
 
+		// Enhanced state synchronization listeners
+		newSocket.on('device:states-sync', (data: any) => {
+			console.log('📡 Device states sync received:', data);
+			setDeviceStates(data.states);
+		});
+
+		newSocket.on('device:state-update', (data: any) => {
+			console.log('📡 Device state update received:', data);
+			setDeviceStates((prev: any) => ({
+				...prev,
+				[data.deviceType]: data.state
+			}));
+		});
+
+		newSocket.on('automation:settings-update', (data: any) => {
+			console.log('📡 Automation settings update received:', data);
+			setAutomationSettings(data.settings);
+		});
+
+		newSocket.on('settings:threshold-update', (data: any) => {
+			console.log('📡 Threshold settings update received:', data);
+			setThresholdSettings(data.thresholds);
+		});
+
+		newSocket.on('settings:email-update', (data: any) => {
+			console.log('📡 Email settings update received:', data);
+			setEmailSettings(data.settings);
+		});
+
+		newSocket.on('user:settings-update', (data: any) => {
+			console.log('📡 User settings update received:', data);
+			setUserSettings(data.settings);
+		});
+
+		newSocket.on('system:config-update', (data: any) => {
+			console.log('📡 System config update received:', data);
+			// Could be used for global configuration updates
+		});
+
+		newSocket.on('database:change', (data: any) => {
+			console.log('📡 Database change received:', data);
+			// Real-time database synchronization
+		});
+
+		newSocket.on('connection:health', (data: any) => {
+			console.log('📡 Connection health update:', data);
+			// Connection monitoring and health status
+		});
+
 		setSocket(newSocket);
 
 		// Teardown function
@@ -326,6 +389,12 @@ export default function useWebSocket(): UseWebSocketReturn {
 		deviceStatus,
 		alerts,
 		sendDeviceControl,
-		clearAlerts
+		clearAlerts,
+		// Enhanced state synchronization
+		deviceStates,
+		automationSettings,
+		thresholdSettings,
+		emailSettings,
+		userSettings
 	};
 }

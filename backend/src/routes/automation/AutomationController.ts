@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AutomationSettings } from '../../models';
 import { APIResponse } from '../../types';
 import { AutomationConfigSchema, SensorTriggerSchema } from './AutomationValidation';
+import { webSocketService } from '../../services';
 
 export class AutomationController {
 	/**
@@ -63,6 +64,15 @@ export class AutomationController {
 			// Reload automation service and trigger immediate check
 			const { automationService } = await import('../../services');
 			await automationService.reloadConfiguration();
+
+			// Broadcast automation settings update via WebSocket
+			webSocketService.broadcastAutomationUpdate(settings);
+
+			// Broadcast database change
+			webSocketService.broadcastDatabaseChange('AutomationSettings', 'update', {
+				type: 'configuration',
+				data: settings
+			});
 
 			if (settings.automationEnabled) {
 				await automationService.processImmediateAutomationCheck();

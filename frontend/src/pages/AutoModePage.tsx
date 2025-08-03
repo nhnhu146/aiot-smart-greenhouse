@@ -6,6 +6,7 @@ import PumpThresholdCard from '@/components/AutoMode/PumpThresholdCard';
 import TemperatureThresholdCard from '@/components/AutoMode/TemperatureThresholdCard';
 import RainSettingsCard from '@/components/AutoMode/RainSettingsCard';
 import AutomationActions from '@/components/AutoMode/AutomationActions';
+import UnsavedChangesWarning from '@/components/Common/UnsavedChangesWarning';
 import { useAutomationPage } from '@/hooks/useAutomationPage';
 import './AutoModePage.css';
 
@@ -19,6 +20,7 @@ const AutoModePage = () => {
 		runningCheck,
 		message,
 		autoMode,
+		hasUnsavedChanges,
 		isAnyActionInProgress,
 		handleAutomationToggle,
 		handleInputChange,
@@ -45,6 +47,8 @@ const AutoModePage = () => {
 			/>
 
 			<AutomationMessageDisplay message={message} />
+
+			<UnsavedChangesWarning hasUnsavedChanges={hasUnsavedChanges} />
 
 			<div className="settings-grid">
 				<ControlToggleCard

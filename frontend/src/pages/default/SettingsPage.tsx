@@ -4,6 +4,7 @@ import apiClient from '@/lib/apiClient';
 import MockDataToggle from '@/components/MockDataToggle/MockDataToggle';
 import ThresholdSettingsCard from '@/components/SettingsPage/ThresholdSettingsCard';
 import EmailSettingsCard from '@/components/SettingsPage/EmailSettingsCard';
+import UnsavedChangesWarning from '@/components/Common/UnsavedChangesWarning';
 import withAuth from '@/components/withAuth/withAuth';
 
 interface ThresholdSettings {
@@ -50,11 +51,28 @@ const SettingsPage = () => {
 	const [emailError, setEmailError] = useState('');
 	const [message, setMessage] = useState<SystemMessage | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+	const [originalSettings, setOriginalSettings] = useState<any>(null);
 
 	// Load settings on component mount
 	useEffect(() => {
 		loadSettings();
 	}, []);
+
+	// Track changes to determine if there are unsaved changes
+	useEffect(() => {
+		if (originalSettings) {
+			const currentSettings = {
+				thresholds,
+				emailRecipients,
+				emailAlerts,
+				alertFrequency,
+				batchAlerts
+			};
+			const hasChanged = JSON.stringify(currentSettings) !== JSON.stringify(originalSettings);
+			setHasUnsavedChanges(hasChanged);
+		}
+	}, [thresholds, emailRecipients, emailAlerts, alertFrequency, batchAlerts, originalSettings]);
 
 	const loadSettings = async () => {
 		try {
@@ -67,6 +85,16 @@ const SettingsPage = () => {
 				if (settings.emailAlerts) setEmailAlerts(settings.emailAlerts);
 				if (settings.alertFrequency) setAlertFrequency(settings.alertFrequency);
 				if (settings.batchAlerts !== undefined) setBatchAlerts(settings.batchAlerts);
+
+				// Store original settings for comparison
+				setOriginalSettings({
+					thresholds: settings.thresholds || thresholds,
+					emailRecipients: settings.emailRecipients || [],
+					emailAlerts: settings.emailAlerts || emailAlerts,
+					alertFrequency: settings.alertFrequency || alertFrequency,
+					batchAlerts: settings.batchAlerts !== undefined ? settings.batchAlerts : batchAlerts
+				});
+				setHasUnsavedChanges(false);
 			}
 		} catch (error) {
 			console.error('Failed to load settings:', error);
@@ -90,6 +118,8 @@ const SettingsPage = () => {
 			const response = await apiClient.saveSettings(settings);
 			if (response.success) {
 				setMessage({ type: 'success', text: 'Settings saved successfully!' });
+				setOriginalSettings(settings);
+				setHasUnsavedChanges(false);
 			}
 		} catch (error) {
 			console.error('Failed to save settings:', error);
@@ -145,11 +175,14 @@ const SettingsPage = () => {
 				</Alert>
 			)}
 
+			<UnsavedChangesWarning hasUnsavedChanges={hasUnsavedChanges} />
+
 			<Tabs defaultActiveKey="thresholds" className="mb-4">
 				<Tab eventKey="thresholds" title="📊 Sensor Thresholds">
 					<ThresholdSettingsCard
 						thresholds={thresholds}
 						onThresholdChange={handleThresholdChange}
+						hasUnsavedChanges={hasUnsavedChanges}
 					/>
 				</Tab>
 

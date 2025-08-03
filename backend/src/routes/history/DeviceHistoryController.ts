@@ -58,6 +58,10 @@ export class DeviceHistoryController {
 			sortOrder = 'desc'
 		} = req.query as any;
 
+		// Validate sortBy parameter
+		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'createdAt'];
+		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'timestamp';
+
 		const query: any = {};
 
 		// Handle date filters - support both from/to and dateFrom/dateTo
@@ -84,7 +88,7 @@ export class DeviceHistoryController {
 
 		// Build sort object
 		const sortObj: any = {};
-		sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+		sortObj[actualSortBy] = sortOrder === 'asc' ? 1 : -1;
 
 		const deviceControls = await DeviceHistory.find(query)
 			.sort(sortObj)

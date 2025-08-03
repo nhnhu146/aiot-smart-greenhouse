@@ -11,7 +11,7 @@ export class DeviceStateController {
 	static async getAllStates(req: Request, res: Response): Promise<void> {
 		try {
 			const devices = await DeviceStatus.find().lean();
-			
+
 			const deviceStates = devices.reduce((acc: any, device) => {
 				acc[device.deviceType] = {
 					status: device.status,
@@ -169,20 +169,25 @@ export class DeviceStateController {
 	static async syncAllStates(req: Request, res: Response): Promise<void> {
 		try {
 			const devices = await DeviceStatus.find().lean();
-			
-			// Broadcast all device states
-			for (const device of devices) {
-				webSocketService.broadcastDeviceStatus(device.deviceType, {
-					device: device.deviceType,
-					status: device.status ? 'on' : 'off',
-					timestamp: new Date().toISOString()
-				});
-			}
+
+			// Create device states map
+			const deviceStates = devices.reduce((acc: any, device) => {
+				acc[device.deviceType] = {
+					status: device.status,
+					isOnline: device.isOnline,
+					lastCommand: device.lastCommand,
+					updatedAt: device.updatedAt
+				};
+				return acc;
+			}, {});
+
+			// Broadcast sync event with all states
+			webSocketService.broadcastDeviceStateSync(deviceStates);
 
 			const response: APIResponse = {
 				success: true,
 				message: 'Device states synchronized successfully',
-				data: { synced: devices.length },
+				data: { synced: devices.length, states: deviceStates },
 				timestamp: new Date().toISOString()
 			};
 

@@ -1,0 +1,11 @@
+{
+  "registry-mirrors": [
+    "https://registry-1.docker.io",
+    "https://index.docker.io"
+  ],
+  "dns": ["8.8.8.8", "1.1.1.1"],
+  "max-concurrent-downloads": 3,
+  "max-concurrent-uploads": 3,
+  "debug": false,
+  "experimental": false
+}

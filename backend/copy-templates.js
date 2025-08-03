@@ -32,5 +32,9 @@ if (fs.existsSync(srcTemplatesPath)) {
 	copyDir(srcTemplatesPath, distTemplatesPath);
 	console.log('✅ Templates copied successfully');
 } else {
-	console.log('⚠️ Source templates directory not found');
+	console.log('⚠️ Source templates directory not found - creating empty templates directory');
+	// Create empty templates directory to avoid runtime errors
+	if (!fs.existsSync(distTemplatesPath)) {
+		fs.mkdirSync(distTemplatesPath, { recursive: true });
+	}
 }

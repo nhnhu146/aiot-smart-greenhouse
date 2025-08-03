@@ -164,6 +164,19 @@ export class MQTTHandler {
 				} catch (automationError) {
 					console.error(`❌ Automation processing error for ${sensorType}:`, automationError);
 				}
+
+				// Broadcast updated sensor data via WebSocket
+				try {
+					webSocketService.broadcastSensorData(`greenhouse/sensors/${sensorType}`, {
+						type: sensorType,
+						value: value,
+						timestamp: finalDoc.createdAt.toISOString(),
+						quality: 'good'
+					});
+					console.log(`📡 Broadcasted ${sensorType} sensor data update via WebSocket`);
+				} catch (wsError) {
+					console.error(`❌ WebSocket broadcast error for ${sensorType}:`, wsError);
+				}
 			}
 
 		} catch (error) {

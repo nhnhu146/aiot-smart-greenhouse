@@ -85,16 +85,62 @@ const ThresholdSettingsCard: React.FC<ThresholdSettingsCardProps> = ({
 				<Row>
 					<Col md={6}>
 						<h6>🌱 Soil Moisture (Binary)</h6>
-						<Form.Text className="text-muted">
-							Binary sensor: 0 = Dry, 1 = Wet
-						</Form.Text>
+						<Row>
+							<Col>
+								<Form.Group className="mb-3">
+									<Form.Label>Min (Dry Threshold):</Form.Label>
+									<Form.Select
+										value={thresholds.soilMoistureThreshold.min}
+										onChange={(e) => onThresholdChange('soilMoistureThreshold', 'min', parseFloat(e.target.value))}
+									>
+										<option value={0}>0 - Dry</option>
+										<option value={1}>1 - Wet</option>
+									</Form.Select>
+								</Form.Group>
+							</Col>
+							<Col>
+								<Form.Group className="mb-3">
+									<Form.Label>Max (Wet Threshold):</Form.Label>
+									<Form.Select
+										value={thresholds.soilMoistureThreshold.max}
+										onChange={(e) => onThresholdChange('soilMoistureThreshold', 'max', parseFloat(e.target.value))}
+									>
+										<option value={0}>0 - Dry</option>
+										<option value={1}>1 - Wet</option>
+									</Form.Select>
+								</Form.Group>
+							</Col>
+						</Row>
 					</Col>
 
 					<Col md={6}>
 						<h6>🚰 Water Level (Binary)</h6>
-						<Form.Text className="text-muted">
-							Binary sensor: 0 = Low, 1 = Full
-						</Form.Text>
+						<Row>
+							<Col>
+								<Form.Group className="mb-3">
+									<Form.Label>Min (Low Threshold):</Form.Label>
+									<Form.Select
+										value={thresholds.waterLevelThreshold.min}
+										onChange={(e) => onThresholdChange('waterLevelThreshold', 'min', parseFloat(e.target.value))}
+									>
+										<option value={0}>0 - Low/Empty</option>
+										<option value={1}>1 - Full</option>
+									</Form.Select>
+								</Form.Group>
+							</Col>
+							<Col>
+								<Form.Group className="mb-3">
+									<Form.Label>Max (Full Threshold):</Form.Label>
+									<Form.Select
+										value={thresholds.waterLevelThreshold.max}
+										onChange={(e) => onThresholdChange('waterLevelThreshold', 'max', parseFloat(e.target.value))}
+									>
+										<option value={0}>0 - Low/Empty</option>
+										<option value={1}>1 - Full</option>
+									</Form.Select>
+								</Form.Group>
+							</Col>
+						</Row>
 					</Col>
 				</Row>
 			</Card.Body>

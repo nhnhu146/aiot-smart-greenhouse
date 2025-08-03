@@ -187,6 +187,20 @@ class WebSocketService {
 		this.io.emit(`device-${status.device}`, deviceUpdate);
 	}
 
+	// Broadcast device state sync to all connected clients
+	broadcastDeviceStateSync(deviceStates: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log('📡 Broadcasting device state sync to all clients');
+		this.io.emit('device-states-sync', {
+			states: deviceStates,
+			timestamp: new Date().toISOString()
+		});
+	}
+
 	// Broadcast alerts to all connected clients
 	broadcastAlert(alert: AlertData) {
 		if (!this.io) {
@@ -391,11 +405,116 @@ class WebSocketService {
 
 		// Emit to device state channel
 		this.io.emit('device:state-update', stateData);
-		
+
 		// Also emit to specific device channel for targeted updates
 		this.io.emit(`device:${deviceType}:state`, stateData);
 	}
 
+
+	// Broadcast automation settings changes
+	broadcastAutomationUpdate(settings: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log('📡 Broadcasting automation settings update');
+		this.io.emit('automation:settings-update', {
+			settings,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Broadcast threshold settings changes
+	broadcastThresholdUpdate(thresholds: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log('📡 Broadcasting threshold settings update');
+		this.io.emit('settings:threshold-update', {
+			thresholds,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Broadcast email settings changes
+	broadcastEmailSettingsUpdate(settings: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log('📡 Broadcasting email settings update');
+		this.io.emit('settings:email-update', {
+			settings,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Broadcast system configuration changes
+	broadcastSystemConfigUpdate(config: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log('📡 Broadcasting system config update');
+		this.io.emit('system:config-update', {
+			config,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Broadcast user settings changes
+	broadcastUserSettingsUpdate(userId: string, settings: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`📡 Broadcasting user settings update for: ${userId}`);
+		this.io.emit('user:settings-update', {
+			userId,
+			settings,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Broadcast database changes (for real-time sync)
+	broadcastDatabaseChange(collection: string, operation: string, data: any) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`📡 Broadcasting database change: ${collection}.${operation}`);
+		this.io.emit('database:change', {
+			collection,
+			operation,
+			data,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Enhanced connection health monitoring
+	broadcastConnectionHealth() {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		const stats = {
+			connectedClients: this.connectedClients.size,
+			clientIds: Array.from(this.connectedClients.keys()),
+			timestamp: new Date().toISOString(),
+			serverUptime: process.uptime()
+		};
+
+		this.io.emit('connection:health', stats);
+		return stats;
+	}
 }
 
 export const webSocketService = new WebSocketService();

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { webSocketService } from '../services';
 import { asyncHandler } from '../middleware';
 import { SettingsHandlers } from './settings/SettingsHandlers';
 

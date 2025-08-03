@@ -1,6 +1,7 @@
 import { Settings } from '../../models';
 import { APIResponse } from '../../types';
 import { ThresholdSchema } from './SettingsValidation';
+import { webSocketService } from '../../services';
 
 /**
  * Settings Controller - Core settings operations only
@@ -34,11 +35,20 @@ export class SettingsController {
 	static async updateThresholds(data: any): Promise<APIResponse> {
 		const validatedData = ThresholdSchema.parse(data);
 
-		await Settings.findOneAndUpdate(
+		const updatedSettings = await Settings.findOneAndUpdate(
 			{},
 			{ $set: validatedData },
 			{ upsert: true, new: true }
 		);
+
+		// Broadcast threshold update via WebSocket
+		webSocketService.broadcastThresholdUpdate(validatedData);
+
+		// Broadcast database change
+		webSocketService.broadcastDatabaseChange('Settings', 'update', {
+			type: 'thresholds',
+			data: validatedData
+		});
 
 		return {
 			success: true,

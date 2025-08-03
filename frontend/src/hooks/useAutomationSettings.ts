@@ -33,6 +33,8 @@ export const useAutomationSettings = () => {
 	const [reloading, setReloading] = useState(false);
 	const [runningCheck, setRunningCheck] = useState(false);
 	const [message, setMessage] = useState<AutomationMessage | null>(null);
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+	const [originalSettings, setOriginalSettings] = useState<AutomationSettings | null>(null);
 
 	const showMessage = (type: 'success' | 'danger', text: string) => {
 		setMessage({ type, text });
@@ -49,6 +51,8 @@ export const useAutomationSettings = () => {
 
 			if (data.success && data.data) {
 				setSettings(data.data);
+				setOriginalSettings(data.data);
+				setHasUnsavedChanges(false);
 				if (showSuccessMessage) {
 					showMessage('success', 'Settings reloaded successfully!');
 				}
@@ -75,6 +79,8 @@ export const useAutomationSettings = () => {
 			const data = await response.json();
 
 			if (data.success) {
+				setOriginalSettings(settings);
+				setHasUnsavedChanges(false);
 				showMessage('success', 'Settings saved successfully!');
 			} else {
 				showMessage('danger', data.message || 'Failed to save settings');
@@ -98,6 +104,8 @@ export const useAutomationSettings = () => {
 
 			if (data.success) {
 				setSettings(data.data);
+				setOriginalSettings(data.data);
+				setHasUnsavedChanges(false);
 				showMessage('success', 'Settings reset to defaults!');
 			} else {
 				showMessage('danger', data.message || 'Failed to reset settings');
@@ -134,17 +142,23 @@ export const useAutomationSettings = () => {
 
 	const handleInputChange = (field: string, value: any, parentField?: string) => {
 		setSettings(prev => {
-			if (parentField) {
-				const parent = prev[parentField as keyof AutomationSettings] as any;
-				return {
+			const newSettings = parentField
+				? {
 					...prev,
 					[parentField]: {
-						...parent,
+						...(prev[parentField as keyof AutomationSettings] as any),
 						[field]: value
 					}
-				};
+				}
+				: { ...prev, [field]: value };
+
+			// Check if settings have changed from original
+			if (originalSettings) {
+				const hasChanged = JSON.stringify(newSettings) !== JSON.stringify(originalSettings);
+				setHasUnsavedChanges(hasChanged);
 			}
-			return { ...prev, [field]: value };
+
+			return newSettings;
 		});
 	};
 
@@ -157,6 +171,7 @@ export const useAutomationSettings = () => {
 		reloading,
 		runningCheck,
 		message,
+		hasUnsavedChanges,
 		showMessage,
 		loadSettings,
 		saveSettings,

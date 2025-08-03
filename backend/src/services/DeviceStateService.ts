@@ -2,10 +2,10 @@ import { DeviceStatus } from '../models';
 import { webSocketService } from './WebSocketService';
 
 export class DeviceStateService {
-	
+
 	async updateDeviceState(
-		deviceType: string, 
-		status: boolean, 
+		deviceType: string,
+		status: boolean,
 		lastCommand?: string
 	): Promise<void> {
 		try {
@@ -17,20 +17,35 @@ export class DeviceStateService {
 				updatedAt: new Date()
 			};
 
-			await DeviceStatus.findOneAndUpdate(
+			const updatedState = await DeviceStatus.findOneAndUpdate(
 				{ deviceType },
 				updateData,
 				{ upsert: true, new: true }
 			);
 
-			// Broadcast device state update via WebSocket
+			// Enhanced WebSocket broadcasting
 			webSocketService.broadcastDeviceStatus(`greenhouse/devices/${deviceType}/status`, {
 				device: deviceType,
 				status: status ? 'on' : 'off',
 				timestamp: new Date().toISOString()
 			});
 
-			console.log(`📊 Device state updated: ${deviceType} -> ${status ? 'ON' : 'OFF'}`);
+			// Broadcast individual device state update
+			webSocketService.broadcastDeviceStateUpdate(deviceType, {
+				status,
+				isOnline: true,
+				lastCommand: updateData.lastCommand,
+				updatedAt: updateData.updatedAt
+			});
+
+			// Broadcast database change
+			webSocketService.broadcastDatabaseChange('DeviceStatus', 'update', {
+				deviceType,
+				previousState: null, // Could store previous state if needed
+				newState: updateData
+			});
+
+			console.log(`📊 Device state updated and broadcasted: ${deviceType} -> ${status ? 'ON' : 'OFF'}`);
 
 		} catch (error) {
 			console.error(`❌ Error updating device state for ${deviceType}:`, error);
@@ -52,6 +67,29 @@ export class DeviceStateService {
 		} catch (error) {
 			console.error('❌ Error fetching all device states:', error);
 			return [];
+		}
+	}
+
+	async syncAllDeviceStates(): Promise<void> {
+		try {
+			const allStates = await DeviceStatus.find({});
+			const statesMap: any = {};
+
+			allStates.forEach(device => {
+				statesMap[device.deviceType] = {
+					status: device.status,
+					isOnline: device.isOnline,
+					lastCommand: device.lastCommand,
+					updatedAt: device.updatedAt
+				};
+			});
+
+			// Broadcast complete state sync using the new method
+			webSocketService.broadcastDeviceStateSync(statesMap);
+
+			console.log('📡 All device states synchronized via WebSocket');
+		} catch (error) {
+			console.error('❌ Error syncing all device states:', error);
 		}
 	}
 }
