@@ -45,8 +45,7 @@ export const AutomationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 				}));
 			}
 		} catch (error) {
-			console.error('Error loading automation status:', error);
-			setState(prev => ({
+						setState(prev => ({
 				...prev,
 				error: 'Failed to load automation status',
 				loading: false
@@ -83,8 +82,7 @@ export const AutomationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 				return false;
 			}
 		} catch (error) {
-			console.error('Error toggling automation:', error);
-			setState(prev => ({
+						setState(prev => ({
 				...prev,
 				error: 'Failed to toggle automation',
 				loading: false

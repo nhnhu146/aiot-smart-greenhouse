@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react';
-import { SensorData } from '@/services/mockDataService';
-import mockDataService from '@/services/mockDataService';
+import apiClient from '@/lib/apiClient';
+
+export interface SensorData {
+	temperature?: number;
+	humidity?: number;
+	soilMoisture?: number;
+	waterLevel?: number;
+	lightLevel?: number;
+	rainStatus?: number | boolean;
+	plantHeight?: number;
+	timestamp: string;
+	_id?: string;
+	createdAt?: string;
+	dataQuality?: string;
+}
 
 export const useSensorData = (persistentSensorData: any, isConnected: boolean) => {
 	const [data, setData] = useState<SensorData | null>(null);
@@ -10,18 +23,22 @@ export const useSensorData = (persistentSensorData: any, isConnected: boolean) =
 	// Handle real-time persistent sensor data updates
 	useEffect(() => {
 		if (persistentSensorData) {
-			const { temperature, humidity, soil } = persistentSensorData;
+			const { temperature, humidity, soil, water, light, rain, height } = persistentSensorData;
 
 			// Create sensor data object from persistent state - always try to use persistent data
 			const sensorDataObj: SensorData = {
 				temperature: temperature?.value || 0,
 				humidity: humidity?.value || 0,
-				soilMoisture: soil?.value || 0, // Changed from 'moisture' to 'soilMoisture' to match backend
+				soilMoisture: soil?.value || 0,
+				waterLevel: water?.value || 0,
+				lightLevel: light?.value || 0,
+				rainStatus: rain?.value || 0,
+				plantHeight: height?.value || 0,
 				timestamp: new Date().toISOString()
 			};
 
 			// Always update with persistent data if available, regardless of connection status
-			if (temperature || humidity || soil) {
+			if (temperature || humidity || soil || water || light || rain || height) {
 				setData(sensorDataObj);
 				setIsUsingMockData(false);
 				setIsLoading(false); // Stop loading once we have data
@@ -29,51 +46,45 @@ export const useSensorData = (persistentSensorData: any, isConnected: boolean) =
 		}
 	}, [persistentSensorData]);
 
-	// Initial data fetch
+	// Initial data fetch from API - no more mock fallbacks
 	useEffect(() => {
-		let shutdownMockUpdates: (() => void) | null = null;
+		const fetchLatestSensorData = async () => {
+			// Only fetch from API if we don't have persistent WebSocket data yet
+			if (!persistentSensorData || Object.keys(persistentSensorData).length === 0) {
+				try {
+					setIsLoading(true);
+					const response = await apiClient.get('/api/sensors/latest');
 
-		const fetchData = async () => {
-			try {
-				// Check if mock data is enabled in settings
-				const isUsingMock = mockDataService.isUsingMockData();
+					if (response.data && response.data.success && response.data.data) {
+						const apiData = response.data.data;
+						const sensorDataObj: SensorData = {
+							temperature: apiData.temperature || 0,
+							humidity: apiData.humidity || 0,
+							soilMoisture: apiData.soilMoisture || 0,
+							waterLevel: apiData.waterLevel || 0,
+							lightLevel: apiData.lightLevel || 0,
+							rainStatus: apiData.rainStatus || 0,
+							plantHeight: apiData.plantHeight || 0,
+							timestamp: apiData.createdAt || new Date().toISOString(),
+							_id: apiData._id,
+							createdAt: apiData.createdAt,
+							dataQuality: apiData.dataQuality
+						};
 
-				if (isUsingMock) {
-					// Use mock data
-					const result = await mockDataService.getSensorData();
-					if (result.data) {
-						setData(result.data);
-						setIsUsingMockData(true);
-
-						// Start mock data updates for realistic simulation
-						shutdownMockUpdates = mockDataService.startMockDataUpdates(5000);
+						setData(sensorDataObj);
+						setIsUsingMockData(false);
 					}
-				} else {
-					// Use real data from API as fallback if no persistent data yet
-					if (!persistentSensorData || !isConnected) {
-						const result = await mockDataService.getSensorData();
-						if (result.data) {
-							setData(result.data);
-							setIsUsingMockData(result.isMock);
-						}
-					}
+				} catch (error) {
+									} finally {
+					setIsLoading(false);
 				}
-
-				setIsLoading(false);
-			} catch (error) {
-				console.error('Failed to fetch sensor data:', error);
+			} else {
+				// We have WebSocket data, stop loading
 				setIsLoading(false);
 			}
 		};
 
-		fetchData();
-
-		// Teardown function
-		return () => {
-			if (shutdownMockUpdates) {
-				shutdownMockUpdates();
-			}
-		};
+		fetchLatestSensorData();
 	}, [persistentSensorData, isConnected]);
 
 	return {

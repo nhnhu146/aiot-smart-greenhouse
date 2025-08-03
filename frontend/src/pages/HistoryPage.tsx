@@ -12,6 +12,7 @@ import AlertHistoryTable from "@/components/AlertHistory/AlertHistoryTable";
 import TabContent from "@/components/History/TabContent";
 import HistoryHeader from "@/components/History/HistoryHeader";
 import HistoryFilters from "@/components/History/HistoryFilters";
+import ErrorBoundary from "@/components/Common/ErrorBoundary";
 import withAuth from "@/components/withAuth/withAuth";
 import './HistoryPage.css';
 
@@ -117,11 +118,13 @@ const HistoryPage: React.FC = () => {
 						isEmpty={sensorData.length === 0}
 						emptyMessage="No sensor data found. Try adjusting filters or check your connection."
 					>
-						<SensorDataTable
-							data={sensorData}
-							sortState={sensorSort}
-							onSort={handleSort}
-						/>
+						<ErrorBoundary>
+							<SensorDataTable
+								data={sensorData}
+								sortState={sensorSort}
+								onSort={handleSort}
+							/>
+						</ErrorBoundary>
 					</TabContent>
 				);
 
@@ -135,11 +138,13 @@ const HistoryPage: React.FC = () => {
 						isEmpty={deviceControls.length === 0}
 						emptyMessage="No device control data found. Try adjusting filters or check your connection."
 					>
-						<DeviceControlTable
-							data={deviceControls}
-							sortState={deviceSort}
-							onSort={handleSort}
-						/>
+						<ErrorBoundary>
+							<DeviceControlTable
+								data={deviceControls}
+								sortState={deviceSort}
+								onSort={handleSort}
+							/>
+						</ErrorBoundary>
 					</TabContent>
 				);
 

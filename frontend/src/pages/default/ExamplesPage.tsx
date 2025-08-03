@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Container, Row, Tab, Tabs, Card, Badge, Button, Alert } from 'react-bootstrap';
 import SensorTopicCard from '@/components/ExamplesPage/SensorTopicCard';
 import ControlTopicCard from '@/components/ExamplesPage/ControlTopicCard';
-import { sensorTopics, controlTopics, apiEndpoints, websocketEvents } from '@/components/ExamplesPage/topicsData';
+import { sensorTopics, controlTopics, apiEndpoints, websocketEvents } from '@/components/ExamplesPage/data';
 import styles from './ExamplesPage.module.css';
 
 const ExamplesPage = () => {

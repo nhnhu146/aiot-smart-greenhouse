@@ -22,6 +22,9 @@ export interface FilterState {
 	deviceType: string;
 	controlType: string;
 
+	// Voice command filters
+	command: string;
+
 	// Pagination options
 	pageSize: string;
 }

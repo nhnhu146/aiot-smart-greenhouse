@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import apiClient from '@/lib/apiClient';
 import { FilterState } from '@/types/history';
 
 export const useHistoryExport = () => {
 	const [isExporting, setIsExporting] = useState(false);
+	const exportInProgress = useRef(false); // Prevent multiple simultaneous exports
 
 	const exportData = async (
 		format: 'json' | 'csv',
 		tab?: 'sensors' | 'controls' | 'voice',
 		filters?: FilterState
 	) => {
+		// Prevent multiple simultaneous exports
+		if (exportInProgress.current) {
+			return;
+		}
+
+		exportInProgress.current = true;
 		setIsExporting(true);
+
 		try {
 			let endpoint = '';
 			let filename = '';
@@ -43,7 +51,7 @@ export const useHistoryExport = () => {
 			// Apply filters if provided - only add non-empty values
 			if (filters) {
 				Object.entries(filters).forEach(([key, value]) => {
-					if (value && value.trim() !== '') {
+					if (value && typeof value === 'string' && value.trim() !== '') {
 						// Map filter keys to API parameter names
 						const paramName = key === 'controlType' ? 'action' : key;
 						params.append(paramName, value);
@@ -52,6 +60,10 @@ export const useHistoryExport = () => {
 			}
 
 			const response = await apiClient.get(`${endpoint}?${params.toString()}`);
+
+			if (!response.data) {
+				throw new Error('No data received from server');
+			}
 
 			// Create and download file
 			const blob = new Blob([
@@ -70,10 +82,15 @@ export const useHistoryExport = () => {
 			window.URL.revokeObjectURL(url);
 
 		} catch (error) {
-			console.error('Export failed:', error);
-			alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+						const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+			alert(`Export failed: ${errorMessage}`);
 		} finally {
-			setIsExporting(false);
+			// Always reset the exporting state, even if there was an error
+			exportInProgress.current = false;
+			// Use a small delay to prevent visual flicker
+			setTimeout(() => {
+				setIsExporting(false);
+			}, 200);
 		}
 	};
 

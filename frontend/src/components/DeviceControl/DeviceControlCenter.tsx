@@ -31,7 +31,6 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 	const { forceRefresh } = useDeviceSync({
 		onStatesSync: (states) => {
 			setDeviceStates(states);
-			console.log('📊 Device states synced via hook:', states);
 		},
 		onStateUpdate: (update) => {
 			setDeviceStates(prev => ({
@@ -44,7 +43,6 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 				}
 			}));
 
-			console.log(`📊 Device ${update.deviceType} state updated:`, update);
 		},
 		autoSync: true
 	});
@@ -59,10 +57,8 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 		try {
 			const states = await deviceStateService.getAllStates();
 			setDeviceStates(states);
-			console.log('📊 Device states loaded:', states);
 		} catch (error) {
-			console.error('❌ Error loading device states:', error);
-		}
+					}
 	}, []);
 
 	const handleDeviceToggle = useCallback(async (device: string) => {
@@ -99,8 +95,6 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 
 			// Update backend state explicitly
 			await deviceStateService.updateDeviceState(device, newState, action);
-
-			console.log(`✅ Device ${device} ${action} command sent successfully`);
 
 		} catch (error) {
 			console.error(`❌ Error controlling device ${device}:`, error);

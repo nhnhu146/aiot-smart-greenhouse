@@ -34,13 +34,26 @@ export const useDeviceHistory = (
 			const params = buildParams();
 			const response = await apiClient.get('/api/history/device-controls', { params });
 
-			// Handle both possible response formats
+			// Handle the correct API response format
 			const responseData = response.data || response;
-			setData(responseData.deviceControls || responseData.data?.deviceControls || []);
-			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
+			let newData = [];
+
+			if (responseData.success && responseData.data && responseData.data.deviceControls) {
+				newData = responseData.data.deviceControls;
+			} else if (responseData.deviceControls) {
+				newData = responseData.deviceControls;
+			} else {
+				console.error('Invalid device controls response format:', responseData);
+				newData = [];
+			}
+
+			setData(newData);
+
+			// Handle pagination
+			const paginationData = responseData.data?.pagination || responseData.pagination || pagination;
+			setPagination(paginationData);
 		} catch (error) {
-			console.error('Error fetching device controls:', error);
-			setData([]);
+						setData([]);
 		} finally {
 			setLoading(false);
 		}
@@ -48,7 +61,16 @@ export const useDeviceHistory = (
 
 	useEffect(() => {
 		fetchData();
-	}, [filters, sort, pagination.page, pagination.limit]);
+	}, [
+		filters.dateFrom,
+		filters.dateTo,
+		filters.deviceType,
+		filters.command,
+		sort.field,
+		sort.direction,
+		pagination.page,
+		pagination.limit
+	]);
 
 	return {
 		data,

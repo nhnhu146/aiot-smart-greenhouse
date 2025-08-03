@@ -95,8 +95,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 					topic: data.topic,
 					value: data.data.value
 				};
-
-				console.log(`📊 Received merged sensor data: ${data.sensor} = ${data.data.value} (quality: ${data.data.quality || 'unknown'})`);
 			} else if (data.type && data.value !== undefined) {
 				// Direct backend format from MQTT handler
 				normalizedData = {
@@ -133,7 +131,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 			} else {
 				// Handle invalid/unexpected data format
-				console.warn('Received invalid sensor data format:', data);
 			}
 		});
 	}, []);
@@ -157,7 +154,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		// Log connection information for debugging
 		logConnectionInfo(serverUrl);
-
 
 		const newSocket = io(serverUrl, config);
 
@@ -194,7 +190,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 			// Don't spam error logs, just warn once per connection attempt
 			if (!newSocket.recovered) {
-				console.warn('Connection recovery attempt failed');
+				// Connection error handled
 			}
 		});
 
@@ -231,117 +227,114 @@ export default function useWebSocket(): UseWebSocketReturn {
 		newSocket.on('sensor-height', updateSensorData);
 		newSocket.on('sensor-rain', updateSensorData);
 
+		// Standardized device events
 		newSocket.on('device:status', updateDeviceStatus);
+		newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
 
 		// Device state update listeners for new state management
-		newSocket.on('device:state-update', (stateData: any) => {
-			console.log('📡 Device state update received:', stateData);
+		newSocket.on('device:state:update', (stateData: any) => {
 			updateDeviceStatus(stateData);
 		});
 
 		// Individual device state listeners
 		['light', 'pump', 'door', 'window'].forEach(deviceType => {
 			newSocket.on(`device:${deviceType}:state`, (stateData: any) => {
-				console.log(`📡 ${deviceType} state update:`, stateData);
 				updateDeviceStatus(stateData);
 			});
-		}); newSocket.on('device-status', updateDeviceStatus); // Legacy compatibility
+		});
+
+		// Device control confirmations
+		newSocket.on('device:control', (_controlData: any) => {
+			// Device control confirmation received
+		});
+
+		// Standardized alerts
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts); // Legacy compatibility
 
 		// Additional service.backup channels
-		newSocket.on('device-control-confirmation', (controlData: any) => {
-			console.log('Device control confirmation:', controlData);
+		newSocket.on('device-control-confirmation', (_controlData: any) => {
+			// Device control confirmation received
 		});
 
-		newSocket.on('voice-command', (voiceData: any) => {
-			console.log('Voice command received:', voiceData);
+		newSocket.on('voice-command', (_voiceData: any) => {
+			// Voice command received
 		});
 
-		newSocket.on('voice-command-history', (voiceData: any) => {
-			console.log('Voice command history update:', voiceData);
+		newSocket.on('voice-command-history', (_voiceData: any) => {
+			// Voice command history update received
 		});
 
-		newSocket.on('automation-status', (automationData: any) => {
-			console.log('Automation status update:', automationData);
+		newSocket.on('automation-status', (_automationData: any) => {
+			// Automation status update received
 		});
 
-		newSocket.on('automation-status-update', (automationData: any) => {
-			console.log('Automation status detailed update:', automationData);
+		newSocket.on('automation-status-update', (_automationData: any) => {
+			// Automation status detailed update received
 		});
 
-		newSocket.on('system-status', (systemData: any) => {
-			console.log('System status update:', systemData);
+		newSocket.on('system-status', (_systemData: any) => {
+			// System status update received
 		});
 
-		newSocket.on('config-update', (configData: any) => {
-			console.log('Configuration update:', configData);
+		newSocket.on('config-update', (_configData: any) => {
+			// Configuration update received
 		});
 
 		newSocket.on('priority-alert', (alertData: any) => {
-			console.log('Priority alert received:', alertData);
 			updateAlerts(alertData);
 		});
 
-		newSocket.on('heartbeat', (heartbeatData: any) => {
-			console.log('Heartbeat received:', heartbeatData);
+		newSocket.on('heartbeat', (_heartbeatData: any) => {
+			// Heartbeat received
 		});
 
-		newSocket.on('connection-status', (statusData: any) => {
-			console.log('Connection status update:', statusData);
+		newSocket.on('connection-status', (_statusData: any) => {
+			// Connection status update received
 		});
 
-		newSocket.on('notification', (notification: any) => {
+		newSocket.on('notification', (_notification: any) => {
 			// Handle notifications here (could show toast, etc.)
-			console.log('Received notification:', notification);
 		});
 
 		// Enhanced state synchronization listeners
-		newSocket.on('device:states-sync', (data: any) => {
-			console.log('📡 Device states sync received:', data);
-			setDeviceStates(data.states);
+		newSocket.on('device:state:sync', (data: any) => {
+			setDeviceStates(data.data?.states || data.states);
 		});
 
-		newSocket.on('device:state-update', (data: any) => {
-			console.log('📡 Device state update received:', data);
+		newSocket.on('device:state:update', (data: any) => {
+			const stateData = data.data || data;
 			setDeviceStates((prev: any) => ({
 				...prev,
-				[data.deviceType]: data.state
+				[stateData.deviceType]: stateData
 			}));
 		});
 
 		newSocket.on('automation:settings-update', (data: any) => {
-			console.log('📡 Automation settings update received:', data);
 			setAutomationSettings(data.settings);
 		});
 
 		newSocket.on('settings:threshold-update', (data: any) => {
-			console.log('📡 Threshold settings update received:', data);
 			setThresholdSettings(data.thresholds);
 		});
 
 		newSocket.on('settings:email-update', (data: any) => {
-			console.log('📡 Email settings update received:', data);
 			setEmailSettings(data.settings);
 		});
 
 		newSocket.on('user:settings-update', (data: any) => {
-			console.log('📡 User settings update received:', data);
 			setUserSettings(data.settings);
 		});
 
-		newSocket.on('system:config-update', (data: any) => {
-			console.log('📡 System config update received:', data);
+		newSocket.on('system:config-update', (_data: any) => {
 			// Could be used for global configuration updates
 		});
 
-		newSocket.on('database:change', (data: any) => {
-			console.log('📡 Database change received:', data);
+		newSocket.on('database:change', (_data: any) => {
 			// Real-time database synchronization
 		});
 
-		newSocket.on('connection:health', (data: any) => {
-			console.log('📡 Connection health update:', data);
+		newSocket.on('connection:health', (_data: any) => {
 			// Connection monitoring and health status
 		});
 
@@ -367,11 +360,9 @@ export default function useWebSocket(): UseWebSocketReturn {
 				action: action as any
 			};
 
-
 			const result = await deviceControlService.sendDeviceControl(request);
 			return result;
 		} catch (error) {
-			console.error('❌ Device control failed:', error);
 			throw error;
 		}
 	}, []);

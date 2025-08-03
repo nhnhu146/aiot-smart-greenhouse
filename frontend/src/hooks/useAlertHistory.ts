@@ -68,8 +68,7 @@ export const useAlertHistory = (
 			}
 
 		} catch (err) {
-			console.error('Error fetching alert history:', err);
-			setError(err instanceof Error ? err.message : 'Unknown error occurred');
+						setError(err instanceof Error ? err.message : 'Unknown error occurred');
 		} finally {
 			setLoading(false);
 		}
@@ -85,8 +84,7 @@ export const useAlertHistory = (
 			// Refresh data after acknowledgment
 			await fetchData();
 		} catch (err) {
-			console.error('Error acknowledging alert:', err);
-			throw err;
+						throw err;
 		}
 	};
 

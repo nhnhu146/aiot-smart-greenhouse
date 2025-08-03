@@ -35,13 +35,11 @@ export class ChartUtils {
 		try {
 			const date = new Date(timestamp);
 			if (isNaN(date.getTime())) {
-				console.warn('Invalid timestamp detected:', timestamp);
 				return new Date().toISOString();
 			}
 			return date.toISOString();
 		} catch (error) {
-			console.warn('Error parsing timestamp:', timestamp, 'Error:', error);
-			return new Date().toISOString();
+						return new Date().toISOString();
 		}
 	}
 
@@ -54,7 +52,6 @@ export class ChartUtils {
 
 			// Check for common invalid date strings
 			if (typeof item.timestamp === 'string' && item.timestamp.includes('Invalid Date')) {
-				console.warn('Filtered out invalid date:', item.timestamp);
 				return false;
 			}
 
@@ -62,7 +59,6 @@ export class ChartUtils {
 			const isValid = !isNaN(date.getTime());
 
 			if (!isValid) {
-				console.warn('Filtered out invalid timestamp:', item.timestamp);
 			}
 
 			return isValid;
@@ -70,7 +66,7 @@ export class ChartUtils {
 	}
 
 	/**
-	 * Format chart data for Chart.js with time validation
+	 * Format chart data for Chart.js with data-point-based scaling (not time-based)
 	 */
 	static formatForChart(data: ChartDataPoint[], selectedMetrics: string[]) {
 		const validData = this.filterValidData(data);
@@ -82,7 +78,21 @@ export class ChartUtils {
 			};
 		}
 
-		const labels = validData.map(item => new Date(item.timestamp));
+		// Use formatted date strings as labels instead of Date objects for data-point-based scaling
+		const labels = validData.map(item => {
+			const date = new Date(item.timestamp);
+			// Format as 24-hour format: DD/MM/YYYY HH:mm:ss
+			return date.toLocaleString('en-GB', {
+				day: '2-digit',
+				month: '2-digit',
+				year: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				hour12: false,
+				timeZone: 'Asia/Ho_Chi_Minh'
+			});
+		});
 
 		const datasets: Array<{
 			label: string;
@@ -133,7 +143,7 @@ export class ChartUtils {
 	}
 
 	/**
-	 * Get chart options with proper time scale and Vietnamese timezone
+	 * Get chart options with linear scaling (data-point-based, not time-based)
 	 */
 	static getChartOptions() {
 		return {
@@ -149,17 +159,24 @@ export class ChartUtils {
 			},
 			scales: {
 				x: {
-					type: 'time' as const,
-					time: {
-						displayFormats: {
-							minute: 'HH:mm',
-							hour: 'HH:mm',
-							day: 'MM-dd',
-						},
-					},
+					type: 'category' as const, // Changed from 'time' to 'category' for data-point-based scaling
 					title: {
 						display: true,
 						text: 'Time (UTC+7)'
+					},
+					ticks: {
+						maxTicksLimit: 10, // Limit number of ticks for better readability
+						callback: function (value: any, index: number, ticks: any[]): string {
+							// Show every nth tick based on data length
+							const totalTicks = ticks.length || 0;
+							const step = Math.ceil(totalTicks / 8); // Show ~8 ticks max
+							if (index % step === 0) {
+								// @ts-ignore - this context is from Chart.js
+								const labels = this.chart?.data?.labels;
+								return labels?.[index] || value;
+							}
+							return '';
+						}
 					}
 				},
 				y: {

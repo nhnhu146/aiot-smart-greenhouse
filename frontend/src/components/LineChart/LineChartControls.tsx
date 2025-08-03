@@ -32,7 +32,6 @@ const LineChartControls: React.FC<LineChartControlsProps> = ({
 						variant={timeRange === option.value ? "primary" : "outline-primary"}
 						size="sm"
 						onClick={() => {
-							console.log(`Changing time range to: ${option.value}`); // Debug log
 							onTimeRangeChange(option.value);
 						}}
 						disabled={loading}

@@ -53,6 +53,7 @@ const SensorDashboard: React.FC = () => {
 		setHighlight(true);
 		setTimeout(() => setHighlight(false), 1000);
 	}, []);
+
 	React.useEffect(() => {
 		if (persistentSensorData && isConnected) {
 			const updatedSensors = { ...sensors };
@@ -116,7 +117,7 @@ const SensorDashboard: React.FC = () => {
 		} else if (!isConnected) {
 			// Show loading when disconnected but don't clear existing data immediately
 		}
-	}, [persistentSensorData, isConnected, sensors, triggerHighlight]);
+	}, [persistentSensorData, isConnected, triggerHighlight]);
 
 	const sensorCards = [
 		{

@@ -35,8 +35,7 @@ const MockDataToggle: React.FC<MockDataToggleProps> = ({ onToggle }) => {
 				setIsLoading(false);
 			}, 300);
 		} catch (error) {
-			console.error('Error toggling mock data:', error);
-			setIsLoading(false);
+						setIsLoading(false);
 		}
 	};
 

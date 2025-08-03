@@ -17,6 +17,7 @@ const initialFilters: FilterState = {
 	rainStatus: '',
 	deviceType: '',
 	controlType: '',
+	command: '',
 	pageSize: '20',
 };
 

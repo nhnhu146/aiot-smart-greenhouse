@@ -20,15 +20,45 @@ export interface DeviceStateUpdate {
 	timestamp: string;
 }
 
-class DeviceStateService {
+export class DeviceStateService {
 	private syncCallbacks: ((states: DeviceStates) => void)[] = [];
 	private updateCallbacks: ((update: DeviceStateUpdate) => void)[] = [];
+	private readonly STORAGE_KEY = 'aiot_device_states';
+
+	/**
+	 * Load device states from localStorage
+	 */
+	private loadFromStorage(): DeviceStates {
+		try {
+			const stored = localStorage.getItem(this.STORAGE_KEY);
+			return stored ? JSON.parse(stored) : {};
+		} catch (error) {
+						return {};
+		}
+	}
+
+	/**
+	 * Save device states to localStorage
+	 */
+	private saveToStorage(states: DeviceStates): void {
+		try {
+			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(states));
+		} catch (error) {
+					}
+	}
 
 	/**
 	 * Subscribe to device state changes
 	 */
 	onStateSync(callback: (states: DeviceStates) => void): () => void {
 		this.syncCallbacks.push(callback);
+
+		// Immediately send cached states if available
+		const cached = this.loadFromStorage();
+		if (Object.keys(cached).length > 0) {
+			setTimeout(() => callback(cached), 0);
+		}
+
 		return () => {
 			const index = this.syncCallbacks.indexOf(callback);
 			if (index > -1) {
@@ -54,12 +84,14 @@ class DeviceStateService {
 	 * Notify subscribers of state sync
 	 */
 	notifyStateSync(states: DeviceStates) {
+		// Save to storage for persistence
+		this.saveToStorage(states);
+
 		this.syncCallbacks.forEach(callback => {
 			try {
 				callback(states);
 			} catch (error) {
-				console.error('Error in state sync callback:', error);
-			}
+							}
 		});
 	}
 
@@ -67,30 +99,55 @@ class DeviceStateService {
 	 * Notify subscribers of state update
 	 */
 	notifyStateUpdate(update: DeviceStateUpdate) {
+		// Update storage with individual device update
+		const cached = this.loadFromStorage();
+		cached[update.deviceType] = {
+			status: update.status,
+			isOnline: update.isOnline,
+			lastCommand: update.lastCommand,
+			updatedAt: update.updatedAt
+		};
+		this.saveToStorage(cached);
+
 		this.updateCallbacks.forEach(callback => {
 			try {
 				callback(update);
 			} catch (error) {
-				console.error('Error in state update callback:', error);
-			}
+							}
 		});
 	}
 
 	/**
-	 * Get all device states with real-time sync
+	 * Get all device states with real-time sync and localStorage fallback
 	 */
 	async getAllStates(): Promise<DeviceStates> {
 		try {
-			const response = await apiClient.get('/devices/states');
-			const states = response.data.data || {};
-			
-			// Notify subscribers
-			this.notifyStateSync(states);
-			
-			return states;
+			// First check localStorage for immediate response
+			const cached = this.loadFromStorage();
+
+			// If we have cached data, notify immediately
+			if (Object.keys(cached).length > 0) {
+				this.notifyStateSync(cached);
+			}
+
+			// Then fetch from API for fresh data
+			const response = await apiClient.get('/api/devices/states');
+			const freshStates = response.data.data || {};
+
+			// Merge with cached data (API takes precedence)
+			const mergedStates = { ...cached, ...freshStates };
+
+			// Notify subscribers with fresh data
+			this.notifyStateSync(mergedStates);
+
+			return mergedStates;
 		} catch (error) {
-			console.error('❌ Error fetching device states:', error);
-			return {};
+						// Return cached data on API failure
+			const cached = this.loadFromStorage();
+			if (Object.keys(cached).length > 0) {
+				this.notifyStateSync(cached);
+			}
+			return cached;
 		}
 	}
 
@@ -99,7 +156,14 @@ class DeviceStateService {
 	 */
 	async getDeviceState(deviceType: string): Promise<DeviceState | null> {
 		try {
-			const response = await apiClient.get(`/devices/states/${deviceType}`);
+			// Check cache first
+			const cached = this.loadFromStorage();
+			if (cached[deviceType]) {
+				return cached[deviceType];
+			}
+
+			// Fetch from API
+			const response = await apiClient.get(`/api/devices/states/${deviceType}`);
 			return response.data.data || null;
 		} catch (error) {
 			console.error(`❌ Error fetching ${deviceType} state:`, error);
@@ -130,13 +194,13 @@ class DeviceStateService {
 			this.notifyStateUpdate(optimisticUpdate);
 
 			// Send to backend
-			const response = await apiClient.put(`/devices/states/${deviceType}`, {
+			const response = await apiClient.put(`/api/devices/states/${deviceType}`, {
 				status,
 				lastCommand
 			});
 
 			const actualState = response.data.data;
-			
+
 			// Notify actual update
 			if (actualState) {
 				this.notifyStateUpdate({
@@ -149,7 +213,7 @@ class DeviceStateService {
 			return actualState || null;
 		} catch (error) {
 			console.error(`❌ Error updating ${deviceType} state:`, error);
-			
+
 			// Rollback optimistic update by fetching current state
 			const currentState = await this.getDeviceState(deviceType);
 			if (currentState) {
@@ -159,7 +223,7 @@ class DeviceStateService {
 					timestamp: new Date().toISOString()
 				});
 			}
-			
+
 			return null;
 		}
 	}
@@ -169,15 +233,14 @@ class DeviceStateService {
 	 */
 	async syncAllStates(): Promise<boolean> {
 		try {
-			await apiClient.post('/devices/states/sync');
-			
+			await apiClient.post('/api/devices/states/sync');
+
 			// Fetch updated states after sync
 			await this.getAllStates();
-			
+
 			return true;
 		} catch (error) {
-			console.error('❌ Error syncing device states:', error);
-			return false;
+						return false;
 		}
 	}
 
@@ -201,8 +264,24 @@ class DeviceStateService {
 	 * Force refresh all device states from backend
 	 */
 	async forceRefresh(): Promise<DeviceStates> {
-		console.log('🔄 Force refreshing device states...');
 		return await this.getAllStates();
+	}
+
+	/**
+	 * Initialize device states on app startup
+	 */
+	async initialize(): Promise<DeviceStates> {
+		return await this.getAllStates();
+	}
+
+	/**
+	 * Clear cached device states
+	 */
+	clearCache(): void {
+		try {
+			localStorage.removeItem(this.STORAGE_KEY);
+		} catch (error) {
+					}
 	}
 }
 

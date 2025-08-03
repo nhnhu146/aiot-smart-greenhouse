@@ -49,8 +49,7 @@ class FrontendAutomationService {
 			this.notifyListeners();
 			return this.config;
 		} catch (error) {
-			console.error('Error loading automation config:', error);
-			return null;
+						return null;
 		}
 	}
 
@@ -92,8 +91,7 @@ class FrontendAutomationService {
 			this.notifyListeners();
 			return true;
 		} catch (error) {
-			console.error('Error updating automation config:', error);
-			return false;
+						return false;
 		}
 	}
 
@@ -125,8 +123,7 @@ class FrontendAutomationService {
 			const response = await apiClient.getAutomationStatus();
 			return response.data;
 		} catch (error) {
-			console.error('Error getting automation status:', error);
-			return null;
+						return null;
 		}
 	}
 
@@ -149,8 +146,7 @@ class FrontendAutomationService {
 
 			return success;
 		} catch (error) {
-			console.error('Error toggling automation:', error);
-			return false;
+						return false;
 		}
 	}
 
@@ -171,8 +167,7 @@ class FrontendAutomationService {
 			await response.json();
 			return true;
 		} catch (error) {
-			console.error('Error triggering immediate automation check:', error);
-			return false;
+						return false;
 		}
 	}
 

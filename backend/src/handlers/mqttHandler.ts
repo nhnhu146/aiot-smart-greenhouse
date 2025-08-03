@@ -1,6 +1,5 @@
-import { mqttService, alertService, webSocketService, DataMergerService, automationService } from '../services';
+import { mqttService, alertService, webSocketService, DataMergerService, automationService, deviceStateService } from '../services';
 import { SensorData } from '../models';
-import { deviceStateService } from '../services/DeviceStateService';
 
 export class MQTTHandler {
 	static setup(): void {

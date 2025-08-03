@@ -25,8 +25,7 @@ class AuthService {
 					const parsedUser = JSON.parse(storedUser);
 					this.currentUser = { ...parsedUser, token: storedToken };
 				} catch (error) {
-					console.error('Error parsing stored user:', error);
-					this.clearStorage();
+										this.clearStorage();
 				}
 			}
 		}

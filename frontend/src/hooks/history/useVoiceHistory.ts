@@ -41,13 +41,26 @@ export const useVoiceHistory = (
 			const params = buildParams();
 			const response = await apiClient.get('/api/voice-commands', { params });
 
-			// Handle both possible response formats
+			// Handle the correct API response format
 			const responseData = response.data || response;
-			setData(responseData.voiceCommands || responseData.data?.voiceCommands || responseData.data || []);
-			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
+			let newData = [];
+
+			if (responseData.success && responseData.data) {
+				newData = responseData.data.voiceCommands || responseData.data || [];
+			} else if (responseData.voiceCommands) {
+				newData = responseData.voiceCommands;
+			} else {
+				console.error('Invalid voice commands response format:', responseData);
+				newData = [];
+			}
+
+			setData(newData);
+
+			// Handle pagination
+			const paginationData = responseData.data?.pagination || responseData.pagination || pagination;
+			setPagination(paginationData);
 		} catch (error) {
-			console.error('Error fetching voice commands:', error);
-			setData([]);
+						setData([]);
 		} finally {
 			setLoading(false);
 		}
@@ -55,7 +68,15 @@ export const useVoiceHistory = (
 
 	useEffect(() => {
 		fetchData();
-	}, [filters, sort, pagination.page, pagination.limit]);
+	}, [
+		filters.dateFrom,
+		filters.dateTo,
+		filters.command,
+		sort.field,
+		sort.direction,
+		pagination.page,
+		pagination.limit
+	]);
 
 	return {
 		data,

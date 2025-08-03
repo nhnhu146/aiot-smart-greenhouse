@@ -65,15 +65,25 @@ export const useSensorHistory = (
 			const params = buildParams();
 			const response = await apiClient.get('/api/history/sensors', { params });
 
-			// Handle both possible response formats
-			const responseData = response.data || response;
-			const newData = responseData.sensors || responseData.data?.sensors || [];
+			// Standardized API response format handling
+			let newData = [];
+			let paginationData = pagination;
+
+			if (response && response.success && response.data) {
+				if (response.data.sensors) {
+					newData = response.data.sensors;
+					paginationData = response.data.pagination || pagination;
+				} else if (Array.isArray(response.data)) {
+					newData = response.data;
+				}
+			} else if (response && Array.isArray(response)) {
+				newData = response;
+			}
 
 			setData(newData);
-			setCachedData(newData); // Cache for next fetch
-			setPagination(responseData.pagination || responseData.data?.pagination || pagination);
+			setCachedData(newData);
+			setPagination(paginationData);
 		} catch (error) {
-			console.error('Error fetching sensor data:', error);
 			// Keep cached data on error for better UX
 			if (cachedData.length > 0) {
 				setData(cachedData);
@@ -85,12 +95,28 @@ export const useSensorHistory = (
 		}
 	};
 
-	// Removed automatic refresh triggers to prevent annoying effects during filter/sort
-	// Users can manually refresh if needed
+	// Add dependency array to prevent unnecessary fetches
 	useEffect(() => {
-		// Only fetch on mount or when filters/sort actually change
 		fetchData();
-	}, [filters, sort, pagination.page, pagination.limit]);
+	}, [
+		filters.dateFrom,
+		filters.dateTo,
+		filters.minTemperature,
+		filters.maxTemperature,
+		filters.minHumidity,
+		filters.maxHumidity,
+		filters.minSoilMoisture,
+		filters.maxSoilMoisture,
+		filters.minWaterLevel,
+		filters.maxWaterLevel,
+		filters.soilMoisture,
+		filters.waterLevel,
+		filters.rainStatus,
+		sort.field,
+		sort.direction,
+		pagination.page,
+		pagination.limit
+	]);
 
 	return {
 		data,

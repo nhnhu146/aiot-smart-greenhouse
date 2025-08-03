@@ -20,7 +20,9 @@ class ApiClient {
 	private async request(endpoint: string, options: any = {}) {
 		try {
 			const token = localStorage.getItem('token');
-			const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+			// Ensure endpoint starts with /api if not already present
+			const fullEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+			const response = await fetch(`${API_BASE_URL}${fullEndpoint}`, {
 				headers: {
 					'Content-Type': 'application/json',
 					...(token && { 'Authorization': `Bearer ${token}` }),
@@ -35,7 +37,13 @@ class ApiClient {
 
 			return await response.json();
 		} catch (error) {
-			console.error(`API request failed: ${endpoint}`, error);
+			// Filter out browser extension errors
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			if (!errorMessage.includes('extension') &&
+				!errorMessage.includes('runtime.lastError') &&
+				!errorMessage.includes('Could not establish connection')) {
+				console.error(`API request failed: ${endpoint}`, error);
+			}
 			throw error;
 		}
 	}

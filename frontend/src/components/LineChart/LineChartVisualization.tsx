@@ -64,7 +64,6 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 		const validData = ChartUtils.filterValidData(dataWithNormalizedTimestamps);
 
 		if (validData.length === 0) {
-			console.warn('No valid data points after filtering');
 			return {
 				labels: [],
 				datasets: []
@@ -89,40 +88,8 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 					callbacks: {
 						title: (context: any) => {
 							if (context[0]?.label) {
-								try {
-									const rawLabel = context[0].label;
-									// Try to parse the date - handle various formats
-									let date: Date;
-
-									// If it's already a timestamp number
-									if (!isNaN(Number(rawLabel))) {
-										date = new Date(Number(rawLabel));
-									} else {
-										// Parse as string
-										date = new Date(rawLabel);
-									}
-
-									// Check if date is valid
-									if (isNaN(date.getTime())) {
-										console.warn('Invalid date in tooltip:', rawLabel);
-										return rawLabel; // Return original label if can't parse
-									}
-
-									// Format as DD/MM/YYYY HH:mm:ss
-									return date.toLocaleString('vi-VN', {
-										day: '2-digit',
-										month: '2-digit',
-										year: 'numeric',
-										hour: '2-digit',
-										minute: '2-digit',
-										second: '2-digit',
-										hour12: false,
-										timeZone: 'Asia/Ho_Chi_Minh'
-									});
-								} catch (error) {
-									console.error('Error formatting tooltip date:', error);
-									return 'Invalid Date';
-								}
+								// The label is already formatted as 24-hour format from ChartUtils
+								return context[0].label;
 							}
 							return '';
 						},
@@ -148,27 +115,6 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 					title: {
 						display: true,
 						text: 'Time (UTC+7)',
-					},
-					ticks: {
-						callback: function (value: any) {
-							try {
-								// Use the value directly as it should be a timestamp
-								const date = new Date(value);
-								if (isNaN(date.getTime())) {
-									return 'Invalid';
-								}
-								// Show only time for better readability
-								return date.toLocaleString('en-GB', {
-									hour: '2-digit',
-									minute: '2-digit',
-									second: '2-digit',
-									hour12: false,
-									timeZone: 'Asia/Ho_Chi_Minh'
-								});
-							} catch (error) {
-								return 'Invalid';
-							}
-						}
 					}
 				}
 			}

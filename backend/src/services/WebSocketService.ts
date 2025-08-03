@@ -176,15 +176,20 @@ class WebSocketService {
 		}
 
 		const deviceUpdate = {
-			topic,
-			device: status.device,
-			status: status.status,
-			timestamp: status.timestamp
+			event: 'device:status',
+			data: {
+				topic,
+				device: status.device,
+				status: status.status,
+				timestamp: status.timestamp
+			},
+			timestamp: status.timestamp,
+			source: 'device'
 		};
 
 		console.log(`📡 Broadcasting device status: ${status.device} = ${status.status}`);
-		this.io.emit('device-status', deviceUpdate);
-		this.io.emit(`device-${status.device}`, deviceUpdate);
+		this.io.emit('device:status', deviceUpdate);
+		this.io.emit(`device:${status.device}`, deviceUpdate);
 	}
 
 	// Broadcast device state sync to all connected clients
@@ -194,11 +199,18 @@ class WebSocketService {
 			return;
 		}
 
+		const syncEvent = {
+			event: 'device:state:sync',
+			data: {
+				states: deviceStates,
+				timestamp: new Date().toISOString()
+			},
+			timestamp: new Date().toISOString(),
+			source: 'system'
+		};
+
 		console.log('📡 Broadcasting device state sync to all clients');
-		this.io.emit('device-states-sync', {
-			states: deviceStates,
-			timestamp: new Date().toISOString()
-		});
+		this.io.emit('device:state:sync', syncEvent);
 	}
 
 	// Broadcast alerts to all connected clients
@@ -232,13 +244,20 @@ class WebSocketService {
 			return;
 		}
 
+		const controlEvent = {
+			event: 'device:control',
+			data: controlData,
+			timestamp: controlData.timestamp,
+			source: controlData.source
+		};
+
 		console.log(`🎮 Broadcasting device control: ${controlData.deviceType} -> ${controlData.action}`);
 
 		// Emit to all clients
-		this.io.emit('device-control-confirmation', controlData);
+		this.io.emit('device:control', controlEvent);
 
 		// Also emit to specific device channel
-		this.io.emit(`device-control-${controlData.deviceType}`, controlData);
+		this.io.emit(`device:control:${controlData.deviceType}`, controlEvent);
 
 		// Broadcast device status update
 		this.broadcastDeviceStatus(`greenhouse/devices/${controlData.deviceType}/status`, {
@@ -394,20 +413,25 @@ class WebSocketService {
 
 		console.log(`📡 Broadcasting device state update: ${deviceType} = ${state.status ? 'ON' : 'OFF'}`);
 
-		const stateData = {
-			deviceType,
-			status: state.status,
-			isOnline: state.isOnline,
-			lastCommand: state.lastCommand,
-			updatedAt: state.updatedAt,
-			timestamp: new Date().toISOString()
+		const stateUpdateEvent = {
+			event: 'device:state:update',
+			data: {
+				deviceType,
+				status: state.status,
+				isOnline: state.isOnline,
+				lastCommand: state.lastCommand,
+				updatedAt: state.updatedAt,
+				timestamp: new Date().toISOString()
+			},
+			timestamp: new Date().toISOString(),
+			source: 'system'
 		};
 
 		// Emit to device state channel
-		this.io.emit('device:state-update', stateData);
+		this.io.emit('device:state:update', stateUpdateEvent);
 
 		// Also emit to specific device channel for targeted updates
-		this.io.emit(`device:${deviceType}:state`, stateData);
+		this.io.emit(`device:${deviceType}:state`, stateUpdateEvent);
 	}
 
 

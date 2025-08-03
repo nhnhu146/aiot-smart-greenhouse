@@ -38,8 +38,7 @@ export const useAutomation = () => {
 			}
 		} catch (err) {
 			setError('Failed to load automation config');
-			console.error('Error loading automation config:', err);
-		} finally {
+					} finally {
 			setLoading(false);
 		}
 	}, []);
@@ -52,8 +51,7 @@ export const useAutomation = () => {
 				setStatus(automationStatus);
 			}
 		} catch (err) {
-			console.error('Error loading automation status:', err);
-		}
+					}
 	}, []);
 
 	// Update automation configuration
@@ -72,8 +70,7 @@ export const useAutomation = () => {
 			return false;
 		} catch (err) {
 			setError('Failed to update automation config');
-			console.error('Error updating automation config:', err);
-			return false;
+						return false;
 		} finally {
 			setUpdating(false);
 		}
@@ -95,8 +92,7 @@ export const useAutomation = () => {
 			return false;
 		} catch (err) {
 			setError('Failed to toggle automation');
-			console.error('Error toggling automation:', err);
-			return false;
+						return false;
 		} finally {
 			setUpdating(false);
 		}
@@ -111,8 +107,7 @@ export const useAutomation = () => {
 			}
 			return success;
 		} catch (err) {
-			console.error('Error triggering immediate check:', err);
-			return false;
+						return false;
 		}
 	}, [loadStatus]);
 

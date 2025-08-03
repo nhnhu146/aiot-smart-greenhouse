@@ -37,8 +37,11 @@ RUN if [ -f yarn.lock ]; then \
 # Install serve to serve the static files
 RUN npm install -g serve@latest --registry https://registry.npmjs.org/
 
+# Create log directory for error logging
+RUN mkdir -p /app/logs
+
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Start the application with proper error logging and output redirection
+CMD ["sh", "-c", "serve -s dist -l 3000 2>&1 | tee /app/logs/frontend.log; echo 'Frontend container started' >> /app/logs/frontend.log"]

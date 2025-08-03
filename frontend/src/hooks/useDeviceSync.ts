@@ -20,46 +20,43 @@ export const useDeviceSync = ({
 		if (!socket) return;
 
 		const handleDeviceStateUpdate = (data: any) => {
-			console.log('📡 Device state update via WebSocket:', data);
 			deviceStateService.handleWebSocketUpdate(data);
 		};
 
 		const handleDeviceStatesSync = (data: any) => {
-			console.log('📡 Device states sync via WebSocket:', data);
 			if (data.states && onStatesSync) {
 				onStatesSync(data.states);
 			}
 		};
 
-		// Listen for various WebSocket events
-		socket.on('device:state-update', handleDeviceStateUpdate);
-		socket.on('device:states-sync', handleDeviceStatesSync);
+		// Listen for various WebSocket events - standardized naming
+		socket.on('device:state:update', handleDeviceStateUpdate);
+		socket.on('device:state:sync', handleDeviceStatesSync);
 		socket.on('device:status', handleDeviceStateUpdate); // Legacy compatibility
-		
+
 		// Listen for individual device events
 		['light', 'pump', 'door', 'window'].forEach(deviceType => {
 			socket.on(`device:${deviceType}:state`, handleDeviceStateUpdate);
 		});
 
 		// Listen for device control confirmations
-		socket.on('device-control-confirmation', (data: any) => {
-			console.log('📡 Device control confirmation:', data);
-			if (data.deviceType && data.success) {
+		socket.on('device:control', (data: any) => {
+			if (data.data && data.data.deviceType && data.data.success) {
 				deviceStateService.handleWebSocketUpdate({
-					deviceType: data.deviceType,
-					status: data.status,
-					lastCommand: data.action,
+					deviceType: data.data.deviceType,
+					status: data.data.status,
+					lastCommand: data.data.action,
 					timestamp: data.timestamp
 				});
 			}
 		});
 
 		return () => {
-			socket.off('device:state-update', handleDeviceStateUpdate);
-			socket.off('device:states-sync', handleDeviceStatesSync);
+			socket.off('device:state:update', handleDeviceStateUpdate);
+			socket.off('device:state:sync', handleDeviceStatesSync);
 			socket.off('device:status', handleDeviceStateUpdate);
-			socket.off('device-control-confirmation');
-			
+			socket.off('device:control');
+
 			['light', 'pump', 'door', 'window'].forEach(deviceType => {
 				socket.off(`device:${deviceType}:state`, handleDeviceStateUpdate);
 			});
@@ -68,13 +65,13 @@ export const useDeviceSync = ({
 
 	// Subscribe to device state service callbacks
 	useEffect(() => {
-		const unsubscribeSync = onStatesSync ? 
-			deviceStateService.onStateSync(onStatesSync) : 
-			() => {};
-		
-		const unsubscribeUpdate = onStateUpdate ? 
-			deviceStateService.onStateUpdate(onStateUpdate) : 
-			() => {};
+		const unsubscribeSync = onStatesSync ?
+			deviceStateService.onStateSync(onStatesSync) :
+			() => { };
+
+		const unsubscribeUpdate = onStateUpdate ?
+			deviceStateService.onStateUpdate(onStateUpdate) :
+			() => { };
 
 		return () => {
 			unsubscribeSync();

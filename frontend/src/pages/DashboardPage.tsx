@@ -6,6 +6,7 @@ import withAuth from '@/components/withAuth/withAuth';
 import AutoModeControl from '@/components/Dashboard/AutoModeControl';
 import VoiceCommandDisplay from '@/components/Dashboard/VoiceCommandDisplay';
 import DashboardLoading from '@/components/Dashboard/DashboardLoading';
+import ErrorBoundary from '@/components/Common/ErrorBoundary';
 import { useDashboardState } from '@/hooks/useDashboardState';
 import { useSensorData } from '@/hooks/useSensorData';
 import { useVoiceCommands } from '@/hooks/useVoiceCommands';
@@ -43,7 +44,9 @@ const DashboardPage = () => {
 			{/* Row 1: Sensor Dashboard */}
 			<Row className="mb-4">
 				<Col xs={12}>
-					<SensorDashboard />
+					<ErrorBoundary>
+						<SensorDashboard />
+					</ErrorBoundary>
 				</Col>
 			</Row>
 

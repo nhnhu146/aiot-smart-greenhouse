@@ -51,12 +51,10 @@ export const logConnectionInfo = (serverUrl: string) => {
 
 	const environment = isDev ? 'development' : 'production';
 
-	console.log(`\n🔗 WebSocket Connection Info
-		- Server URL: ${serverUrl}
-		- Environment: ${environment}
-		- Timestamp: ${new Date().toISOString()}`);
-
+	// Only log in development mode to reduce console output
 	if (environment === 'development') {
-		console.log('   - Make sure backend server is running: npm run dev (in backend folder)');
+		// Suppress logging to reduce console output
+		// serverUrl is available for debugging if needed
+		void serverUrl; // Acknowledge parameter usage
 	}
 };

@@ -66,8 +66,9 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 			const from = new Date(now.getTime() - timeRanges[timeRange]).toISOString();
 			const to = now.toISOString();
 
+			// Increase limit to 50 data points for better chart visualization
 			const response = await fetch(
-				`${API_BASE_URL}/api/history/sensors?from=${from}&to=${to}&limit=20&sortBy=createdAt&sortOrder=desc`
+				`${API_BASE_URL}/api/history/sensors?from=${from}&to=${to}&limit=50&sortBy=createdAt&sortOrder=desc`
 			);
 
 			if (!response.ok) {
@@ -80,7 +81,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 				// The API returns data in result.data.sensors
 				const rawData = Array.isArray(result.data.sensors) ? result.data.sensors : [result.data.sensors];
 
-				// Filter out data with null timestamps and limit to 20 points
+				// Filter out data with null timestamps and limit to appropriate number of points
 				const validData = rawData
 					.filter((item: SensorData) => {
 						const timestamp = item.createdAt || item.timestamp;
@@ -92,17 +93,17 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 						timestamp: item.createdAt || item.timestamp,
 						createdAt: item.createdAt
 					}))
-					.slice(0, 20) // Ensure maximum 20 data points
+					.slice(0, 50) // Increase to 50 data points for better visualization
 					.reverse(); // Reverse to get chronological order
 
 				setData(validData);
 				setCachedData(validData); // Cache for next fetch
 			} else {
-				throw new Error(`Invalid response format: ${JSON.stringify(result)}`);
+				console.error('Invalid response format - API returned:', result);
+				throw new Error(`API returned invalid format: missing data.sensors`);
 			}
 		} catch (err) {
-			console.error('Error fetching line chart data:', err);
-			setError(err instanceof Error ? err.message : 'Unknown error');
+						setError(err instanceof Error ? err.message : 'Unknown error');
 
 			// Keep cached data on error for better UX
 			if (cachedData.length > 0) {

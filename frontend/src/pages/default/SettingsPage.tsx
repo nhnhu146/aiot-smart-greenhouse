@@ -97,8 +97,7 @@ const SettingsPage = () => {
 				setHasUnsavedChanges(false);
 			}
 		} catch (error) {
-			console.error('Failed to load settings:', error);
-			setMessage({ type: 'error', text: 'Failed to load settings' });
+						setMessage({ type: 'error', text: 'Failed to load settings' });
 		} finally {
 			setLoading(false);
 		}
@@ -122,8 +121,7 @@ const SettingsPage = () => {
 				setHasUnsavedChanges(false);
 			}
 		} catch (error) {
-			console.error('Failed to save settings:', error);
-			setMessage({ type: 'error', text: 'Failed to save settings' });
+						setMessage({ type: 'error', text: 'Failed to save settings' });
 		} finally {
 			setLoading(false);
 		}
@@ -150,8 +148,7 @@ const SettingsPage = () => {
 				setMessage({ type: 'success', text: 'Test email sent successfully!' });
 			}
 		} catch (error) {
-			console.error('Failed to send test email:', error);
-			setMessage({ type: 'error', text: 'Failed to send test email' });
+						setMessage({ type: 'error', text: 'Failed to send test email' });
 		} finally {
 			setLoading(false);
 		}
