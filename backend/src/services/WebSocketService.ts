@@ -119,6 +119,23 @@ class WebSocketService {
 
 			if (!latestData) {
 				console.warn('⚠️ No sensor data found in database');
+				// Send the incoming data as fallback
+				const fallbackResponse = {
+					success: true,
+					data: {
+						sensors: [{
+							[data.type]: data.value,
+							timestamp: data.timestamp,
+							createdAt: data.timestamp,
+							dataQuality: data.quality || 'fallback'
+						}]
+					},
+					eventType: 'sensor:data',
+					timestamp: data.timestamp
+				};
+
+				this.io.emit('sensor:data', fallbackResponse);
+				console.log(`📡 Broadcasting fallback sensor data: ${data.type} = ${data.value}`);
 				return;
 			}
 
@@ -135,7 +152,7 @@ class WebSocketService {
 			// Broadcast standardized sensor data
 			this.io.emit('sensor:data', standardizedResponse);
 
-			console.log(`📡 Broadcasting sensor data: ${data.type} = ${data.value}`);
+			console.log(`📡 Broadcasting sensor data: ${data.type} = ${data.value} (from database)`);
 
 		} catch (error) {
 			console.error('❌ Error broadcasting sensor data:', error);
@@ -156,6 +173,7 @@ class WebSocketService {
 			};
 
 			this.io.emit('sensor:data', fallbackResponse);
+			console.log(`📡 Broadcasting fallback sensor data: ${data.type} = ${data.value}`);
 		}
 	}
 
@@ -342,6 +360,12 @@ class WebSocketService {
 
 		// Emit standardized automation update event
 		this.io.emit('automation:update', automationStatus);
+
+		// Also emit to status channel for real-time sync
+		this.io.emit('automation:status', {
+			...automationStatus,
+			timestamp: new Date().toISOString()
+		});
 	}
 
 	// Get connection statistics
@@ -425,6 +449,77 @@ class WebSocketService {
 		this.io.emit('automation:settings-update', {
 			settings,
 			timestamp: new Date().toISOString()
+		});
+
+		// Also emit to automation:update for frontend compatibility
+		this.io.emit('automation:update', {
+			settings,
+			timestamp: new Date().toISOString()
+		});
+	}
+
+	// Broadcast automation-triggered device history
+	broadcastAutomationHistory(historyData: {
+		deviceType: string;
+		action: string;
+		status: boolean;
+		triggeredBy: string;
+		sensorValue: number;
+		timestamp: string;
+	}) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`📡 Broadcasting automation history: ${historyData.deviceType} ${historyData.action} by ${historyData.triggeredBy}`);
+
+		const historyEvent = {
+			event: 'automation:history',
+			data: historyData,
+			timestamp: historyData.timestamp,
+			source: 'automation'
+		};
+
+		this.io.emit('automation:history', historyEvent);
+		this.io.emit('history:device-control', historyEvent);
+		this.io.emit('database:change', {
+			collection: 'DeviceHistory',
+			operation: 'insert',
+			data: historyData,
+			timestamp: historyData.timestamp
+		});
+	}
+
+	// Broadcast manual device history
+	broadcastManualHistory(historyData: {
+		deviceType: string;
+		action: string;
+		status: boolean;
+		userId: string;
+		timestamp: string;
+	}) {
+		if (!this.io) {
+			console.error('❌ WebSocket not initialized');
+			return;
+		}
+
+		console.log(`📡 Broadcasting manual history: ${historyData.deviceType} ${historyData.action} by user`);
+
+		const historyEvent = {
+			event: 'manual:history',
+			data: historyData,
+			timestamp: historyData.timestamp,
+			source: 'manual'
+		};
+
+		this.io.emit('manual:history', historyEvent);
+		this.io.emit('history:device-control', historyEvent);
+		this.io.emit('database:change', {
+			collection: 'DeviceHistory',
+			operation: 'insert',
+			data: historyData,
+			timestamp: historyData.timestamp
 		});
 	}
 

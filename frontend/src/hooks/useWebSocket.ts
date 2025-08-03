@@ -210,12 +210,23 @@ export default function useWebSocket(): UseWebSocketReturn {
 		newSocket.on('sensor:data', (standardizedData: any) => {
 			if (standardizedData.success && standardizedData.data && standardizedData.data.sensors) {
 				const sensorData = standardizedData.data.sensors[0];
-				
+
 				// Convert standardized format to internal format
 				for (const [sensorType, value] of Object.entries(sensorData)) {
-					if (sensorType !== 'timestamp' && sensorType !== 'createdAt' && sensorType !== 'dataQuality') {
+					if (sensorType !== 'timestamp' && sensorType !== 'createdAt' && sensorType !== 'dataQuality' &&
+						sensorType !== '_id' && sensorType !== '__v' && sensorType !== 'deviceId' &&
+						value !== null && value !== undefined) {
+
+						// Map database field names to frontend expected names
+						let frontendSensorType = sensorType;
+						if (sensorType === 'soilMoisture') frontendSensorType = 'soil';
+						if (sensorType === 'waterLevel') frontendSensorType = 'water';
+						if (sensorType === 'lightLevel') frontendSensorType = 'light';
+						if (sensorType === 'rainStatus') frontendSensorType = 'rain';
+						if (sensorType === 'plantHeight') frontendSensorType = 'height';
+
 						const internalData = {
-							sensor: sensorType,
+							sensor: frontendSensorType,
 							data: { value: value as number, quality: sensorData.dataQuality || 'good' },
 							timestamp: sensorData.timestamp || sensorData.createdAt || new Date().toISOString(),
 							value: value as number
@@ -225,8 +236,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 				}
 			}
 		});
-
-		newSocket.on('sensor:data', updateSensorData);
 
 		// Individual sensor channels (standardized format)
 		newSocket.on('sensor:temperature', updateSensorData);
@@ -271,8 +280,14 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		// Automation status
-		newSocket.on('automation:update', (_automationData: any) => {
-			// Automation status update received
+		newSocket.on('automation:update', (automationData: any) => {
+			console.log('🤖 Automation status update received:', automationData);
+			// This will be handled by AutomationContext if integrated
+		});
+
+		newSocket.on('automation:status', (automationData: any) => {
+			console.log('🤖 Automation status received:', automationData);
+			// This will be handled by AutomationContext if integrated
 		});
 
 		// System status
@@ -311,6 +326,28 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		newSocket.on('automation:update', (data: any) => {
 			setAutomationSettings(data.settings || data);
+		});
+
+		newSocket.on('automation:settings-update', (data: any) => {
+			setAutomationSettings(data.settings || data);
+		});
+
+		newSocket.on('automation:history', (data: any) => {
+			console.log('🤖 Automation history update received:', data);
+			// Trigger history refresh or add to local state
+			window.dispatchEvent(new CustomEvent('automationHistoryUpdate', { detail: data }));
+		});
+
+		newSocket.on('manual:history', (data: any) => {
+			console.log('👤 Manual control history update received:', data);
+			// Trigger history refresh or add to local state
+			window.dispatchEvent(new CustomEvent('manualHistoryUpdate', { detail: data }));
+		});
+
+		newSocket.on('history:device-control', (data: any) => {
+			console.log('📝 Device control history update received:', data);
+			// Trigger history refresh or add to local state
+			window.dispatchEvent(new CustomEvent('deviceHistoryUpdate', { detail: data }));
 		});
 
 		newSocket.on('settings:threshold-update', (data: any) => {

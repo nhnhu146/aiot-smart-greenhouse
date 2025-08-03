@@ -53,13 +53,18 @@ export class DeviceHistoryController {
 			from,
 			to,
 			deviceType,
+			deviceId,
+			controlType,
 			action,
+			userId,
+			triggeredBy,
+			success,
 			sortBy = 'timestamp',
 			sortOrder = 'desc'
 		} = req.query as any;
 
 		// Validate sortBy parameter
-		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'createdAt'];
+		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'controlType'];
 		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'timestamp';
 
 		// Log sort parameters for debugging
@@ -77,14 +82,38 @@ export class DeviceHistoryController {
 			if (toDate) query.timestamp.$lte = new Date(toDate);
 		}
 
-		// Add device type filter
-		if (deviceType && deviceType.trim()) {
+		// Device filters
+		if (deviceType && deviceType.trim() !== '') {
 			query.deviceType = deviceType;
 		}
 
-		// Add action filter
-		if (action && action.trim()) {
+		if (deviceId && deviceId.trim() !== '') {
+			query.deviceId = deviceId;
+		}
+
+		// Control type filter (auto/manual)
+		if (controlType && controlType.trim() !== '') {
+			query.controlType = controlType;
+		}
+
+		// Action filter (on/off/open/close)
+		if (action && action.trim() !== '') {
 			query.action = action;
+		}
+
+		// User ID filter for manual controls
+		if (userId && userId.trim() !== '') {
+			query.userId = { $regex: userId, $options: 'i' };
+		}
+
+		// Triggered by filter for automation controls
+		if (triggeredBy && triggeredBy.trim() !== '') {
+			query.triggeredBy = { $regex: triggeredBy, $options: 'i' };
+		}
+
+		// Success filter
+		if (success !== undefined && success !== '') {
+			query.success = success === 'true';
 		}
 
 		const skip = (page - 1) * limit;
@@ -101,11 +130,17 @@ export class DeviceHistoryController {
 
 		const total = await DeviceHistory.countDocuments(query);
 
+		// Format timestamps for consistent display
+		const formattedDeviceControls = deviceControls.map(control => ({
+			...control,
+			timestamp: control.timestamp ? control.timestamp.toISOString() : new Date().toISOString()
+		}));
+
 		const response: APIResponse = {
 			success: true,
 			message: 'Device control history retrieved successfully',
 			data: {
-				deviceControls,
+				deviceControls: formattedDeviceControls,
 				pagination: {
 					page,
 					limit,
@@ -113,6 +148,19 @@ export class DeviceHistoryController {
 					totalPages: Math.ceil(total / limit),
 					hasNext: page < Math.ceil(total / limit),
 					hasPrev: page > 1
+				},
+				filters: {
+					applied: {
+						dateFrom: fromDate,
+						dateTo: toDate,
+						deviceType,
+						deviceId,
+						controlType,
+						action,
+						userId,
+						triggeredBy,
+						success
+					}
 				}
 			},
 			timestamp: new Date().toISOString()

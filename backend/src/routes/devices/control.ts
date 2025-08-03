@@ -32,23 +32,15 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 		// Send simple MQTT command (0/1 values)
 		await mqttService.publishDeviceControl(deviceType, mqttCommand);
 
-		// Update device state using DeviceStateService
+		// Update device state using DeviceStateService with manual source
 		const status = (action === 'on' || action === 'open');
-		await deviceStateService.updateDeviceState(deviceType, status, action);
-
-		// Record device control history
-		const deviceHistory = new DeviceHistory({
-			deviceId: `greenhouse_${deviceType}`,
+		await deviceStateService.updateDeviceState(
 			deviceType,
-			action,
 			status,
-			controlType: 'manual',
-			userId: 'api-user',
-			timestamp: new Date(),
-			success: true
-		});
-
-		await deviceHistory.save();
+			action,
+			'manual', // source
+			'api-user' // userId
+		);
 
 		// Broadcast device control completion to WebSocket clients
 		webSocketService.broadcastDeviceControl({

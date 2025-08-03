@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import { useAutomationContext } from '@/contexts/AutomationContext';
+import { getDeviceIcon } from '@/utils/deviceIcons';
 
 export interface Activity {
 	title: string;
@@ -21,25 +22,25 @@ export const useDashboardState = () => {
 	const activities: Activity[] = [
 		{
 			title: 'Lighting System',
-			icon: '💡',
+			icon: getDeviceIcon('light'),
 			device: 'light',
 			description: ''
 		},
 		{
 			title: 'Water Pump',
-			icon: '💧',
+			icon: getDeviceIcon('pump'),
 			device: 'pump',
 			description: ''
 		},
 		{
 			title: 'Window Control',
-			icon: '🪟',
+			icon: getDeviceIcon('window'),
 			device: 'window',
 			description: ''
 		},
 		{
 			title: 'Door Access',
-			icon: '🚪',
+			icon: getDeviceIcon('door'),
 			device: 'door',
 			description: ''
 		},

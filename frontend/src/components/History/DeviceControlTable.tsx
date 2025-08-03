@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, Badge } from 'react-bootstrap';
 import { DeviceControl } from '@/services/mockDataService';
 import { SortState } from '@/types/history';
+import { getDeviceIcon } from '@/utils/deviceIcons';
 
 interface DeviceControlTableProps {
 	data: DeviceControl[];
@@ -29,16 +30,6 @@ const DeviceControlTable: React.FC<DeviceControlTableProps> = ({ data, sortState
 			hour12: false,
 			timeZone: 'Asia/Ho_Chi_Minh'
 		});
-	};
-
-	const getDeviceIcon = (deviceType: string) => {
-		switch (deviceType) {
-			case 'light': return '💡';
-			case 'pump': return '🔧';
-			case 'door': return '🚪';
-			case 'window': return '🪟';
-			default: return '🎮';
-		}
 	};
 
 	const getActionBadge = (action: string) => {

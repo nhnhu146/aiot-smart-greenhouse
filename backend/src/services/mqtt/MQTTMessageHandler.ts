@@ -2,6 +2,7 @@ import { webSocketService } from '../WebSocketService';
 import { alertService } from '../AlertService';
 import { mqttService } from '../MQTTService';
 import { deviceStateService } from '../DeviceStateService';
+import automationService from '../AutomationService';
 import DeviceStatus from '../../models/DeviceStatus';
 import VoiceCommand from '../../models/VoiceCommand';
 import SensorData from '../../models/SensorData';
@@ -143,13 +144,61 @@ export class MQTTMessageHandler {
 		// Implement batch processing for better performance
 		// Save immediately for critical data, batch for others
 		try {
-			const sensorData = new SensorData({
-				sensorType,
-				value,
-				timestamp: new Date(),
-				quality: 'good'
-			});
+			// Map sensor types to proper field names in SensorData model
+			const sensorDataObject: any = {
+				dataQuality: 'complete'
+			};
+
+			// Map MQTT sensor types to model fields
+			switch (sensorType) {
+				case 'temperature':
+					sensorDataObject.temperature = value;
+					break;
+				case 'humidity':
+					sensorDataObject.humidity = value;
+					break;
+				case 'soil':
+				case 'soilMoisture':
+					sensorDataObject.soilMoisture = value;
+					break;
+				case 'water':
+				case 'waterLevel':
+					sensorDataObject.waterLevel = value;
+					break;
+				case 'light':
+				case 'lightLevel':
+					sensorDataObject.lightLevel = value;
+					break;
+				case 'rain':
+				case 'rainStatus':
+					sensorDataObject.rainStatus = value;
+					break;
+				case 'height':
+				case 'plantHeight':
+					sensorDataObject.plantHeight = value;
+					break;
+				default:
+					console.warn(`Unknown sensor type: ${sensorType}`);
+					return;
+			}
+
+			const sensorData = new SensorData(sensorDataObject);
 			await sensorData.save();
+
+			console.log(`💾 Saved sensor data: ${sensorType} = ${value}`);
+
+			// Trigger automation processing for the specific sensor type
+			if (automationService) {
+				// Use the correct field name for automation
+				const automationSensorType = sensorType === 'soil' ? 'soilMoisture' :
+					sensorType === 'water' ? 'waterLevel' :
+						sensorType === 'light' ? 'lightLevel' :
+							sensorType === 'rain' ? 'rainStatus' :
+								sensorType === 'height' ? 'plantHeight' : sensorType;
+
+				await automationService.processSensorData(automationSensorType, value);
+			}
+
 		} catch (error) {
 			console.error('Error saving sensor data:', error);
 		}

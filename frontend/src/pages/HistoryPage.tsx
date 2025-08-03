@@ -201,6 +201,7 @@ const HistoryPage: React.FC = () => {
 				<HistoryFilters
 					filters={filters}
 					showFilters={showFilters}
+					currentTab={activeTab}
 					onFilterChange={updateFilter}
 					onClearFilters={clearFilters}
 					onApplyFilters={applyFilters}

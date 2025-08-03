@@ -30,21 +30,26 @@ export const useSensorData = (persistentSensorData: any) => {
 
 			// Create sensor data object from persistent state - always try to use persistent data
 			const sensorDataObj: SensorData = {
-				temperature: temperature?.value || 0,
-				humidity: humidity?.value || 0,
-				soilMoisture: soil?.value || 0,
-				waterLevel: water?.value || 0,
-				lightLevel: light?.value || 0,
-				rainStatus: rain?.value || 0,
-				plantHeight: height?.value || 0,
+				temperature: temperature?.value ?? 0,
+				humidity: humidity?.value ?? 0,
+				soilMoisture: soil?.value ?? 0,
+				waterLevel: water?.value ?? 0,
+				lightLevel: light?.value ?? 0,
+				rainStatus: rain?.value ?? 0,
+				plantHeight: height?.value ?? 0,
 				timestamp: new Date().toISOString()
 			};
 
 			// Always update with persistent data if available, regardless of connection status
-			if (temperature || humidity || soil || water || light || rain || height) {
+			// Check if we have any real sensor data (at least one sensor with a timestamp)
+			const hasRealData = temperature?.timestamp || humidity?.timestamp || soil?.timestamp ||
+				water?.timestamp || light?.timestamp || rain?.timestamp || height?.timestamp;
+
+			if (hasRealData) {
 				setData(sensorDataObj);
 				setIsUsingMockData(false);
 				setIsLoading(false); // Stop loading once we have data
+				console.log('📊 Updated sensor data from WebSocket:', Object.keys(persistentSensorData).filter(key => persistentSensorData[key as keyof typeof persistentSensorData]));
 			}
 		}
 	}, [persistentSensorData]);

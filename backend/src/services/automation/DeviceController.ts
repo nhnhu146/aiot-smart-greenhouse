@@ -1,38 +1,27 @@
-import { DeviceHistory } from '../../models';
-import { mqttService, webSocketService } from '../index';
+import { mqttService, deviceStateService } from '../index';
 import logger from '../../utils/logger';
 
 export class DeviceController {
-	async controlDevice(device: string, action: string, reason: string): Promise<void> {
+	async controlDevice(device: string, action: string, reason: string, sensorValue?: number): Promise<void> {
 		try {
 			const mqttAction = this.convertToMQTTValue(action);
 
 			// Send MQTT command
 			mqttService.publishDeviceControl(device, mqttAction);
 
-			// Save device history
-			const deviceHistory = new DeviceHistory({
-				deviceId: `greenhouse_${device}`,
-				deviceType: device,
-				action: action,
-				status: action === 'on' || action === 'open',
-				controlType: 'auto',
-				timestamp: new Date(),
-				triggeredBy: reason
-			}); await deviceHistory.save();
+			// Update device state and save history via DeviceStateService
+			const status = action === 'on' || action === 'open';
+			await deviceStateService.updateDeviceState(
+				device,
+				status,
+				action,
+				'automation', // source
+				undefined, // userId
+				reason, // triggeredBy
+				sensorValue // sensorValue that triggered this action
+			);
 
-			// Broadcast device control to WebSocket clients
-			webSocketService.broadcastDeviceControl({
-				controlId: `auto_${device}_${Date.now()}`,
-				deviceType: device,
-				action: action,
-				status: action === 'on' || action === 'open',
-				source: 'automation',
-				timestamp: new Date().toISOString(),
-				success: true
-			});
-
-			console.log(`🤖 [AUTO] ${device.toUpperCase()} ${action.toUpperCase()} | Reason: ${reason}`);
+			console.log(`🤖 [AUTO] ${device.toUpperCase()} ${action.toUpperCase()} | Reason: ${reason} | Value: ${sensorValue}`);
 
 		} catch (error) {
 			console.error(`❌ Failed to control ${device}:`, error);

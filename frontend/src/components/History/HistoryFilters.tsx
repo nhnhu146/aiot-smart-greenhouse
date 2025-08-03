@@ -5,6 +5,7 @@ import { FilterState } from '@/types/history';
 interface HistoryFiltersProps {
 	filters: FilterState;
 	showFilters: boolean;
+	currentTab?: 'sensors' | 'controls' | 'voice' | 'alerts';
 	onFilterChange: (field: keyof FilterState, value: string) => void;
 	onClearFilters: () => void;
 	onApplyFilters: () => void;
@@ -14,6 +15,7 @@ interface HistoryFiltersProps {
 const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 	filters,
 	showFilters,
+	currentTab,
 	onFilterChange,
 	onClearFilters,
 	onApplyFilters
@@ -163,14 +165,95 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 									size="sm"
 								>
 									<option value="">All Devices</option>
-									<option value="light">Light</option>
-									<option value="pump">Pump</option>
-									<option value="door">Door</option>
-									<option value="window">Window</option>
+									<option value="light">💡 Light</option>
+									<option value="pump">💧 Pump</option>
+									<option value="door">🚪 Door</option>
+									<option value="window">🪟 Window</option>
 								</Form.Select>
 							</Col>
 						</Row>
 					</div>
+
+					{/* Device Control Specific Filters - Only show for controls tab */}
+					{currentTab === 'controls' && (
+						<div className="filter-section">
+							<div className="filter-section-title">🎛️ Device Controls</div>
+							<Row className="mb-3">
+								<Col md={6}>
+									<Form.Label>Control Type</Form.Label>
+									<Form.Select
+										value={filters.controlType}
+										onChange={(e) => handleInputChange('controlType', e.target.value)}
+										size="sm"
+									>
+										<option value="">All Types</option>
+										<option value="auto">🤖 Automatic</option>
+										<option value="manual">👤 Manual</option>
+									</Form.Select>
+								</Col>
+								<Col md={6}>
+									<Form.Label>Action</Form.Label>
+									<Form.Select
+										value={filters.action}
+										onChange={(e) => handleInputChange('action', e.target.value)}
+										size="sm"
+									>
+										<option value="">All Actions</option>
+										<option value="on">🟢 Turn On</option>
+										<option value="off">🔴 Turn Off</option>
+										<option value="open">📂 Open</option>
+										<option value="close">📁 Close</option>
+									</Form.Select>
+								</Col>
+							</Row>
+							<Row className="mb-3">
+								<Col md={6}>
+									<Form.Label>Device ID</Form.Label>
+									<Form.Control
+										type="text"
+										placeholder="Device ID"
+										value={filters.deviceId}
+										onChange={(e) => handleInputChange('deviceId', e.target.value)}
+										size="sm"
+									/>
+								</Col>
+								<Col md={6}>
+									<Form.Label>Success Status</Form.Label>
+									<Form.Select
+										value={filters.success}
+										onChange={(e) => handleInputChange('success', e.target.value)}
+										size="sm"
+									>
+										<option value="">All Results</option>
+										<option value="true">✅ Success</option>
+										<option value="false">❌ Failed</option>
+									</Form.Select>
+								</Col>
+							</Row>
+							<Row className="mb-3">
+								<Col md={6}>
+									<Form.Label>User ID (Manual)</Form.Label>
+									<Form.Control
+										type="text"
+										placeholder="User ID"
+										value={filters.userId}
+										onChange={(e) => handleInputChange('userId', e.target.value)}
+										size="sm"
+									/>
+								</Col>
+								<Col md={6}>
+									<Form.Label>Triggered By (Auto)</Form.Label>
+									<Form.Control
+										type="text"
+										placeholder="Sensor or trigger"
+										value={filters.triggeredBy}
+										onChange={(e) => handleInputChange('triggeredBy', e.target.value)}
+										size="sm"
+									/>
+								</Col>
+							</Row>
+						</div>
+					)}
 
 					<div className="filter-section">
 						<div className="filter-section-title">📄 Results Per Page</div>

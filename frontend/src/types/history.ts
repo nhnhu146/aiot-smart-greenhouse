@@ -20,7 +20,12 @@ export interface FilterState {
 
 	// Device filters
 	deviceType: string;
+	deviceId: string;
 	controlType: string;
+	action: string;
+	userId: string;
+	triggeredBy: string;
+	success: string;
 
 	// Voice command filters
 	command: string;

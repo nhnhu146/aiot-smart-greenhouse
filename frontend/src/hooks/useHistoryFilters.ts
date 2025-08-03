@@ -16,7 +16,12 @@ const initialFilters: FilterState = {
 	waterLevel: '',
 	rainStatus: '',
 	deviceType: '',
+	deviceId: '',
 	controlType: '',
+	action: '',
+	userId: '',
+	triggeredBy: '',
+	success: '',
 	command: '',
 	pageSize: '20',
 };
