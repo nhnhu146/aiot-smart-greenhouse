@@ -157,11 +157,9 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		const newSocket = io(serverUrl, config);
 
-		// Try to connect
-		newSocket.connect();
-
 		// Connection events
 		newSocket.on('connect', () => {
+			console.log('✅ WebSocket connected successfully');
 			setIsConnected(true);
 
 			// Subscribe to sensor data
@@ -174,24 +172,24 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		newSocket.on('disconnect', (reason) => {
+			console.log(`🔌 WebSocket disconnected: ${reason}`);
 			setIsConnected(false);
 
 			// Attempt to reconnect after a delay if not manually disconnected
 			if (reason !== 'io client disconnect') {
 				reconnectTimeoutRef.current = setTimeout(() => {
+					console.log('🔄 Attempting WebSocket reconnection...');
 					newSocket.connect();
 				}, 3000);
 			}
 		});
 
 		newSocket.on('connect_error', (error) => {
-			console.warn('⚠️ WebSocket connection error (server may not be running):', error.message);
-			setIsConnected(false);
-
-			// Don't spam error logs, just warn once per connection attempt
-			if (!newSocket.recovered) {
-				// Connection error handled
+			// Reduce console spam, only warn if connection hasn't been established recently
+			if (!newSocket.connected) {
+				console.warn('⚠️ WebSocket connection error (retrying...):', error.message);
 			}
+			setIsConnected(false);
 		});
 
 		newSocket.on('reconnect_error', (error) => {

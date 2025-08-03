@@ -6,6 +6,9 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
 export const configureMiddleware = (app: Application): void => {
+	// Trust proxy configuration for rate limiter - enable for production deployments
+	app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
+
 	// Security middleware
 	app.use(helmet({
 		crossOriginResourcePolicy: { policy: 'cross-origin' }

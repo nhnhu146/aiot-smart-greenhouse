@@ -60,119 +60,133 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 						</Row>
 					</div>
 
-					<div className="filter-section">
-						<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
-						<Row className="mb-3">
-							<Col md={6}>
-								<Form.Label>Min Temperature</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Min °C"
-									value={filters.minTemperature}
-									onChange={(e) => handleInputChange('minTemperature', e.target.value)}
-									size="sm"
-								/>
-							</Col>
-							<Col md={6}>
-								<Form.Label>Max Temperature</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Max °C"
-									value={filters.maxTemperature}
-									onChange={(e) => handleInputChange('maxTemperature', e.target.value)}
-									size="sm"
-								/>
-							</Col>
-						</Row>
-					</div>
+					{/* Sensor-specific filters - Only show for sensors tab */}
+					{(currentTab === 'sensors' || !currentTab) && (
+						<>
+							<div className="filter-section">
+								<div className="filter-section-title">🌡️ Temperature Range (°C)</div>
+								<Row className="mb-3">
+									<Col md={6}>
+										<Form.Label>Min Temperature</Form.Label>
+										<Form.Control
+											type="number"
+											placeholder="Min °C"
+											value={filters.minTemperature}
+											onChange={(e) => handleInputChange('minTemperature', e.target.value)}
+											size="sm"
+										/>
+									</Col>
+									<Col md={6}>
+										<Form.Label>Max Temperature</Form.Label>
+										<Form.Control
+											type="number"
+											placeholder="Max °C"
+											value={filters.maxTemperature}
+											onChange={(e) => handleInputChange('maxTemperature', e.target.value)}
+											size="sm"
+										/>
+									</Col>
+								</Row>
+							</div>
 
-					<div className="filter-section">
-						<div className="filter-section-title">💧 Humidity Range (%)</div>
-						<Row className="mb-3">
-							<Col md={6}>
-								<Form.Label>Min Humidity</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Min %"
-									value={filters.minHumidity}
-									onChange={(e) => handleInputChange('minHumidity', e.target.value)}
-									size="sm"
-								/>
-							</Col>
-							<Col md={6}>
-								<Form.Label>Max Humidity</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Max %"
-									value={filters.maxHumidity}
-									onChange={(e) => handleInputChange('maxHumidity', e.target.value)}
-									size="sm"
-								/>
-							</Col>
-						</Row>
-					</div>
+							<div className="filter-section">
+								<div className="filter-section-title">💧 Humidity Range (%)</div>
+								<Row className="mb-3">
+									<Col md={6}>
+										<Form.Label>Min Humidity</Form.Label>
+										<Form.Control
+											type="number"
+											placeholder="Min %"
+											value={filters.minHumidity}
+											onChange={(e) => handleInputChange('minHumidity', e.target.value)}
+											size="sm"
+										/>
+									</Col>
+									<Col md={6}>
+										<Form.Label>Max Humidity</Form.Label>
+										<Form.Control
+											type="number"
+											placeholder="Max %"
+											value={filters.maxHumidity}
+											onChange={(e) => handleInputChange('maxHumidity', e.target.value)}
+											size="sm"
+										/>
+									</Col>
+								</Row>
+							</div>
 
-					<div className="filter-section">
-						<div className="filter-section-title">🌱 Soil & Water</div>
-						<Row className="mb-3">
-							<Col md={6}>
-								<Form.Label>Soil Moisture</Form.Label>
-								<Form.Select
-									value={filters.soilMoisture}
-									onChange={(e) => handleInputChange('soilMoisture', e.target.value)}
-									size="sm"
-								>
-									<option value="">Any</option>
-									<option value="0">Dry (0)</option>
-									<option value="1">Wet (1)</option>
-								</Form.Select>
-							</Col>
-							<Col md={6}>
-								<Form.Label>Water Level</Form.Label>
-								<Form.Select
-									value={filters.waterLevel}
-									onChange={(e) => handleInputChange('waterLevel', e.target.value)}
-									size="sm"
-								>
-									<option value="">Any</option>
-									<option value="0">Normal (0)</option>
-									<option value="1">Flooded (1)</option>
-								</Form.Select>
-							</Col>
-						</Row>
-					</div>
+							<div className="filter-section">
+								<div className="filter-section-title">🌱 Soil & Water</div>
+								<Row className="mb-3">
+									<Col md={6}>
+										<Form.Label>Soil Moisture</Form.Label>
+										<Form.Select
+											value={filters.soilMoisture}
+											onChange={(e) => handleInputChange('soilMoisture', e.target.value)}
+											size="sm"
+										>
+											<option value="">Any</option>
+											<option value="0">Dry (0)</option>
+											<option value="1">Wet (1)</option>
+										</Form.Select>
+									</Col>
+									<Col md={6}>
+										<Form.Label>Water Level</Form.Label>
+										<Form.Select
+											value={filters.waterLevel}
+											onChange={(e) => handleInputChange('waterLevel', e.target.value)}
+											size="sm"
+										>
+											<option value="">Any</option>
+											<option value="0">Normal (0)</option>
+											<option value="1">Flooded (1)</option>
+										</Form.Select>
+									</Col>
+								</Row>
+							</div>
 
-					<div className="filter-section">
-						<div className="filter-section-title">🌧️ Weather & Devices</div>
-						<Row className="mb-3">
-							<Col md={6}>
-								<Form.Label>Rain Status</Form.Label>
-								<Form.Select
-									value={filters.rainStatus}
-									onChange={(e) => handleInputChange('rainStatus', e.target.value)}
-									size="sm"
-								>
-									<option value="">Any</option>
-									<option value="true">Raining</option>
-									<option value="false">Not Raining</option>
-								</Form.Select>
-							</Col>
-							<Col md={6}>
-								<Form.Label>Device Type</Form.Label>
-								<Form.Select
-									value={filters.deviceType}
-									onChange={(e) => handleInputChange('deviceType', e.target.value)}
-									size="sm"
-								>
-									<option value="">All Devices</option>
-									<option value="light">💡 Light</option>
-									<option value="pump">💧 Pump</option>
-									<option value="door">🚪 Door</option>
-									<option value="window">🪟 Window</option>
-								</Form.Select>
-							</Col>
-						</Row>
-					</div>
+							<div className="filter-section">
+								<div className="filter-section-title">🌧️ Weather Conditions</div>
+								<Row className="mb-3">
+									<Col md={6}>
+										<Form.Label>Rain Status</Form.Label>
+										<Form.Select
+											value={filters.rainStatus}
+											onChange={(e) => handleInputChange('rainStatus', e.target.value)}
+											size="sm"
+										>
+											<option value="">Any</option>
+											<option value="true">Raining</option>
+											<option value="false">Not Raining</option>
+										</Form.Select>
+									</Col>
+								</Row>
+							</div>
+						</>
+					)}
+
+					{/* Device and general filters for device controls and voice commands */}
+					{(currentTab === 'controls' || currentTab === 'voice' || !currentTab) && (
+						<div className="filter-section">
+							<div className="filter-section-title">🎛️ Device Information</div>
+							<Row className="mb-3">
+								<Col md={6}>
+									<Form.Label>Device Type</Form.Label>
+									<Form.Select
+										value={filters.deviceType}
+										onChange={(e) => handleInputChange('deviceType', e.target.value)}
+										size="sm"
+									>
+										<option value="">All Devices</option>
+										<option value="light">💡 Light</option>
+										<option value="pump">💧 Pump</option>
+										<option value="door">🚪 Door</option>
+										<option value="window">🪟 Window</option>
+									</Form.Select>
+								</Col>
+							</Row>
+						</div>
+					)}
 
 					{/* Device Control Specific Filters - Only show for controls tab */}
 					{currentTab === 'controls' && (
@@ -248,6 +262,25 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
 										placeholder="Sensor or trigger"
 										value={filters.triggeredBy}
 										onChange={(e) => handleInputChange('triggeredBy', e.target.value)}
+										size="sm"
+									/>
+								</Col>
+							</Row>
+						</div>
+					)}
+
+					{/* Voice Commands specific filters - Only show for voice tab */}
+					{currentTab === 'voice' && (
+						<div className="filter-section">
+							<div className="filter-section-title">🎤 Voice Commands</div>
+							<Row className="mb-3">
+								<Col md={12}>
+									<Form.Label>Command Text</Form.Label>
+									<Form.Control
+										type="text"
+										placeholder="Search command text..."
+										value={filters.command}
+										onChange={(e) => handleInputChange('command', e.target.value)}
 										size="sm"
 									/>
 								</Col>

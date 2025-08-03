@@ -35,9 +35,12 @@ class WebSocketService {
 				methods: ["GET", "POST"],
 				credentials: true
 			},
-			pingTimeout: 60000,
-			pingInterval: 25000,
-			transports: ['websocket', 'polling']
+			pingTimeout: 60000,     // Increased timeout
+			pingInterval: 25000,    // Standard interval
+			connectTimeout: 10000,  // Connection timeout
+			transports: ['websocket', 'polling'],
+			allowEIO3: true,        // Better compatibility
+			upgradeTimeout: 10000   // Upgrade timeout
 		});
 
 		this.io.on('connection', (socket: Socket) => {

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Button } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Button, Form, InputGroup } from 'react-bootstrap';
 import { PaginationInfo } from '@/types/history';
 
 interface PaginationControlsProps {
@@ -14,6 +14,7 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
 	disabled = false
 }) => {
 	const { page, totalPages, hasPrev, hasNext } = pagination;
+	const [jumpPage, setJumpPage] = useState('');
 
 	const handlePrevious = () => {
 		if (hasPrev && !disabled) {
@@ -24,6 +25,27 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
 	const handleNext = () => {
 		if (hasNext && !disabled) {
 			onPageChange(page + 1);
+		}
+	};
+
+	const handleFirst = () => {
+		if (page > 1 && !disabled) {
+			onPageChange(1);
+		}
+	};
+
+	const handleLast = () => {
+		if (page < totalPages && !disabled) {
+			onPageChange(totalPages);
+		}
+	};
+
+	const handleJumpSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		const targetPage = parseInt(jumpPage);
+		if (targetPage >= 1 && targetPage <= totalPages && !disabled) {
+			onPageChange(targetPage);
+			setJumpPage('');
 		}
 	};
 
@@ -49,17 +71,30 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
 	}
 
 	return (
-		<div className="d-flex justify-content-between align-items-center mt-3">
-			<Button
-				variant="outline-primary"
-				onClick={handlePrevious}
-				disabled={!hasPrev || disabled}
-				size="sm"
-			>
-				← Previous
-			</Button>
+		<div className="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+			{/* Navigation buttons */}
+			<div className="d-flex align-items-center gap-1">
+				<Button
+					variant="outline-primary"
+					onClick={handleFirst}
+					disabled={!hasPrev || disabled}
+					size="sm"
+					title="First page"
+				>
+					⏮️
+				</Button>
+				<Button
+					variant="outline-primary"
+					onClick={handlePrevious}
+					disabled={!hasPrev || disabled}
+					size="sm"
+				>
+					← Previous
+				</Button>
+			</div>
 
-			<div className="d-flex align-items-center">
+			{/* Page numbers */}
+			<div className="d-flex align-items-center gap-1">
 				{getPageNumbers().map((pageNum) => (
 					<Button
 						key={pageNum}
@@ -67,21 +102,59 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
 						onClick={() => onPageChange(pageNum)}
 						disabled={disabled}
 						size="sm"
-						className="mx-1"
+						className="px-2"
 					>
 						{pageNum}
 					</Button>
 				))}
 			</div>
 
-			<Button
-				variant="outline-primary"
-				onClick={handleNext}
-				disabled={!hasNext || disabled}
-				size="sm"
-			>
-				Next →
-			</Button>
+			{/* Next and Last buttons */}
+			<div className="d-flex align-items-center gap-1">
+				<Button
+					variant="outline-primary"
+					onClick={handleNext}
+					disabled={!hasNext || disabled}
+					size="sm"
+				>
+					Next →
+				</Button>
+				<Button
+					variant="outline-primary"
+					onClick={handleLast}
+					disabled={!hasNext || disabled}
+					size="sm"
+					title="Last page"
+				>
+					⏭️
+				</Button>
+			</div>
+
+			{/* Jump to page */}
+			{totalPages > 10 && (
+				<Form onSubmit={handleJumpSubmit} className="d-flex align-items-center gap-1">
+					<InputGroup size="sm" style={{ maxWidth: '120px' }}>
+						<Form.Control
+							type="number"
+							min={1}
+							max={totalPages}
+							value={jumpPage}
+							onChange={(e) => setJumpPage(e.target.value)}
+							placeholder={`1-${totalPages}`}
+							disabled={disabled}
+							size="sm"
+						/>
+						<Button
+							variant="outline-secondary"
+							type="submit"
+							disabled={disabled}
+							size="sm"
+						>
+							Go
+						</Button>
+					</InputGroup>
+				</Form>
+			)}
 		</div>
 	);
 };

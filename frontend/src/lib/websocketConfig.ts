@@ -30,17 +30,20 @@ export const getWebSocketUrl = (): string => {
 
 export const getWebSocketConfig = () => ({
 	transports: ['websocket', 'polling'],
-	timeout: 5000,
+	timeout: 20000, // Increased timeout
 	retries: 3,
 	reconnection: true,
 	reconnectionAttempts: 5,
 	reconnectionDelay: 1000,
 	reconnectionDelayMax: 5000,
-	forceNew: true,
-	autoConnect: false,
-	// Add ping/pong for connection health
+	forceNew: false,
+	autoConnect: true,
+	// Connection health settings
 	pingTimeout: 60000,
-	pingInterval: 25000
+	pingInterval: 25000,
+	// Additional reliability settings
+	upgrade: true,
+	rememberUpgrade: true
 });
 
 export const logConnectionInfo = (serverUrl: string) => {

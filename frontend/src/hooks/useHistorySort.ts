@@ -29,7 +29,7 @@ export const useHistorySort = () => {
 	const handleSort = (field: string, tab: 'sensors' | 'controls' | 'voice' | 'alerts') => {
 		const updateSort = (currentSort: SortState, setSort: (sort: SortState) => void) => {
 			if (currentSort.field === field) {
-				// Toggle direction
+				// Toggle direction for same field
 				const newDirection = currentSort.direction === 'asc' ? 'desc' : 'asc';
 				setSort({
 					field,
@@ -37,7 +37,7 @@ export const useHistorySort = () => {
 					tab
 				});
 			} else {
-				// New field, default to desc
+				// New field, default to desc (newest first for timestamps)
 				setSort({
 					field,
 					direction: 'desc',

@@ -63,8 +63,8 @@ export class DeviceHistoryController {
 			sortOrder = 'desc'
 		} = req.query as any;
 
-		// Validate sortBy parameter
-		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'controlType'];
+		// Validate sortBy parameter - include all possible sort fields
+		const validSortFields = ['timestamp', 'deviceType', 'action', 'status', 'controlType', 'triggeredBy', 'userId', 'deviceId', 'success'];
 		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'timestamp';
 
 		// Log sort parameters for debugging
