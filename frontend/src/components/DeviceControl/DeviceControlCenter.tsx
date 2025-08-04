@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Row, Col } from 'react-bootstrap';
 import DeviceControlCard from './components/DeviceControlCard';
 import HighlightWrapper from '@/components/Common/HighlightWrapper';
-import { DeviceStates, deviceStateService } from '@/services/deviceStateService';
+import { DeviceStates } from '@/services/deviceStateService';
+import { deviceControlService } from '@/services/deviceControlService';
 import { useDeviceSync } from '@/hooks/useDeviceSync';
 import './DeviceControlCenter.css';
 
@@ -49,17 +50,8 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 
 	// Fetch initial device states on mount
 	useEffect(() => {
-		fetchDeviceStates();
-	}, []);
-
-	// Manual sync function that uses the enhanced service
-	const fetchDeviceStates = useCallback(async () => {
-		try {
-			const states = await deviceStateService.getAllStates();
-			setDeviceStates(states);
-		} catch (error) {
-			console.error('Failed to fetch device states:', error);
-		}
+		// Initial states are handled by useDeviceSync hook
+		// No need for manual fetching here
 	}, []);
 
 	const handleDeviceToggle = useCallback(async (device: string) => {
@@ -69,23 +61,22 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 		try {
 			const currentState = deviceStates[device]?.status || false;
 			const newState = !currentState;
-			const action = newState ? 'on' : 'off';
-
-			// 1.1. Send API to backend (following Dataflow.md)
-			const response = await fetch('/api/devices/control', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					deviceType: device,
-					action: action
-				})
-			});
-
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}`);
+			
+			// Map device to correct action format
+			let action: 'on' | 'off' | 'open' | 'close';
+			if (['light', 'pump'].includes(device)) {
+				action = newState ? 'on' : 'off';
+			} else if (['door', 'window'].includes(device)) {
+				action = newState ? 'open' : 'close';
+			} else {
+				action = newState ? 'on' : 'off'; // fallback
 			}
+
+			// 1.1. Send API to backend (following Dataflow.md) using deviceControlService
+			await deviceControlService.sendDeviceControl({
+				deviceType: device as 'light' | 'pump' | 'door' | 'window',
+				action: action
+			});
 
 			// Backend handles:
 			// 1.1.1. Backend update history
