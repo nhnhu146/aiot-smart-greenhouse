@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FilterState, SortState, PaginationInfo } from '@/types/history';
 import apiClient from '@/lib/apiClient';
+import HistoryRequestManager from '@/utils/requestManager';
 
 export const useSensorHistory = (
 	filters: FilterState,
@@ -10,68 +11,50 @@ export const useSensorHistory = (
 ) => {
 	const [data, setData] = useState<any[]>([]);
 	const [loading, setLoading] = useState(false);
-	const [cachedData, setCachedData] = useState<any[]>([]);
+	const [error, setError] = useState<string | null>(null);
 
-	// Debouncing refs
-	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-	const lastFetchTimeRef = useRef<number>(0);
-	const lastFiltersRef = useRef<string>('');
+	// Use centralized request manager
+	const requestManager = useMemo(() => HistoryRequestManager.getInstance(), []);
 
-	const buildParams = () => {
-		const params: any = {
-			page: pagination.page,
-			limit: pagination.limit,
-			sortBy: sort.field,
-			sortOrder: sort.direction
-		};
+	const buildSensorParams = useCallback(() => {
+		const extraFilters: Record<string, any> = {};
 
-		// Add filter parameters only if they have meaningful values
-		if (filters.dateFrom && filters.dateFrom.trim()) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo && filters.dateTo.trim()) params.dateTo = filters.dateTo;
-		if (filters.minTemperature && filters.minTemperature.trim()) params.minTemperature = parseFloat(filters.minTemperature);
-		if (filters.maxTemperature && filters.maxTemperature.trim()) params.maxTemperature = parseFloat(filters.maxTemperature);
-		if (filters.minHumidity && filters.minHumidity.trim()) params.minHumidity = parseFloat(filters.minHumidity);
-		if (filters.maxHumidity && filters.maxHumidity.trim()) params.maxHumidity = parseFloat(filters.maxHumidity);
-		if (filters.minSoilMoisture && filters.minSoilMoisture.trim()) params.minSoilMoisture = parseFloat(filters.minSoilMoisture);
-		if (filters.maxSoilMoisture && filters.maxSoilMoisture.trim()) params.maxSoilMoisture = parseFloat(filters.maxSoilMoisture);
-		if (filters.minWaterLevel && filters.minWaterLevel.trim()) params.minWaterLevel = parseFloat(filters.minWaterLevel);
-		if (filters.maxWaterLevel && filters.maxWaterLevel.trim()) params.maxWaterLevel = parseFloat(filters.maxWaterLevel);
-		if (filters.soilMoisture !== '' && filters.soilMoisture.trim()) params.soilMoisture = parseInt(filters.soilMoisture);
-		if (filters.waterLevel !== '' && filters.waterLevel.trim()) params.waterLevel = parseInt(filters.waterLevel);
-		if (filters.rainStatus !== '' && filters.rainStatus.trim()) params.rainStatus = filters.rainStatus === 'true';
+		// Add sensor-specific filter parameters only if they have meaningful values
+		if (filters.minTemperature?.trim()) extraFilters.minTemperature = parseFloat(filters.minTemperature);
+		if (filters.maxTemperature?.trim()) extraFilters.maxTemperature = parseFloat(filters.maxTemperature);
+		if (filters.minHumidity?.trim()) extraFilters.minHumidity = parseFloat(filters.minHumidity);
+		if (filters.maxHumidity?.trim()) extraFilters.maxHumidity = parseFloat(filters.maxHumidity);
+		if (filters.minSoilMoisture?.trim()) extraFilters.minSoilMoisture = parseFloat(filters.minSoilMoisture);
+		if (filters.maxSoilMoisture?.trim()) extraFilters.maxSoilMoisture = parseFloat(filters.maxSoilMoisture);
+		if (filters.minWaterLevel?.trim()) extraFilters.minWaterLevel = parseFloat(filters.minWaterLevel);
+		if (filters.maxWaterLevel?.trim()) extraFilters.maxWaterLevel = parseFloat(filters.maxWaterLevel);
+		if (filters.soilMoisture !== '' && filters.soilMoisture?.trim()) extraFilters.soilMoisture = parseInt(filters.soilMoisture);
+		if (filters.waterLevel !== '' && filters.waterLevel?.trim()) extraFilters.waterLevel = parseInt(filters.waterLevel);
+		if (filters.rainStatus !== '' && filters.rainStatus?.trim()) extraFilters.rainStatus = filters.rainStatus === 'true';
 
-		return params;
-	};
+		return requestManager.buildHistoryParams(filters, sort, pagination, extraFilters);
+	}, [filters, sort, pagination, requestManager]);
 
 	const fetchData = useCallback(async (forceRefresh = false) => {
-		// Check if filters changed - if so, force refresh
-		const currentFiltersStr = JSON.stringify(filters) + JSON.stringify(sort) + JSON.stringify(pagination);
-		const filtersChanged = currentFiltersStr !== lastFiltersRef.current;
-		lastFiltersRef.current = currentFiltersStr;
-
-		// Prevent excessive API calls only if filters haven't changed
-		const now = Date.now();
-		const MIN_FETCH_INTERVAL = forceRefresh || filtersChanged ? 0 : 3000;
-		if (!forceRefresh && !filtersChanged && (now - lastFetchTimeRef.current < MIN_FETCH_INTERVAL)) {
-			console.log('⏳ Sensor history fetch skipped - too soon since last fetch');
-			return;
-		}
-		lastFetchTimeRef.current = now;
-
-		// Clear any pending timeout
-		if (fetchTimeoutRef.current) {
-			clearTimeout(fetchTimeoutRef.current);
-		}
-
-		// Only show cached data if filters haven't changed
-		if (!filtersChanged && cachedData.length > 0) {
-			setData(cachedData);
+		if (forceRefresh) {
+			requestManager.clearCache('/api/history/sensors');
 		}
 
 		setLoading(true);
+		setError(null);
+
 		try {
-			const params = buildParams();
-			const response = await apiClient.get('/api/history/sensors', { params });
+			const params = buildSensorParams();
+
+			const response = await requestManager.makeRequest(
+				async (requestParams) => {
+					return await apiClient.get('/api/history/sensors', { 
+						params: requestParams
+					});
+				},
+				'/api/history/sensors',
+				params
+			);
 
 			// Standardized API response format handling - only support data.sensors format
 			let newData = [];
@@ -90,21 +73,19 @@ export const useSensorHistory = (
 				newData = [];
 			}
 
-			// Always update data and cache when we have a successful response
 			setData(newData);
-			setCachedData(newData);
 			setPagination(paginationData);
 
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Failed to fetch sensor history:', error);
-			// On error, keep showing cached data if available
-			if (cachedData.length === 0) {
+			if (error.message !== 'Request was cancelled') {
+				setError('Failed to load sensor data');
 				setData([]);
 			}
 		} finally {
 			setLoading(false);
 		}
-	}, [filters, sort, pagination, cachedData, setPagination]);
+	}, [buildSensorParams, requestManager, pagination, setPagination]);
 
 	// Effect to fetch data when dependencies change
 	useEffect(() => {
@@ -114,7 +95,6 @@ export const useSensorHistory = (
 	// Global refresh function that can be called when settings change
 	const refreshData = useCallback(() => {
 		console.log('🔄 Refreshing sensor history data after settings change');
-		setCachedData([]); // Clear cache
 		fetchData(true); // Force refresh
 	}, [fetchData]);
 
@@ -133,18 +113,17 @@ export const useSensorHistory = (
 		};
 	}, [refreshData]);
 
-	// Cleanup timeout on unmount
+	// Cleanup on unmount
 	useEffect(() => {
 		return () => {
-			if (fetchTimeoutRef.current) {
-				clearTimeout(fetchTimeoutRef.current);
-			}
+			requestManager.cancelAllRequests();
 		};
-	}, []);
+	}, [requestManager]);
 
 	return {
 		data,
 		loading,
+		error,
 		refreshData
 	};
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Row, Col } from 'react-bootstrap';
 import DeviceControlCard from './components/DeviceControlCard';
 import HighlightWrapper from '@/components/Common/HighlightWrapper';
-import { deviceStateService, DeviceStates } from '@/services/deviceStateService';
+import { DeviceStates, deviceStateService } from '@/services/deviceStateService';
 import { useDeviceSync } from '@/hooks/useDeviceSync';
 import './DeviceControlCenter.css';
 
@@ -58,6 +58,7 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 			const states = await deviceStateService.getAllStates();
 			setDeviceStates(states);
 		} catch (error) {
+			console.error('Failed to fetch device states:', error);
 		}
 	}, []);
 
@@ -68,21 +69,10 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 		try {
 			const currentState = deviceStates[device]?.status || false;
 			const newState = !currentState;
-
-			// Optimistically update UI
-			setDeviceStates(prev => ({
-				...prev,
-				[device]: {
-					...prev[device],
-					status: newState,
-					lastCommand: newState ? 'on' : 'off',
-					updatedAt: new Date().toISOString()
-				}
-			}));
-
-			// Call device control API (which will also send MQTT and update backend state)
 			const action = newState ? 'on' : 'off';
-			await fetch('/api/devices/control', {
+
+			// 1.1. Send API to backend (following Dataflow.md)
+			const response = await fetch('/api/devices/control', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -93,18 +83,24 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 				})
 			});
 
-			// Update backend state explicitly
-			await deviceStateService.updateDeviceState(device, newState, action);
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
 
-			// Dispatch board change event to refresh history data
-			window.dispatchEvent(new CustomEvent('boardChanged', {
-				detail: { device, action, newState }
-			}));
+			// Backend handles:
+			// 1.1.1. Backend update history
+			// 1.1.2. Backend send MQTT message to IoT
+			// 1.1.3. Backend send Web Socket to notice other clients update status
+			
+			// 1.2. Frontend receives WebSocket updates via useDeviceSync hook
+			// No manual state updates needed - WebSocket will handle it
+
+			console.log(`✅ Device control sent: ${device} -> ${action}`);
 
 		} catch (error) {
 			console.error(`❌ Error controlling device ${device}:`, error);
 
-			// Revert optimistic update on error using force refresh
+			// Force refresh to get accurate state from backend
 			await forceRefresh();
 		} finally {
 			// Clear loading state after a delay
@@ -116,7 +112,7 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 				});
 			}, 1000);
 		}
-	}, [deviceStates, fetchDeviceStates]);
+	}, [deviceStates, forceRefresh]);;
 
 	const getDeviceStatus = (device: string): boolean => {
 		return deviceStates[device]?.status || false;

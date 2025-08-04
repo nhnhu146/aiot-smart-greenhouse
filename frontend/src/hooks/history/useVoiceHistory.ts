@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FilterState, SortState, PaginationInfo } from '@/types/history';
 import apiClient from '@/lib/apiClient';
+import HistoryRequestManager from '@/utils/requestManager';
 
 interface VoiceCommand {
 	_id: string;
@@ -19,36 +20,40 @@ export const useVoiceHistory = (
 ) => {
 	const [data, setData] = useState<VoiceCommand[]>([]);
 	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-	const buildParams = () => {
-		const params: any = {
-			page: pagination.page,
-			limit: pagination.limit,
-			sortBy: sort.field,
-			sortOrder: sort.direction
-		};
+	// Use centralized request manager
+	const requestManager = useMemo(() => HistoryRequestManager.getInstance(), []);
 
-		// Add filter parameters only if they have meaningful values
-		if (filters.dateFrom && filters.dateFrom.trim()) params.dateFrom = filters.dateFrom;
-		if (filters.dateTo && filters.dateTo.trim()) params.dateTo = filters.dateTo;
+	const buildVoiceParams = useCallback(() => {
+		const extraFilters: Record<string, any> = {};
 
-		return params;
-	};
+		// Add voice-specific filter parameters only if they have meaningful values
+		if (filters.command?.trim()) extraFilters.command = filters.command;
 
-	const fetchData = async () => {
-		// Debounce API calls - 5 seconds minimum between requests
-		const now = Date.now();
-		const MIN_INTERVAL = 5000;
-		if (now - (window as any).__lastVoiceHistoryFetch < MIN_INTERVAL) {
-			console.log('⏳ Voice history fetch skipped - too soon');
-			return;
+		return requestManager.buildHistoryParams(filters, sort, pagination, extraFilters);
+	}, [filters, sort, pagination, requestManager]);
+
+	const fetchData = useCallback(async (forceRefresh = false) => {
+		if (forceRefresh) {
+			requestManager.clearCache('/api/voice-commands');
 		}
-		(window as any).__lastVoiceHistoryFetch = now;
 
 		setLoading(true);
+		setError(null);
+
 		try {
-			const params = buildParams();
-			const response = await apiClient.get('/api/voice-commands', { params });
+			const params = buildVoiceParams();
+
+			const response = await requestManager.makeRequest(
+				async (requestParams) => {
+					return await apiClient.get('/api/voice-commands', { 
+						params: requestParams
+					});
+				},
+				'/api/voice-commands',
+				params
+			);
 
 			// Handle the correct API response format
 			const responseData = response.data || response;
@@ -68,28 +73,40 @@ export const useVoiceHistory = (
 			// Handle pagination
 			const paginationData = responseData.data?.pagination || responseData.pagination || pagination;
 			setPagination(paginationData);
-		} catch (error) {
-			setData([]);
+
+		} catch (error: any) {
+			console.error('Failed to fetch voice history:', error);
+			if (error.message !== 'Request was cancelled') {
+				setError('Failed to load voice command data');
+				setData([]);
+			}
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [buildVoiceParams, requestManager, pagination, setPagination]);
 
+	// Effect to fetch data when dependencies change
 	useEffect(() => {
 		fetchData();
-	}, [
-		filters.dateFrom,
-		filters.dateTo,
-		filters.command,
-		sort.field,
-		sort.direction,
-		pagination.page,
-		pagination.limit
-	]);
+	}, [fetchData]);
+
+	// Global refresh function
+	const refreshData = useCallback(() => {
+		console.log('🔄 Refreshing voice history data');
+		fetchData(true); // Force refresh
+	}, [fetchData]);
+
+	// Cleanup on unmount
+	useEffect(() => {
+		return () => {
+			requestManager.cancelAllRequests();
+		};
+	}, [requestManager]);
 
 	return {
 		data,
 		loading,
-		refreshData: fetchData
+		error,
+		refreshData
 	};
 };

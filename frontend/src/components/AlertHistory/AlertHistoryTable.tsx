@@ -53,7 +53,8 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 		try {
 			await onAcknowledge(alertId);
 		} catch (error) {
-					}
+			console.error('Failed to acknowledge alert:', error);
+		}
 	};
 
 	const getSortIcon = (field: string) => {

@@ -41,7 +41,7 @@ export const useAlertHistory = (
 	const [error, setError] = useState<string | null>(null);
 
 	// Debouncing and rate limiting to prevent excessive API calls
-	const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const lastFetchTimeRef = useRef<number>(0);
 
 	const fetchData = async () => {
@@ -107,13 +107,9 @@ export const useAlertHistory = (
 	}, [filters.dateFrom, filters.dateTo, filters.severity, filters.type, filters.acknowledged, sort.field, sort.direction, pagination.page, pagination.limit]);
 
 	const acknowledgeAlert = async (alertId: string) => {
-		try {
-			await apiClient.put(`/api/alert-history/${alertId}/acknowledge`);
-			// Refresh data after acknowledgment
-			await fetchData();
-		} catch (err) {
-			throw err;
-		}
+		await apiClient.put(`/api/alert-history/${alertId}/acknowledge`);
+		// Refresh data after acknowledgment
+		await fetchData();
 	};
 
 	const refresh = () => {
