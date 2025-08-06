@@ -153,6 +153,7 @@ export class MQTTAutoMergeMiddleware {
 
 	/**
 	 * Merge new MQTT data with recent existing data
+	 * Enhanced to prioritize non-null and non-zero values
 	 */
 	private async mergeWithRecentData(newData: MQTTSensorData, recentData: any[]): Promise<boolean> {
 		try {
@@ -163,9 +164,16 @@ export class MQTTAutoMergeMiddleware {
 				return false;
 			}
 
-			// Update the target record with new sensor value
+			// Determine the best value to use (prioritize non-null and non-zero)
+			const currentValue = targetRecord[newData.type];
+			const newValue = newData.value;
+
+			// Use the better value based on our priority system
+			const bestValue = this.selectBestSensorValue(currentValue, newValue);
+
+			// Update the target record with the best sensor value
 			const updateData: any = {
-				[newData.type]: newData.value,
+				[newData.type]: bestValue,
 				updatedAt: new Date(),
 				dataQuality: 'merged',
 				mergedAt: new Date(),
@@ -176,7 +184,7 @@ export class MQTTAutoMergeMiddleware {
 				$set: updateData
 			});
 
-			console.log(`✅ Merged MQTT data ${newData.type}=${newData.value} with existing record`);
+			console.log(`✅ Merged MQTT data ${newData.type}=${bestValue} (chose from current: ${currentValue}, new: ${newValue})`);
 			return true;
 		} catch (error) {
 			console.error('❌ Error merging with recent data:', error);
@@ -254,6 +262,7 @@ export class MQTTAutoMergeMiddleware {
 		}
 	}
 
+
 	/**
 	 * Force immediate merge (for manual triggering)
 	 */
@@ -270,6 +279,88 @@ export class MQTTAutoMergeMiddleware {
 			hasPendingMerge: !!this.pendingMerge,
 			mergeInterval: this.mergeInterval
 		};
+	}
+
+	/**
+	 * Select the best sensor value prioritizing non-null and non-zero values
+	 * @param currentValue - Current value in database
+	 * @param newValue - New incoming value from MQTT
+	 * @returns The better value based on priority rules
+	 */
+	private selectBestSensorValue(currentValue: any, newValue: any): any {
+		// Priority 1: If new value is non-null and non-zero, prefer it
+		if (this.isValidNonZeroValue(newValue)) {
+			return newValue;
+		}
+
+		// Priority 2: If current value is non-null and non-zero, keep it
+		if (this.isValidNonZeroValue(currentValue)) {
+			return currentValue;
+		}
+
+		// Priority 3: Prefer non-null values (including valid zeros)
+		if (this.isValidNonNullValue(newValue)) {
+			return newValue;
+		}
+
+		if (this.isValidNonNullValue(currentValue)) {
+			return currentValue;
+		}
+
+		// Priority 4: Default to new value if both are invalid
+		return newValue;
+	}
+
+	/**
+	 * Check if value is valid and non-zero (for sensors that shouldn't be zero)
+	 */
+	private isValidNonZeroValue(value: any): boolean {
+		if (value === null || value === undefined || value === '') {
+			return false;
+		}
+
+		// For boolean fields (like rainStatus), 0 and 1 are both valid
+		if (typeof value === 'boolean') {
+			return true;
+		}
+
+		// For numeric fields, non-zero values are preferred
+		if (typeof value === 'number') {
+			return !isNaN(value) && value !== 0;
+		}
+
+		// For string values, non-empty strings are valid
+		if (typeof value === 'string') {
+			return value.trim().length > 0;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if value is valid and non-null (including zero for valid sensor readings)
+	 */
+	private isValidNonNullValue(value: any): boolean {
+		if (value === null || value === undefined || value === '') {
+			return false;
+		}
+
+		// For boolean fields
+		if (typeof value === 'boolean') {
+			return true;
+		}
+
+		// For numeric fields, accept all numbers including zero
+		if (typeof value === 'number') {
+			return !isNaN(value);
+		}
+
+		// For string values
+		if (typeof value === 'string') {
+			return value.trim().length > 0;
+		}
+
+		return false;
 	}
 }
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
 import { formatVietnamTimestamp, formatVietnamTimestampISO } from '../../utils/timezone';
+import { DataMergerService } from '../../services/DataMergerService';
 export class SensorExportController {
 	async exportSensorData(req: Request, res: Response): Promise<void> {
 		const { from, to, format = 'json' } = req.query as any;
@@ -10,6 +11,27 @@ export class SensorExportController {
 			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
+		}
+
+				// **CRITICAL: Ensure data merge before export**
+		try {
+			console.log('🔄 Ensuring data merge before sensor export...');
+			const mergerService = DataMergerService.getInstance();
+			
+			const mergeStats = await mergerService.mergeSameTimestampData({
+				exactDuplicatesOnly: false,
+				timeWindowMs: 60000,
+				preserveOriginal: false
+			});
+
+			if (mergeStats.mergedRecords > 0) {
+				console.log('✅ Export pre-query merge completed:', {
+					merged: mergeStats.mergedRecords,
+					deleted: mergeStats.deletedRecords
+				});
+			}
+		} catch (mergeError) {
+			console.warn('⚠️ Export merge failed, continuing:', mergeError);
 		}
 
 		const sensorData = await SensorData.find(query)

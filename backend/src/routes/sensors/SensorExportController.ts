@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { formatVietnamTimestamp } from '../../utils/timezone';
+import { DataMergerService } from '../../services/DataMergerService';
 import { countService } from '../../services';
 import { APIResponse } from '../../types';
 export class SensorExportController {
@@ -60,6 +61,27 @@ export class SensorExportController {
 		const sortCriteria: any = { /* TODO: Implement */ };
 		sortCriteria[sortBy] = sortOrder === 'asc' ? 1 : -1;
 		// Get data for export (limit to reasonable size for CSV)
+				// **CRITICAL: Ensure data merge before export**
+		try {
+			console.log('🔄 Ensuring data merge before sensor export...');
+			const mergerService = DataMergerService.getInstance();
+			
+			const mergeStats = await mergerService.mergeSameTimestampData({
+				exactDuplicatesOnly: false,
+				timeWindowMs: 60000,
+				preserveOriginal: false
+			});
+
+			if (mergeStats.mergedRecords > 0) {
+				console.log('✅ Sensor export pre-query merge completed:', {
+					merged: mergeStats.mergedRecords,
+					deleted: mergeStats.deletedRecords
+				});
+			}
+		} catch (mergeError) {
+			console.warn('⚠️ Sensor export merge failed, continuing:', mergeError);
+		}
+
 		const data = await SensorData.find(query)
 			.sort(sortCriteria)
 			.limit(10000) // Limit for performance

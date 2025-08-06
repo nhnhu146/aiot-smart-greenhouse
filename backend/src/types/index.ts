@@ -113,4 +113,5 @@ export interface APIResponse<T = any> {
 	data?: T
 	error?: string
 	timestamp: string
+	merged?: boolean // For merged data responses
 }

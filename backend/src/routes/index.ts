@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { SensorData, DeviceStatus, Alert } from '../models';
 import { asyncHandler } from '../middleware';
 import { mqttService, emailService } from '../services';
+import { DataMergerService } from '../services/DataMergerService';
 import { AppConstants } from '../config/AppConfig';
 import { APIResponse } from '../types';
 import sensorsRouter from './sensors';
@@ -72,6 +73,28 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 	const now = new Date();
 	const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 	const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+	
+	// **CRITICAL: Ensure data merge before serving dashboard data**
+	try {
+		console.log('🔄 Ensuring data merge before serving dashboard data...');
+		const mergerService = DataMergerService.getInstance();
+		
+		const mergeStats = await mergerService.mergeSameTimestampData({
+			exactDuplicatesOnly: false,
+			timeWindowMs: 60000,
+			preserveOriginal: false
+		});
+
+		if (mergeStats.mergedRecords > 0) {
+			console.log('✅ Dashboard pre-query merge completed:', {
+				merged: mergeStats.mergedRecords,
+				deleted: mergeStats.deletedRecords
+			});
+		}
+	} catch (mergeError) {
+		console.warn('⚠️ Dashboard merge failed, continuing:', mergeError);
+	}
+	
 	// Get latest sensor data
 	const latestSensor = await SensorData.findOne().sort({ createdAt: -1 }).lean();
 	// Get device status

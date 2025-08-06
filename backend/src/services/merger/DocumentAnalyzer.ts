@@ -4,13 +4,20 @@ import { AppConstants } from '../../config/AppConfig';
 export class DocumentAnalyzer {
 	/**
 	 * Calculate completeness score for a document
+	 * Prioritizes non-null and non-zero values for better data quality
 	 */
 	static calculateCompletenessScore(doc: any): number {
 		const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'plantHeight', 'lightLevel', 'rainStatus'];
 		let score = 0;
+
 		for (const field of sensorFields) {
-			if (doc[field] !== null && doc[field] !== undefined && doc[field] !== '') {
-				score++;
+			const value = doc[field];
+
+			// Higher score for non-null and non-zero values
+			if (this.isValidNonZeroValue(value)) {
+				score += 2; // Double points for non-zero values
+			} else if (this.isValidNonNullValue(value)) {
+				score += 1; // Single point for non-null values (including valid zeros)
 			}
 		}
 
@@ -19,21 +26,16 @@ export class DocumentAnalyzer {
 
 	/**
 	 * Find document with most complete sensor data
+	 * Enhanced to prioritize non-null and non-zero values
 	 */
 	static findMostCompleteDocument(docs: any[]): any {
 		let bestScore = -1;
 		let bestDoc = docs[0];
-		const sensorFields = ['temperature', 'humidity', 'soilMoisture', 'waterLevel', 'plantHeight', 'lightLevel'];
-		for (const doc of docs) {
-			let score = 0;
-			// Count non-null sensor values
-			for (const field of sensorFields) {
-				if (doc[field] !== null && doc[field] !== undefined) {
-					score++;
-				}
-			}
 
-			// Prefer newer documents if score is same
+		for (const doc of docs) {
+			const score = this.calculateCompletenessScore(doc);
+
+			// Prefer higher score, then newer documents if score is same
 			if (score > bestScore || (score === bestScore && doc.createdAt > bestDoc.createdAt)) {
 				bestScore = score;
 				bestDoc = doc;
@@ -41,6 +43,58 @@ export class DocumentAnalyzer {
 		}
 
 		return bestDoc;
+	}
+
+	/**
+	 * Check if value is valid and non-zero (for sensors that shouldn't be zero)
+	 */
+	private static isValidNonZeroValue(value: any): boolean {
+		if (value === null || value === undefined || value === '') {
+			return false;
+		}
+
+		// For boolean fields (like rainStatus), 0 and 1 are both valid
+		if (typeof value === 'boolean') {
+			return true;
+		}
+
+		// For numeric fields, non-zero values are preferred
+		if (typeof value === 'number') {
+			return !isNaN(value) && value !== 0;
+		}
+
+		// For string values, non-empty strings are valid
+		if (typeof value === 'string') {
+			return value.trim().length > 0;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if value is valid and non-null (including zero for valid sensor readings)
+	 */
+	private static isValidNonNullValue(value: any): boolean {
+		if (value === null || value === undefined || value === '') {
+			return false;
+		}
+
+		// For boolean fields
+		if (typeof value === 'boolean') {
+			return true;
+		}
+
+		// For numeric fields, accept all numbers including zero
+		if (typeof value === 'number') {
+			return !isNaN(value);
+		}
+
+		// For string values
+		if (typeof value === 'string') {
+			return value.trim().length > 0;
+		}
+
+		return false;
 	}
 
 	/**

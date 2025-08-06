@@ -13,22 +13,22 @@ const MERGEABLE_ROUTES: MergeableRoute[] = [
 	{
 		path: '/api/data',
 		methods: ['GET'],
-		shouldMerge: (req) => true
+		shouldMerge: () => true
 	},
 	{
 		path: '/api/data/latest',
 		methods: ['GET'],
-		shouldMerge: (req) => true
+		shouldMerge: () => true
 	},
 	{
 		path: '/api/history/sensors',
 		methods: ['GET'],
-		shouldMerge: (req) => true
+		shouldMerge: () => true
 	},
 	{
 		path: '/api/history/charts',
 		methods: ['GET'],
-		shouldMerge: (req) => true
+		shouldMerge: () => true
 	}
 ];
 

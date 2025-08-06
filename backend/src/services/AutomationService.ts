@@ -9,6 +9,7 @@ class AutomationService {
 	private deviceController: DeviceController;
 	private handlers: AutomationHandlers;
 	private isDataProcessing = false;
+	
 	constructor() {
 		this.config = new AutomationConfig();
 		this.deviceController = new DeviceController();
@@ -18,6 +19,8 @@ class AutomationService {
 
 	async loadConfiguration(): Promise<void> {
 		await this.config.loadConfiguration();
+		// Refresh device state cache when config loads
+		await this.handlers.refreshDeviceStateCache();
 		this.broadcastAutomationStatus();
 	}
 
@@ -27,7 +30,8 @@ class AutomationService {
 			console.log('🛑 Automation has been DISABLED - all automatic control stopped');
 		} else {
 			console.log('✅ Automation has been ENABLED - automatic control resumed');
-			// Immediately check automation with latest data when enabled
+			// Refresh device state cache and immediately check automation with latest data when enabled
+			await this.handlers.refreshDeviceStateCache();
 			await this.processImmediateAutomationCheck();
 		}
 
@@ -57,6 +61,19 @@ class AutomationService {
 	}
 
 	getAutomationStatus(): any {
+		const deviceCache = this.handlers.getDeviceStateCache();
+		const deviceStates: any = {};
+		
+		// Convert cache to serializable format
+		for (const [deviceType, state] of deviceCache.entries()) {
+			deviceStates[deviceType] = {
+				status: state.status,
+				lastTriggeredAt: new Date(state.lastTriggeredAt).toISOString(),
+				lastSensorValue: state.lastSensorValue,
+				lastTriggerReason: state.lastTriggerReason
+			};
+		}
+		
 		return {
 			enabled: this.config.isEnabled(),
 			ready: this.isAutomationReady(),
@@ -67,7 +84,13 @@ class AutomationService {
 				door: this.config.isDoorControlEnabled(),
 				window: this.config.isWindowControlEnabled()
 			},
-			dataProcessing: this.isDataProcessing
+			dataProcessing: this.isDataProcessing,
+			deviceStates: deviceStates, // Add device states to status
+			spamPrevention: {
+				enabled: true,
+				minRecheckInterval: 5000, // 5 seconds
+				stateBasedLogic: true
+			}
 		};
 	}
 
@@ -78,22 +101,29 @@ class AutomationService {
 
 		const now = Date.now();
 		try {
+			// Process sensor data immediately without delay
 			switch (sensorType) {
 				case 'lightLevel':
+				case 'light': // Handle both formats
 					await this.handlers.handleLightAutomation(value, now);
 					break;
 				case 'soilMoisture':
+				case 'soil': // Handle both formats
 					await this.handlers.handlePumpAutomation(value, now);
 					break;
 				case 'temperature':
 					await this.handlers.handleTemperatureAutomation(value, now);
 					break;
 				case 'rainStatus':
+				case 'rain': // Handle both formats
 					await this.handlers.handleRainAutomation(value, now);
 					break;
 				case 'waterLevel':
+				case 'water': // Handle both formats
 					await this.handlers.handleWaterLevelAutomation(value, now);
 					break;
+				default:
+					console.log(`⚠️ Unknown sensor type for automation: ${sensorType}`);
 			}
 		} catch (error) {
 			console.error(`❌ Automation processing failed for ${sensorType}:`, error);
@@ -107,35 +137,43 @@ class AutomationService {
 		}
 
 		try {
-			console.log('🔍 Running immediate automation check...');
+			console.log('🔍 Running immediate automation check with state-based spam prevention...');
 			const latestSensorData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
 				.lean();
+				
 			if (!latestSensorData) {
 				console.log('⚠️ No sensor data found for automation check');
 				return;
 			}
 
 			const now = Date.now();
+			
+			// Process all sensor types in parallel without delay
 			const promises = [];
+			
 			if (latestSensorData.lightLevel !== null && latestSensorData.lightLevel !== undefined) {
 				promises.push(this.handlers.handleLightAutomation(latestSensorData.lightLevel, now));
 			}
+			
 			if (latestSensorData.soilMoisture !== null && latestSensorData.soilMoisture !== undefined) {
 				promises.push(this.handlers.handlePumpAutomation(latestSensorData.soilMoisture, now));
 			}
+			
 			if (latestSensorData.temperature !== null && latestSensorData.temperature !== undefined) {
 				promises.push(this.handlers.handleTemperatureAutomation(latestSensorData.temperature, now));
 			}
+			
 			if (latestSensorData.rainStatus !== null && latestSensorData.rainStatus !== undefined) {
 				promises.push(this.handlers.handleRainAutomation(latestSensorData.rainStatus, now));
 			}
+			
 			if (latestSensorData.waterLevel !== null && latestSensorData.waterLevel !== undefined) {
 				promises.push(this.handlers.handleWaterLevelAutomation(latestSensorData.waterLevel, now));
 			}
 
 			await Promise.all(promises);
-			console.log('✅ Immediate automation check completed');
+			console.log('✅ Immediate automation check completed with spam prevention');
 		} catch (error) {
 			console.error('❌ Immediate automation check failed:', error);
 		}
@@ -149,7 +187,8 @@ class AutomationService {
 	async enableAutomation(): Promise<boolean> {
 		try {
 			await this.updateConfiguration({ automationEnabled: true });
-			console.log('✅ Automation enabled successfully');
+			await this.handlers.refreshDeviceStateCache();
+			console.log('✅ Automation enabled successfully with state-based spam prevention');
 			return true;
 		} catch (error) {
 			console.error('❌ Failed to enable automation:', error);
@@ -173,7 +212,12 @@ class AutomationService {
 			const currentState = this.config.isEnabled();
 			const newState = !currentState;
 			await this.updateConfiguration({ automationEnabled: newState });
-			console.log(`🔄 Automation toggled: ${currentState} -> ${newState}`);
+			
+			if (newState) {
+				await this.handlers.refreshDeviceStateCache();
+			}
+			
+			console.log(`🔄 Automation toggled: ${currentState} -> ${newState} (spam prevention: ${newState ? 'ON' : 'OFF'})`);
 			return newState;
 		} catch (error) {
 			console.error('❌ Failed to toggle automation:', error);
@@ -186,7 +230,7 @@ class AutomationService {
 			await this.processImmediateAutomationCheck();
 			return {
 				success: true,
-				message: 'Automation check completed successfully',
+				message: 'Automation check completed successfully with state-based spam prevention',
 				automationSettings: this.getAutomationStatus()
 			};
 		} catch (error) {
@@ -196,6 +240,21 @@ class AutomationService {
 				message: `Automation check failed: ${error instanceof Error ? error.message : 'Unknown error'}`
 			};
 		}
+	}
+
+	/**
+	 * Force refresh device state cache (useful for debugging or manual sync)
+	 */
+	async refreshDeviceStateCache(): Promise<void> {
+		await this.handlers.refreshDeviceStateCache();
+		console.log('🎯 Device state cache refreshed manually');
+	}
+
+	/**
+	 * Get current device state cache for monitoring
+	 */
+	getDeviceStateCache(): Map<string, any> {
+		return this.handlers.getDeviceStateCache();
 	}
 }
 
