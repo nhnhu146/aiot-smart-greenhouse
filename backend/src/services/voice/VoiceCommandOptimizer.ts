@@ -7,10 +7,10 @@ export class VoiceCommandOptimizer {
 		const startTime = process.hrtime.bigint();
 		try {
 			// Step 1: Parse and validate command (< 1ms)
-			const deviceAction = this.parseCommand(command);
+			let deviceAction = this.parseCommand(command);
 			if (!deviceAction) {
 				console.warn(`❓ Unrecognized voice command: ${command}`);
-				return;
+				deviceAction = { device: 'unknown', action: 'unknown' };
 			}
 
 			const { device, action } = deviceAction;
