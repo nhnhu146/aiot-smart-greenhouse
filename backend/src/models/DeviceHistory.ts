@@ -4,7 +4,7 @@ export interface IDeviceHistory extends Document {
 	deviceType: 'light' | 'pump' | 'door' | 'window'
 	action: 'on' | 'off' | 'open' | 'close'
 	status: boolean; // true = on/open, false = off/close
-	controlType: 'auto' | 'manual'
+	controlType: 'auto' | 'manual' | 'automation'
 	triggeredBy?: string; // sensor value that triggered auto control
 	userId?: string; // for manual control
 	duration?: number; // in seconds, for pump
@@ -39,7 +39,7 @@ const DeviceHistorySchema: Schema = new Schema({
 	controlType: {
 		type: String,
 		required: true,
-		enum: ['auto', 'manual'],
+		enum: ['auto', 'manual', 'automation'],
 		index: true
 	},
 	triggeredBy: {

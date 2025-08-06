@@ -204,6 +204,9 @@ export const getWebSocketUrl = (): string => {
 		const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
 		const host = window.location.host;
 		serverUrl = `${protocol}//${host}`;
+		console.log(`🔌 Production WebSocket URL detected: ${serverUrl}`);
+	} else {
+		console.log(`🔧 Development WebSocket URL: ${serverUrl}`);
 	}
 	
 	return serverUrl;
