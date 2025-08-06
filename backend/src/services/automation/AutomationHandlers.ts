@@ -237,28 +237,7 @@ export class AutomationHandlers {
 		}
 	}
 
-	async handleWaterLevelAutomation(waterLevel: number, now: number): Promise<void> {
-		const configData = this.config.getConfig();
-		if (!configData?.pumpControlEnabled || !configData?.waterLevelSettings.autoTurnOffPumpOnFlood) {
-			return;
-		}
-
-		try {
-			if (waterLevel === 1) { // 1 = flooded
-				const reason = `Water level flooded: ${waterLevel} - emergency pump shutdown`;
-
-				// Emergency condition: always check, but still prevent spam
-				const currentState = this.deviceStateCache.get('pump');
-				if (!currentState || currentState.status !== false || (now - currentState.lastTriggeredAt) > this.MIN_RECHECK_INTERVAL) {
-					await this.deviceController.controlDevice('pump', 'off', reason, waterLevel);
-					this.updateDeviceStateCache('pump', false, waterLevel, reason, now);
-					console.log('🚨 Emergency pump shutdown due to flood');
-				}
-			}
-		} catch (error) {
-			console.error('❌ Water level automation failed:', error);
-		}
-	}
+	// Water level automation removed - no longer needed
 
 	/**
 	 * Get current device state cache for monitoring/debugging

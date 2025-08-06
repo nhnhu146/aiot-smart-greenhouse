@@ -23,11 +23,8 @@ export const AutomationConfigSchema = z.object({
 	rainSettings: z.object({
 		autoCloseWindowOnRain: z.boolean(),
 		autoOpenAfterRain: z.boolean()
-	}).optional(),
-	waterLevelSettings: z.object({
-		autoTurnOffPumpOnFlood: z.boolean(),
-		autoOpenDoorOnFlood: z.boolean()
 	}).optional()
+	// Water level settings removed - no longer needed
 });
 // Simple toggle schema for API compatibility
 export const AutomationToggleSchema = z.object({

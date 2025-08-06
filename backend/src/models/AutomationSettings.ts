@@ -29,11 +29,7 @@ export interface IAutomationSettings extends Document {
 		autoCloseWindowOnRain: boolean; // Close window when rain detected
 		autoOpenAfterRain: boolean; // Open window when rain stops
 	}
-	// Water level emergency settings
-	waterLevelSettings: {
-		autoTurnOffPumpOnFlood: boolean; // Turn off pump when water level = 1 (flooded)
-		autoOpenDoorOnFlood: boolean; // Open door for drainage when flooded
-	}
+	// Water level emergency settings removed - no longer needed
 	createdAt?: Date
 	updatedAt?: Date
 }
@@ -121,19 +117,8 @@ const AutomationSettingsSchema: Schema = new Schema({
 			required: true,
 			default: false
 		}
-	},
-	waterLevelSettings: {
-		autoTurnOffPumpOnFlood: {
-			type: Boolean,
-			required: true,
-			default: true
-		},
-		autoOpenDoorOnFlood: {
-			type: Boolean,
-			required: true,
-			default: true
-		}
 	}
+	// Water level settings removed - no longer needed
 }, {
 	timestamps: true
 });

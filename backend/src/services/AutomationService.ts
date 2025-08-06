@@ -9,7 +9,7 @@ class AutomationService {
 	private deviceController: DeviceController;
 	private handlers: AutomationHandlers;
 	private isDataProcessing = false;
-	
+
 	constructor() {
 		this.config = new AutomationConfig();
 		this.deviceController = new DeviceController();
@@ -63,7 +63,7 @@ class AutomationService {
 	getAutomationStatus(): any {
 		const deviceCache = this.handlers.getDeviceStateCache();
 		const deviceStates: any = {};
-		
+
 		// Convert cache to serializable format
 		for (const [deviceType, state] of deviceCache.entries()) {
 			deviceStates[deviceType] = {
@@ -73,7 +73,7 @@ class AutomationService {
 				lastTriggerReason: state.lastTriggerReason
 			};
 		}
-		
+
 		return {
 			enabled: this.config.isEnabled(),
 			ready: this.isAutomationReady(),
@@ -118,10 +118,7 @@ class AutomationService {
 				case 'rain': // Handle both formats
 					await this.handlers.handleRainAutomation(value, now);
 					break;
-				case 'waterLevel':
-				case 'water': // Handle both formats
-					await this.handlers.handleWaterLevelAutomation(value, now);
-					break;
+				// Water level automation removed - no longer needed
 				default:
 					console.log(`⚠️ Unknown sensor type for automation: ${sensorType}`);
 			}
@@ -141,36 +138,34 @@ class AutomationService {
 			const latestSensorData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
 				.lean();
-				
+
 			if (!latestSensorData) {
 				console.log('⚠️ No sensor data found for automation check');
 				return;
 			}
 
 			const now = Date.now();
-			
+
 			// Process all sensor types in parallel without delay
 			const promises = [];
-			
+
 			if (latestSensorData.lightLevel !== null && latestSensorData.lightLevel !== undefined) {
 				promises.push(this.handlers.handleLightAutomation(latestSensorData.lightLevel, now));
 			}
-			
+
 			if (latestSensorData.soilMoisture !== null && latestSensorData.soilMoisture !== undefined) {
 				promises.push(this.handlers.handlePumpAutomation(latestSensorData.soilMoisture, now));
 			}
-			
+
 			if (latestSensorData.temperature !== null && latestSensorData.temperature !== undefined) {
 				promises.push(this.handlers.handleTemperatureAutomation(latestSensorData.temperature, now));
 			}
-			
+
 			if (latestSensorData.rainStatus !== null && latestSensorData.rainStatus !== undefined) {
 				promises.push(this.handlers.handleRainAutomation(latestSensorData.rainStatus, now));
 			}
-			
-			if (latestSensorData.waterLevel !== null && latestSensorData.waterLevel !== undefined) {
-				promises.push(this.handlers.handleWaterLevelAutomation(latestSensorData.waterLevel, now));
-			}
+
+			// Water level automation removed - no longer processes water level data
 
 			await Promise.all(promises);
 			console.log('✅ Immediate automation check completed with spam prevention');
@@ -212,11 +207,11 @@ class AutomationService {
 			const currentState = this.config.isEnabled();
 			const newState = !currentState;
 			await this.updateConfiguration({ automationEnabled: newState });
-			
+
 			if (newState) {
 				await this.handlers.refreshDeviceStateCache();
 			}
-			
+
 			console.log(`🔄 Automation toggled: ${currentState} -> ${newState} (spam prevention: ${newState ? 'ON' : 'OFF'})`);
 			return newState;
 		} catch (error) {
