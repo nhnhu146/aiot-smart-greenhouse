@@ -141,7 +141,7 @@ const LineChartVisualization: React.FC<LineChartVisualizationProps> = ({
 				<div className="d-flex justify-content-center align-items-center flex-column" style={{ height: '400px' }}>
 					<div className="text-muted mb-2" style={{ fontSize: '3rem' }}>📊</div>
 					<h5 className="text-muted">No Data Available</h5>
-					<p className="text-muted">Try selecting a different time range or check your connection.</p>
+					<p className="text-muted">Check your connection.</p>
 				</div>
 			</div>
 		);

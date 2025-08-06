@@ -80,6 +80,9 @@
 		"testMatch": [
 			"<rootDir>/tests/**/*.test.ts"
 		],
+		"testPathIgnorePatterns": [
+			"<rootDir>/dist/"
+		],
 		"collectCoverageFrom": [
 			"src/**/*.ts",
 			"!src/**/*.d.ts",

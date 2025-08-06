@@ -4,22 +4,6 @@ import { APIResponse } from '../../types';
 import { DataMergerService } from '../../services/DataMergerService';
 export class SensorHistoryController {
 	async getSensorHistory(req: Request, res: Response): Promise<void> {
-			from,
-			to,
-			sensorType,
-			minValue,
-			minTemperature,
-			maxTemperature,
-			minHumidity,
-			maxHumidity,
-			minSoilMoisture,
-			maxSoilMoisture,
-			minWaterLevel,
-			maxWaterLevel,
-			sortBy = 'createdAt',
-			sortOrder = 'desc'
-		} = req.query as any;
-		// Validate sortBy parameter - include all possible sort fields for sensor data
 		try {
 			const {
 				page = 1,

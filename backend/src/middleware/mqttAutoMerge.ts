@@ -262,7 +262,6 @@ export class MQTTAutoMergeMiddleware {
 		}
 	}
 
-
 	/**
 	 * Force immediate merge (for manual triggering)
 	 */
