@@ -36,6 +36,15 @@ interface Alert {
 	timestamp: string;
 }
 
+interface VoiceCommand {
+	id: string;
+	command: string;
+	confidence: number | null;
+	timestamp: string;
+	processed: boolean;
+	errorMessage?: string;
+}
+
 interface UseWebSocketReturn {
 	socket: Socket | null;
 	isConnected: boolean;
@@ -48,6 +57,8 @@ interface UseWebSocketReturn {
 	// Enhanced state synchronization
 	deviceStates: any;
 	automationSettings: any;
+	// Voice commands
+	latestVoiceCommand: VoiceCommand | null;
 	thresholdSettings: any;
 	emailSettings: any;
 	userSettings: any;
@@ -75,6 +86,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 	const [thresholdSettings, setThresholdSettings] = useState<any>({});
 	const [emailSettings, setEmailSettings] = useState<any>({});
 	const [userSettings, setUserSettings] = useState<any>({});
+	const [latestVoiceCommand, setLatestVoiceCommand] = useState<VoiceCommand | null>(null);
 
 	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -270,7 +282,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 		// Standardized alerts
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts);
-		
+
 		// High priority alerts (critical/high level)
 		newSocket.on('alert:priority', (alertData: any) => {
 			updateAlerts(alertData);
@@ -284,12 +296,14 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		// Voice commands
-		newSocket.on('voice-command', (_voiceData: any) => {
-			// Voice command received
+		newSocket.on('voice-command', (voiceData: VoiceCommand) => {
+			console.log('🎤 Voice command received:', voiceData);
+			setLatestVoiceCommand(voiceData);
 		});
 
-		newSocket.on('voice-command-history', (_voiceData: any) => {
-			// Voice command history update received
+		newSocket.on('voice-command-history', (voiceData: VoiceCommand) => {
+			console.log('🎤 Voice command history update received:', voiceData);
+			setLatestVoiceCommand(voiceData);
 		});
 
 		// Automation status
@@ -429,6 +443,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 		automationSettings,
 		thresholdSettings,
 		emailSettings,
-		userSettings
+		userSettings,
+		latestVoiceCommand
 	};
 }

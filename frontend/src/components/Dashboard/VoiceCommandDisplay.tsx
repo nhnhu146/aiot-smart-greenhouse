@@ -1,6 +1,14 @@
 import React from 'react';
 import { Card, Badge } from 'react-bootstrap';
-import { VoiceCommand } from '@/hooks/useVoiceCommands';
+
+interface VoiceCommand {
+	id: string;
+	command: string;
+	confidence: number | null;
+	timestamp: string;
+	processed: boolean;
+	errorMessage?: string;
+}
 
 interface VoiceCommandDisplayProps {
 	latestVoiceCommand: VoiceCommand | null;
