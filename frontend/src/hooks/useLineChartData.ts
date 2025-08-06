@@ -103,6 +103,23 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 		if (!hasInitialLoad || !newSensorData) return;
 
 		setData(prevData => {
+			// Create timestamp from WebSocket data or current time
+			const wsTimestamp = newSensorData.timestamp || newSensorData.createdAt || new Date().toISOString();
+
+			// Check for duplicate timestamps to prevent duplicate entries
+			const isDuplicate = prevData.some(item => {
+				const itemTimestamp = item.timestamp || item.createdAt;
+				if (!itemTimestamp) return false;
+
+				return itemTimestamp === wsTimestamp ||
+					Math.abs(new Date(itemTimestamp).getTime() - new Date(wsTimestamp).getTime()) < 1000; // 1 second tolerance
+			});
+
+			if (isDuplicate) {
+				console.log('🔄 Skipping duplicate timestamp data:', wsTimestamp);
+				return prevData;
+			}
+
 			// Create new sensor data point from WebSocket data
 			const newDataPoint: SensorData = {
 				temperature: newSensorData.temperature,
@@ -111,12 +128,13 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 				waterLevel: newSensorData.waterLevel,
 				lightLevel: newSensorData.lightLevel,
 				plantHeight: newSensorData.plantHeight,
-				timestamp: new Date().toISOString(),
-				createdAt: new Date().toISOString()
+				timestamp: wsTimestamp,
+				createdAt: wsTimestamp
 			};
 
 			// Add new data point and keep only maxDataPoints (sliding window)
 			const updatedData = [...prevData, newDataPoint].slice(-maxDataPoints);
+			console.log('📊 Added new chart data point:', { timestamp: wsTimestamp, dataCount: updatedData.length });
 			return updatedData;
 		});
 	};

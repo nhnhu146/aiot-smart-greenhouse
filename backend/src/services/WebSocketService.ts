@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { SensorData } from '../models';
 import { Config, AppConstants } from '../config/AppConfig';
+import { DataMergerService, MergeOptions } from './DataMergerService';
 interface SensorDataInterface {
 	type: string
 	value: number
@@ -105,6 +106,14 @@ class WebSocketService {
 		}
 
 		try {
+			// Trigger merge process before broadcasting to ensure data consistency
+			const mergerService = DataMergerService.getInstance();
+			const mergeOptions: MergeOptions = {
+				exactDuplicatesOnly: false,
+				timeWindowMs: 5000
+			};
+			await mergerService.mergeSameTimestampData(mergeOptions);
+
 			// Get the latest merged sensor data from database
 			const latestData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
