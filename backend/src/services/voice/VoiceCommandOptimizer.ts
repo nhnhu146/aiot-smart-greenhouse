@@ -51,14 +51,14 @@ export class VoiceCommandOptimizer {
 		const cmd = command.toLowerCase().trim();
 		// Optimized command mapping with exact matches first
 		const commandMap = new Map([
-			['open door', { device: 'door', action: 'open' }],
-			['close door', { device: 'door', action: 'close' }],
-			['open window', { device: 'window', action: 'open' }],
-			['close window', { device: 'window', action: 'close' }],
-			['turn on light', { device: 'light', action: 'on' }],
-			['turn off light', { device: 'light', action: 'off' }],
-			['turn on pump', { device: 'pump', action: 'on' }],
-			['turn off pump', { device: 'pump', action: 'off' }]
+			['MoCua', { device: 'door', action: 'open' }],
+			['DongCua', { device: 'door', action: 'close' }],
+			['MoCuaSap', { device: 'window', action: 'open' }],
+			['DongCuaSap', { device: 'window', action: 'close' }],
+			['MoDen', { device: 'light', action: 'on' }],
+			['TatDen', { device: 'light', action: 'off' }],
+			['MoBom', { device: 'pump', action: 'on' }],
+			['TatBom', { device: 'pump', action: 'off' }]
 		]);
 		// Try exact match first (fastest)
 		if (commandMap.has(cmd)) {
