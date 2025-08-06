@@ -24,7 +24,6 @@ export class VoiceCommandOptimizer {
 					const voiceCommand = new VoiceCommand({
 						command: command.toLowerCase().trim(),
 						confidence,
-						timestamp: new Date(),
 						processed: true
 					});
 					await voiceCommand.save();

@@ -3,6 +3,7 @@ import { Server as HttpServer } from 'http';
 import { SensorData } from '../models';
 import { Config, AppConstants } from '../config/AppConfig';
 import { DataMergerService, MergeOptions } from './DataMergerService';
+import { WebSocketEvents } from '../types/StandardFormats';
 interface SensorDataInterface {
 	type: string
 	value: number
@@ -279,10 +280,10 @@ class WebSocketService {
 		}
 
 		console.log(`🎤 Broadcasting voice command: '${voiceCommandData.command}' (${voiceCommandData.confidence !== null ? voiceCommandData.confidence : 'N/A'})`);
-		// Emit to all clients
-		this.io.emit('voice-command', voiceCommandData);
+		// Emit to all clients using standardized event names
+		this.io.emit(WebSocketEvents.VOICE_COMMAND, voiceCommandData);
 		// Also emit to voice commands history channel
-		this.io.emit('voice-command-history', voiceCommandData);
+		this.io.emit(WebSocketEvents.VOICE_COMMAND_HISTORY, voiceCommandData);
 	}
 
 	// Send notification to specific client or all clients

@@ -48,6 +48,7 @@ export const WebSocketEvents = {
 
 	// Voice Command Events
 	VOICE_COMMAND: 'voice:command',
+	VOICE_COMMAND_HISTORY: 'voice:history',
 
 	// System Events
 	SYSTEM_STATUS: 'system:status',

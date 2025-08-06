@@ -47,7 +47,7 @@ export const useVoiceHistory = (
 
 			const response = await requestManager.makeRequest(
 				async (requestParams) => {
-					return await apiClient.get('/api/voice-commands', { 
+					return await apiClient.get('/api/voice-commands', {
 						params: requestParams
 					});
 				},
@@ -95,6 +95,25 @@ export const useVoiceHistory = (
 		console.log('🔄 Refreshing voice history data');
 		fetchData(true); // Force refresh
 	}, [fetchData]);
+
+	// Listen for voice command history updates via WebSocket
+	useEffect(() => {
+		const handleVoiceHistoryUpdate = () => {
+			console.log('🎤 Voice command history update received via WebSocket, refreshing data');
+			refreshData();
+		};
+
+		// Listen to custom event dispatched when voice command history updates
+		if (typeof window !== 'undefined') {
+			window.addEventListener('voiceHistoryUpdate', handleVoiceHistoryUpdate);
+		}
+
+		return () => {
+			if (typeof window !== 'undefined') {
+				window.removeEventListener('voiceHistoryUpdate', handleVoiceHistoryUpdate);
+			}
+		};
+	}, [refreshData]);
 
 	// Cleanup on unmount
 	useEffect(() => {

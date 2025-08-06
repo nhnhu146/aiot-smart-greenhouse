@@ -296,14 +296,18 @@ export default function useWebSocket(): UseWebSocketReturn {
 		});
 
 		// Voice commands
-		newSocket.on('voice-command', (voiceData: VoiceCommand) => {
+		newSocket.on(AppConstants.WS_EVENTS.VOICE_COMMAND, (voiceData: VoiceCommand) => {
 			console.log('🎤 Voice command received:', voiceData);
 			setLatestVoiceCommand(voiceData);
 		});
 
-		newSocket.on('voice-command-history', (voiceData: VoiceCommand) => {
+		newSocket.on(AppConstants.WS_EVENTS.VOICE_COMMAND_HISTORY, (voiceData: VoiceCommand) => {
 			console.log('🎤 Voice command history update received:', voiceData);
 			setLatestVoiceCommand(voiceData);
+			// Dispatch custom event to trigger refresh of voice history
+			if (typeof window !== 'undefined') {
+				window.dispatchEvent(new CustomEvent('voiceHistoryUpdate', { detail: voiceData }));
+			}
 		});
 
 		// Automation status

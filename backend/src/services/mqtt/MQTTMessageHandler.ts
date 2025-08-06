@@ -81,7 +81,6 @@ export class MQTTMessageHandler {
 					const voiceCommand = new VoiceCommand({
 						command: cmd,
 						confidence,
-						timestamp: new Date(),
 						processed: true
 					});
 					await voiceCommand.save();

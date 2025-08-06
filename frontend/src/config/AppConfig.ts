@@ -87,7 +87,8 @@ export const AppConstants = {
 		SENSOR_DATA: 'sensorData',
 		DEVICE_STATUS: 'deviceStatus',
 		ALERT: 'alert',
-		VOICE_COMMAND: 'voiceCommand',
+		VOICE_COMMAND: 'voice:command',
+		VOICE_COMMAND_HISTORY: 'voice:history',
 		SYSTEM_STATUS: 'systemStatus',
 		ERROR: 'error',
 		CONNECT: 'connect',
@@ -195,10 +196,10 @@ export const getWebSocketUrl = (): string => {
 	const isDevelopment = import.meta.env.MODE === 'development' ||
 		import.meta.env.DEV === true ||
 		(typeof window !== 'undefined' && window.location.hostname === 'localhost');
-	
+
 	// Get the server URL
 	let serverUrl = Config.api.wsUrl;
-	
+
 	// Auto-detect WebSocket URL based on current page URL in production
 	if (!isDevelopment && typeof window !== 'undefined') {
 		// const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
@@ -208,7 +209,7 @@ export const getWebSocketUrl = (): string => {
 	} else {
 		console.log(`🔧 Development WebSocket URL: ${serverUrl}`);
 	}
-	
+
 	return serverUrl;
 };
 
