@@ -84,7 +84,7 @@ export const AppConstants = {
 	SENSOR_DATA_STALE_THRESHOLD: 5 * 60 * 1000, // 5 minutes
 	DEVICE_RESPONSE_TIMEOUT: 5 * 60 * 1000, // 5 minutes
 	EMAIL_RETRY_INTERVAL: 30 * 1000, // 30 seconds
-	ALERT_DEBOUNCE_TIME: 2 * 60 * 1000, // 2 minutes
+	ALERT_DEBOUNCE_TIME: 100, // 100 milliseconds
 	CONNECTION_TIMEOUT: 10 * 1000, // 10 seconds
 	PASSWORD_RESET_EXPIRY: 60 * 60 * 1000, // 1 hour
 
@@ -163,7 +163,7 @@ export const Config = {
 		TIMEOUT_DEFAULT: 5000,
 		PAGINATION_LIMIT: 50,
 		PAGINATION_MAX: 1000,
-		
+
 		// HTTP Status Codes
 		HTTP_STATUS: {
 			OK: 200,
@@ -176,7 +176,7 @@ export const Config = {
 			INTERNAL_SERVER_ERROR: 500,
 			SERVICE_UNAVAILABLE: 503
 		},
-		
+
 		// Error Messages
 		ERROR_MESSAGES: {
 			INVALID_CREDENTIALS: 'Invalid email or password',
@@ -187,15 +187,15 @@ export const Config = {
 			NETWORK_ERROR: 'Network error occurred',
 			DATABASE_ERROR: 'Database error occurred'
 		},
-		
+
 		// Device Types
 		DEVICE_TYPES: {
 			LIGHT: 'light',
-			PUMP: 'pump', 
+			PUMP: 'pump',
 			DOOR: 'door',
 			WINDOW: 'window'
 		},
-		
+
 		// Sensor Types
 		SENSOR_TYPES: {
 			TEMPERATURE: 'temperature',
@@ -204,14 +204,14 @@ export const Config = {
 			WATER_LEVEL: 'waterLevel',
 			LIGHT_LEVEL: 'lightLevel'
 		},
-		
+
 		// Alert Types
 		ALERT_TYPES: {
 			WARNING: 'warning',
 			ERROR: 'error',
 			INFO: 'info'
 		},
-		
+
 		// Data Quality States
 		DATA_QUALITY: {
 			COMPLETE: 'complete',

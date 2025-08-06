@@ -1,5 +1,6 @@
 import { mqttService, alertService, webSocketService, automationService } from '../services';
 import { SensorData } from '../models';
+import { mqttAutoMergeMiddleware } from '../middleware';
 export class MQTTHandler {
 	static setup(): void {
 		// Inject AlertService into MQTTService to avoid circular dependency
@@ -38,15 +39,30 @@ export class MQTTHandler {
 		// Extract sensor type from topic
 		const sensorType = topic.split('/')[2];
 		console.log(`🔧 Processing ${sensorType} sensor with value: ${sensorValue}`);
-		// Save to database using correct model structure
-		await this.saveSensorDataToDatabase(sensorType, sensorValue);
-		// Broadcast sensor data to WebSocket clients with merged data
-		await webSocketService.broadcastSensorData(topic, {
+
+		// Create MQTT sensor data
+		const mqttSensorData = {
 			type: sensorType,
 			value: sensorValue,
 			timestamp: new Date().toISOString(),
+			quality: 'good' as const
+		};
+
+		// Process through MQTT auto-merge middleware before saving
+		const processedData = await mqttAutoMergeMiddleware.processMQTTData(mqttSensorData, {
 			quality: 'good'
 		});
+
+		// Check if pre-save merge is needed
+		const mergePerformed = await mqttAutoMergeMiddleware.preSaveMerge(processedData);
+
+		if (!mergePerformed) {
+			// Save to database using correct model structure
+			await this.saveSensorDataToDatabase(sensorType, sensorValue);
+		}
+
+		// Broadcast sensor data to WebSocket clients with merged data
+		await webSocketService.broadcastSensorData(topic, processedData);
 		console.log(`📡 Broadcasted ${sensorType} sensor data: ${sensorValue}`);
 		// Check alerts
 		if (alertService) {

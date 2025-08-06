@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { Config } from './AppConfig';
+import { autoMergeResponseMiddleware } from '../middleware';
+
 export const configureMiddleware = (app: Application): void => {
 	// Trust proxy configuration for rate limiter - enable for production deployments
 	app.set('trust proxy', Config.app.isProduction ? 1 : false);
@@ -40,4 +42,7 @@ export const configureMiddleware = (app: Application): void => {
 	app.use(compression() as any);
 	// Logging middleware
 	app.use(morgan(Config.app.isProduction ? 'combined' : 'dev'));
+
+	// AutoMerge Response Middleware - Apply before route handlers
+	app.use(autoMergeResponseMiddleware);
 };
