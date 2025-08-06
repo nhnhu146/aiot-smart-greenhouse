@@ -4,13 +4,11 @@ import { AutomationConfig } from './automation/AutomationConfig';
 import { DeviceController } from './automation/DeviceController';
 import { AutomationHandlers } from './automation/AutomationHandlers';
 import { IAutomationSettings } from '../models/AutomationSettings';
-
 class AutomationService {
 	private config: AutomationConfig;
 	private deviceController: DeviceController;
 	private handlers: AutomationHandlers;
 	private isDataProcessing = false;
-
 	constructor() {
 		this.config = new AutomationConfig();
 		this.deviceController = new DeviceController();
@@ -25,7 +23,6 @@ class AutomationService {
 
 	async reloadConfiguration(): Promise<void> {
 		await this.config.reloadConfiguration();
-
 		if (!this.config.isEnabled()) {
 			console.log('🛑 Automation has been DISABLED - all automatic control stopped');
 		} else {
@@ -80,7 +77,6 @@ class AutomationService {
 		}
 
 		const now = Date.now();
-
 		try {
 			switch (sensorType) {
 				case 'lightLevel':
@@ -112,18 +108,15 @@ class AutomationService {
 
 		try {
 			console.log('🔍 Running immediate automation check...');
-
 			const latestSensorData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
 				.lean();
-
 			if (!latestSensorData) {
 				console.log('⚠️ No sensor data found for automation check');
 				return;
 			}
 
 			const now = Date.now();
-
 			const promises = [];
 			if (latestSensorData.lightLevel !== null && latestSensorData.lightLevel !== undefined) {
 				promises.push(this.handlers.handleLightAutomation(latestSensorData.lightLevel, now));
@@ -142,9 +135,7 @@ class AutomationService {
 			}
 
 			await Promise.all(promises);
-
 			console.log('✅ Immediate automation check completed');
-
 		} catch (error) {
 			console.error('❌ Immediate automation check failed:', error);
 		}
@@ -181,9 +172,7 @@ class AutomationService {
 		try {
 			const currentState = this.config.isEnabled();
 			const newState = !currentState;
-
 			await this.updateConfiguration({ automationEnabled: newState });
-
 			console.log(`🔄 Automation toggled: ${currentState} -> ${newState}`);
 			return newState;
 		} catch (error) {
@@ -195,7 +184,6 @@ class AutomationService {
 	async runAutomationCheck(): Promise<{ success: boolean; message: string; automationSettings?: any }> {
 		try {
 			await this.processImmediateAutomationCheck();
-
 			return {
 				success: true,
 				message: 'Automation check completed successfully',

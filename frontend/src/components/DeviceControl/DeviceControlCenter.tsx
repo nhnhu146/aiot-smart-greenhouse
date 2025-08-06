@@ -6,6 +6,7 @@ import { DeviceStates } from '@/services/deviceStateService';
 import { deviceControlService } from '@/services/deviceControlService';
 import { useDeviceSync } from '@/hooks/useDeviceSync';
 import './DeviceControlCenter.css';
+import { AppConstants } from '../../config/AppConfig';
 
 interface Activity {
 	title: string;
@@ -16,13 +17,15 @@ interface Activity {
 
 interface DeviceControlCenterProps {
 	activities: Activity[];
-	switchStates?: Map<string, boolean>; // Legacy prop - now managed internally
-	onDeviceToggle?: (device: string) => void; // Legacy prop - now managed internally
+	switchStates?: Map<string, boolean>;
+	onDeviceToggle?: (device: string) => Promise<void>;
 	voiceCommandTrigger?: any;
 }
 
 const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 	activities,
+	switchStates,
+	onDeviceToggle,
 	voiceCommandTrigger
 }) => {
 	const [deviceStates, setDeviceStates] = useState<DeviceStates>({});
@@ -88,6 +91,11 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 
 			console.log(`✅ Device control sent: ${device} -> ${action}`);
 
+			// Call optional callback if provided
+			if (onDeviceToggle) {
+				await onDeviceToggle(device);
+			}
+
 		} catch (error) {
 			console.error(`❌ Error controlling device ${device}:`, error);
 
@@ -101,11 +109,15 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 					newStates.delete(device);
 					return newStates;
 				});
-			}, 1000);
+			}, AppConstants.UI.DEBOUNCE_DELAY * 3);
 		}
-	}, [deviceStates, forceRefresh]);;
+	}, [deviceStates, forceRefresh, onDeviceToggle]);
 
 	const getDeviceStatus = (device: string): boolean => {
+		// Use switchStates if provided, otherwise use deviceStates
+		if (switchStates && switchStates.has(device)) {
+			return switchStates.get(device) || false;
+		}
 		return deviceStates[device]?.status || false;
 	};
 
@@ -129,7 +141,6 @@ const DeviceControlCenter: React.FC<DeviceControlCenterProps> = ({
 								isActive={getDeviceStatus(activity.device)}
 								isLoading={loadingStates.get(activity.device) || false}
 								onToggle={() => handleDeviceToggle(activity.device)}
-								trigger={voiceCommandTrigger}
 							/>
 						</HighlightWrapper>
 					</Col>

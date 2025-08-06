@@ -1,24 +1,22 @@
 import nodemailer from 'nodemailer';
-
 /**
  * Email Notifier - Handles email configuration and sending
  * Focused on email-specific functionality
  */
 
 export interface EmailConfig {
-	enabled: boolean;
-	host: string;
-	port: number;
-	secure: boolean;
-	user: string;
-	pass: string;
-	recipients: string[];
+	enabled: boolean
+	host: string
+	port: number
+	secure: boolean
+	user: string
+	pass: string
+	recipients: string[]
 }
 
 export class EmailNotifier {
 	private transporter: nodemailer.Transporter | null = null;
 	private config: EmailConfig;
-
 	constructor() {
 		this.config = this.loadConfig();
 		this.initialize();
@@ -65,7 +63,6 @@ export class EmailNotifier {
 				subject,
 				html
 			};
-
 			const result = await this.transporter.sendMail(mailOptions);
 			console.log('Email sent successfully:', result.messageId);
 			return true;

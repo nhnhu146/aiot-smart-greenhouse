@@ -1,19 +1,18 @@
 import mongoose, { Schema, Document } from 'mongoose';
-
 export interface IDeviceHistory extends Document {
-	deviceId: string;
-	deviceType: 'light' | 'pump' | 'door' | 'window';
-	action: 'on' | 'off' | 'open' | 'close';
+	deviceId: string
+	deviceType: 'light' | 'pump' | 'door' | 'window'
+	action: 'on' | 'off' | 'open' | 'close'
 	status: boolean; // true = on/open, false = off/close
-	controlType: 'auto' | 'manual';
+	controlType: 'auto' | 'manual'
 	triggeredBy?: string; // sensor value that triggered auto control
 	userId?: string; // for manual control
 	duration?: number; // in seconds, for pump
 	sensorValue?: number; // value that triggered the action
-	success: boolean;
-	errorMessage?: string;
-	createdAt?: Date;
-	updatedAt?: Date;
+	success: boolean
+	errorMessage?: string
+	createdAt?: Date
+	updatedAt?: Date
 }
 
 const DeviceHistorySchema: Schema = new Schema({
@@ -72,8 +71,7 @@ const DeviceHistorySchema: Schema = new Schema({
 }, {
 	timestamps: true, // Use MongoDB's createdAt/updatedAt instead of custom timestamp
 	versionKey: false
-});;
-
+});
 // Indexes for efficient queries
 DeviceHistorySchema.index({ createdAt: -1 }); // Time-based queries
 DeviceHistorySchema.index({ deviceType: 1, createdAt: -1 }); // Device-specific history

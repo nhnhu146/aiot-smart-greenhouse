@@ -1,5 +1,5 @@
-// -*- coding: utf-8 -*-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Config } from '../config/AppConfig';
 
 interface AutomationState {
 	automationEnabled: boolean;
@@ -22,7 +22,8 @@ export const AutomationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		error: null
 	});
 
-	const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+	// Constants  
+	const API_BASE_URL = Config.api.baseUrl;
 
 	// Load automation status from backend
 	const loadAutomationStatus = useCallback(async () => {
@@ -45,7 +46,8 @@ export const AutomationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 				}));
 			}
 		} catch (error) {
-						setState(prev => ({
+			console.error('Failed to load automation status:', error);
+			setState(prev => ({
 				...prev,
 				error: 'Failed to load automation status',
 				loading: false
@@ -82,7 +84,8 @@ export const AutomationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 				return false;
 			}
 		} catch (error) {
-						setState(prev => ({
+			console.error('Failed to toggle automation:', error);
+			setState(prev => ({
 				...prev,
 				error: 'Failed to toggle automation',
 				loading: false

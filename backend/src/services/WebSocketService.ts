@@ -1,69 +1,62 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
-import { DataMergerService } from './DataMergerService';
 import { SensorData } from '../models';
-
+import { Config, AppConstants } from '../config/AppConfig';
 interface SensorDataInterface {
-	type: string;
-	value: number;
-	timestamp: string;
-	quality?: 'good' | 'fair' | 'poor';
+	type: string
+	value: number
+	timestamp: string
+	quality?: 'good' | 'fair' | 'poor'
 }
 
 interface DeviceStatus {
-	device: string;
-	status: string;
-	timestamp: string;
+	device: string
+	status: string
+	timestamp: string
 }
 
 interface AlertData {
-	id: string;
-	type: string;
-	level: string;
-	message: string;
-	timestamp: string;
+	id: string
+	type: string
+	level: string
+	message: string
+	timestamp: string
 }
 
 class WebSocketService {
 	private io: Server | null = null;
 	private connectedClients: Map<string, Socket> = new Map();
-
 	initialize(httpServer: HttpServer) {
 		this.io = new Server(httpServer, {
 			cors: {
-				origin: process.env.FRONTEND_URL || "http://localhost:3000",
-				methods: ["GET", "POST"],
+				origin: Config.websocket.frontendUrl,
+				methods: ['GET', 'POST'],
 				credentials: true
 			},
-			pingTimeout: 60000,     // Increased timeout
-			pingInterval: 25000,    // Standard interval
-			connectTimeout: 10000,  // Connection timeout
+			pingTimeout: Config.websocket.pingTimeout,
+			pingInterval: Config.websocket.pingInterval,
+			connectTimeout: AppConstants.CONNECTION_TIMEOUT,
 			transports: ['websocket', 'polling'],
-			allowEIO3: true,        // Better compatibility
-			upgradeTimeout: 10000   // Upgrade timeout
+			allowEIO3: true,
+			upgradeTimeout: 10000
 		});
-
 		this.io.on('connection', (socket: Socket) => {
 			console.log(`📡 WebSocket client connected: ${socket.id}`);
 			this.connectedClients.set(socket.id, socket);
-
 			// Send welcome message with current status
 			socket.emit('connection-status', {
 				status: 'connected',
 				clientId: socket.id,
 				timestamp: new Date().toISOString()
 			});
-
 			// Handle real-time chart data requests - send latest sensor data
 			socket.on('request-chart-data', async () => {
 				console.log(`📊 Chart data requested by ${socket.id}`);
-
 				try {
 					// Get latest sensor data from database
 					const latestData = await SensorData.findOne()
 						.sort({ createdAt: -1 })
 						.lean();
-
 					if (latestData) {
 						// Send standardized response format
 						socket.emit('chart-data-response', {
@@ -91,19 +84,16 @@ class WebSocketService {
 					});
 				}
 			});
-
 			// Handle client disconnect
 			socket.on('disconnect', (reason) => {
 				console.log(`📡 WebSocket client disconnected: ${socket.id} - ${reason}`);
 				this.connectedClients.delete(socket.id);
 			});
-
 			// Handle ping requests for connection health
 			socket.on('ping', () => {
 				socket.emit('pong', { timestamp: new Date().toISOString() });
 			});
 		});
-
 		console.log('✅ WebSocket service initialized');
 	}
 
@@ -119,7 +109,6 @@ class WebSocketService {
 			const latestData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
 				.lean();
-
 			if (!latestData) {
 				console.warn('⚠️ No sensor data found in database');
 				// Send the incoming data as fallback
@@ -136,7 +125,6 @@ class WebSocketService {
 					eventType: 'sensor:data',
 					timestamp: data.timestamp
 				};
-
 				this.io.emit('sensor:data', fallbackResponse);
 				console.log(`📡 Broadcasting fallback sensor data: ${data.type} = ${data.value}`);
 				return;
@@ -151,15 +139,11 @@ class WebSocketService {
 				eventType: 'sensor:data',
 				timestamp: new Date().toISOString()
 			};
-
 			// Broadcast standardized sensor data
 			this.io.emit('sensor:data', standardizedResponse);
-
 			console.log(`📡 Broadcasting sensor data: ${data.type} = ${data.value} (from database)`);
-
 		} catch (error) {
 			console.error('❌ Error broadcasting sensor data:', error);
-
 			// Fallback to original data if fetch fails
 			const fallbackResponse = {
 				success: true,
@@ -174,7 +158,6 @@ class WebSocketService {
 				eventType: 'sensor:data',
 				timestamp: data.timestamp
 			};
-
 			this.io.emit('sensor:data', fallbackResponse);
 			console.log(`📡 Broadcasting fallback sensor data: ${data.type} = ${data.value}`);
 		}
@@ -198,7 +181,6 @@ class WebSocketService {
 			timestamp: status.timestamp,
 			source: 'device'
 		};
-
 		console.log(`📡 Broadcasting device status: ${status.device} = ${status.status}`);
 		this.io.emit('device:status', deviceUpdate);
 		this.io.emit(`device:${status.device}`, deviceUpdate);
@@ -220,7 +202,6 @@ class WebSocketService {
 			timestamp: new Date().toISOString(),
 			source: 'system'
 		};
-
 		console.log('📡 Broadcasting device state sync to all clients');
 		this.io.emit('device:state:sync', syncEvent);
 	}
@@ -234,7 +215,6 @@ class WebSocketService {
 
 		console.log(`🚨 Broadcasting alert: ${alert.type} - ${alert.level}`);
 		this.io.emit('alert', alert);
-
 		// Send high priority alerts to specific channel
 		if (alert.level === 'critical' || alert.level === 'high') {
 			this.io.emit('alert:priority', alert);
@@ -243,13 +223,13 @@ class WebSocketService {
 
 	// Broadcast device control confirmation to all connected clients
 	broadcastDeviceControl(controlData: {
-		controlId: string;
-		deviceType: string;
-		action: string;
-		status: boolean;
-		source: string;
-		timestamp: string;
-		success: boolean;
+		controlId: string
+		deviceType: string
+		action: string
+		status: boolean
+		source: string
+		timestamp: string
+		success: boolean
 	}) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -262,15 +242,11 @@ class WebSocketService {
 			timestamp: controlData.timestamp,
 			source: controlData.source
 		};
-
 		console.log(`🎮 Broadcasting device control: ${controlData.deviceType} -> ${controlData.action}`);
-
 		// Emit to all clients
 		this.io.emit('device:control', controlEvent);
-
 		// Also emit to specific device channel
 		this.io.emit(`device:control:${controlData.deviceType}`, controlEvent);
-
 		// Broadcast device status update
 		this.broadcastDeviceStatus(`greenhouse/devices/${controlData.deviceType}/status`, {
 			device: controlData.deviceType,
@@ -281,23 +257,21 @@ class WebSocketService {
 
 	// Broadcast voice command updates to all connected clients
 	broadcastVoiceCommand(voiceCommandData: {
-		id: string;
-		command: string;
-		confidence: number | null;
-		timestamp: string;
-		processed: boolean;
-		errorMessage?: string;
+		id: string
+		command: string
+		confidence: number | null
+		timestamp: string
+		processed: boolean
+		errorMessage?: string
 	}) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
 			return;
 		}
 
-		console.log(`🎤 Broadcasting voice command: "${voiceCommandData.command}" (${voiceCommandData.confidence !== null ? voiceCommandData.confidence : 'N/A'})`);
-
+		console.log(`🎤 Broadcasting voice command: '${voiceCommandData.command}' (${voiceCommandData.confidence !== null ? voiceCommandData.confidence : 'N/A'})`);
 		// Emit to all clients
 		this.io.emit('voice-command', voiceCommandData);
-
 		// Also emit to voice commands history channel
 		this.io.emit('voice-command-history', voiceCommandData);
 	}
@@ -321,13 +295,12 @@ class WebSocketService {
 
 	// Send system status updates
 	broadcastSystemStatus(status: {
-		mqtt: boolean;
-		database: boolean;
-		email: boolean;
-		timestamp: string;
+		mqtt: boolean
+		database: boolean
+		email: boolean
+		timestamp: string
 	}) {
 		if (!this.io) return;
-
 		this.io.emit('system-status', status);
 		console.log('📊 System status broadcast:', status);
 	}
@@ -335,7 +308,6 @@ class WebSocketService {
 	// Send configuration updates
 	broadcastConfigUpdate(config: any) {
 		if (!this.io) return;
-
 		this.io.emit('system:config-update', {
 			...config,
 			timestamp: new Date().toISOString()
@@ -345,14 +317,14 @@ class WebSocketService {
 
 	// Broadcast automation status updates to all connected clients
 	broadcastAutomationStatus(automationStatus: {
-		enabled: boolean;
-		lastUpdate: string;
+		enabled: boolean
+		lastUpdate: string
 		activeControls: {
-			light: boolean;
-			pump: boolean;
-			door: boolean;
-			window: boolean;
-		};
+			light: boolean
+			pump: boolean
+			door: boolean
+			window: boolean
+		}
 	}) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -360,10 +332,8 @@ class WebSocketService {
 		}
 
 		console.log(`⚙️ Broadcasting automation status: ${automationStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
-
 		// Emit standardized automation update event
 		this.io.emit('automation:update', automationStatus);
-
 		// Also emit to status channel for real-time sync
 		this.io.emit('automation:status', {
 			...automationStatus,
@@ -383,34 +353,18 @@ class WebSocketService {
 	// Send heartbeat to maintain connections
 	sendHeartbeat() {
 		if (!this.io) return;
-
 		this.io.emit('heartbeat', {
 			timestamp: new Date().toISOString(),
 			connectedClients: this.connectedClients.size
 		});
 	}
 
-	// Graceful shutdown
-	shutdown() {
-		if (this.io) {
-			console.log('🔄 Shutting down WebSocket service...');
-			this.io.emit('server-shutdown', {
-				message: 'Server is shutting down',
-				timestamp: new Date().toISOString()
-			});
-			this.io.close();
-			this.io = null;
-			this.connectedClients.clear();
-			console.log('✅ WebSocket service shutdown complete');
-		}
-	}
-
 	// Broadcast device state updates specifically for frontend synchronization
 	broadcastDeviceStateUpdate(deviceType: string, state: {
-		status: boolean;
-		isOnline: boolean;
-		lastCommand: string | null;
-		updatedAt: Date;
+		status: boolean
+		isOnline: boolean
+		lastCommand: string | null
+		updatedAt: Date
 	}) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -418,7 +372,6 @@ class WebSocketService {
 		}
 
 		console.log(`📡 Broadcasting device state update: ${deviceType} = ${state.status ? 'ON' : 'OFF'}`);
-
 		const stateUpdateEvent = {
 			event: 'device:state:update',
 			data: {
@@ -432,14 +385,11 @@ class WebSocketService {
 			timestamp: new Date().toISOString(),
 			source: 'system'
 		};
-
 		// Emit to device state channel
 		this.io.emit('device:state:update', stateUpdateEvent);
-
 		// Also emit to specific device channel for targeted updates
 		this.io.emit(`device:${deviceType}:state`, stateUpdateEvent);
 	}
-
 
 	// Broadcast automation settings changes
 	broadcastAutomationUpdate(settings: any) {
@@ -453,7 +403,6 @@ class WebSocketService {
 			settings,
 			timestamp: new Date().toISOString()
 		});
-
 		// Also emit to automation:update for frontend compatibility
 		this.io.emit('automation:update', {
 			settings,
@@ -463,12 +412,12 @@ class WebSocketService {
 
 	// Broadcast automation-triggered device history
 	broadcastAutomationHistory(historyData: {
-		deviceType: string;
-		action: string;
-		status: boolean;
-		triggeredBy: string;
-		sensorValue: number;
-		timestamp: string;
+		deviceType: string
+		action: string
+		status: boolean
+		triggeredBy: string
+		sensorValue: number
+		timestamp: string
 	}) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -476,14 +425,12 @@ class WebSocketService {
 		}
 
 		console.log(`📡 Broadcasting automation history: ${historyData.deviceType} ${historyData.action} by ${historyData.triggeredBy}`);
-
 		const historyEvent = {
 			event: 'automation:history',
 			data: historyData,
 			timestamp: historyData.timestamp,
 			source: 'automation'
 		};
-
 		this.io.emit('automation:history', historyEvent);
 		this.io.emit('history:device-control', historyEvent);
 		this.io.emit('database:change', {
@@ -496,11 +443,11 @@ class WebSocketService {
 
 	// Broadcast manual device history
 	broadcastManualHistory(historyData: {
-		deviceType: string;
-		action: string;
-		status: boolean;
-		userId: string;
-		timestamp: string;
+		deviceType: string
+		action: string
+		status: boolean
+		userId: string
+		timestamp: string
 	}) {
 		if (!this.io) {
 			console.error('❌ WebSocket not initialized');
@@ -508,14 +455,12 @@ class WebSocketService {
 		}
 
 		console.log(`📡 Broadcasting manual history: ${historyData.deviceType} ${historyData.action} by user`);
-
 		const historyEvent = {
 			event: 'manual:history',
 			data: historyData,
 			timestamp: historyData.timestamp,
 			source: 'manual'
 		};
-
 		this.io.emit('manual:history', historyEvent);
 		this.io.emit('history:device-control', historyEvent);
 		this.io.emit('database:change', {
@@ -540,49 +485,6 @@ class WebSocketService {
 		});
 	}
 
-	// Broadcast email settings changes
-	broadcastEmailSettingsUpdate(settings: any) {
-		if (!this.io) {
-			console.error('❌ WebSocket not initialized');
-			return;
-		}
-
-		console.log('📡 Broadcasting email settings update');
-		this.io.emit('settings:email-update', {
-			settings,
-			timestamp: new Date().toISOString()
-		});
-	}
-
-	// Broadcast system configuration changes
-	broadcastSystemConfigUpdate(config: any) {
-		if (!this.io) {
-			console.error('❌ WebSocket not initialized');
-			return;
-		}
-
-		console.log('📡 Broadcasting system config update');
-		this.io.emit('system:config-update', {
-			config,
-			timestamp: new Date().toISOString()
-		});
-	}
-
-	// Broadcast user settings changes
-	broadcastUserSettingsUpdate(userId: string, settings: any) {
-		if (!this.io) {
-			console.error('❌ WebSocket not initialized');
-			return;
-		}
-
-		console.log(`📡 Broadcasting user settings update for: ${userId}`);
-		this.io.emit('user:settings-update', {
-			userId,
-			settings,
-			timestamp: new Date().toISOString()
-		});
-	}
-
 	// Broadcast database changes (for real-time sync)
 	broadcastDatabaseChange(collection: string, operation: string, data: any) {
 		if (!this.io) {
@@ -599,22 +501,19 @@ class WebSocketService {
 		});
 	}
 
-	// Enhanced connection health monitoring
-	broadcastConnectionHealth() {
-		if (!this.io) {
-			console.error('❌ WebSocket not initialized');
-			return;
+	// Graceful shutdown
+	shutdown() {
+		if (this.io) {
+			console.log('🔄 Shutting down WebSocket service...');
+			this.io.emit('server-shutdown', {
+				message: 'Server is shutting down',
+				timestamp: new Date().toISOString()
+			});
+			this.io.close();
+			this.io = null;
+			this.connectedClients.clear();
+			console.log('✅ WebSocket service shutdown complete');
 		}
-
-		const stats = {
-			connectedClients: this.connectedClients.size,
-			clientIds: Array.from(this.connectedClients.keys()),
-			timestamp: new Date().toISOString(),
-			serverUptime: process.uptime()
-		};
-
-		this.io.emit('connection:health', stats);
-		return stats;
 	}
 }
 

@@ -2,19 +2,16 @@ import { Request, Response } from 'express';
 import { Alert } from '../../../models';
 import { APIResponse } from '../../../types';
 import { AlertQuerySchema } from '../AlertValidation';
-
 export class AlertQueryController {
 	/**
 	 * Get alerts with pagination and filtering
 	 */
 	static async getAlerts(req: Request, res: Response) {
 		const { page = 1, limit = 20, from, to, resolved } = AlertQuerySchema.parse(req.query);
-
-		const query: any = {};
-
+		const query: any = { /* TODO: Implement */ };
 		// Filter by date range if provided
 		if (from || to) {
-			query.timestamp = {};
+			query.timestamp = { /* TODO: Implement */ };
 			if (from) query.timestamp.$gte = from;
 			if (to) query.timestamp.$lte = to;
 		}
@@ -25,7 +22,6 @@ export class AlertQueryController {
 		}
 
 		const skip = (page - 1) * limit;
-
 		const [alerts, total] = await Promise.all([
 			Alert.find(query)
 				.sort({ timestamp: -1 })
@@ -34,7 +30,6 @@ export class AlertQueryController {
 				.lean(),
 			Alert.countDocuments(query)
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Alerts retrieved successfully',
@@ -51,7 +46,6 @@ export class AlertQueryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -60,9 +54,7 @@ export class AlertQueryController {
 	 */
 	static async getActiveAlerts(req: Request, res: Response) {
 		const { page = 1, limit = 20 } = AlertQuerySchema.parse(req.query);
-
 		const skip = (page - 1) * limit;
-
 		const [alerts, total] = await Promise.all([
 			Alert.find({ resolved: false })
 				.sort({ timestamp: -1 })
@@ -71,7 +63,6 @@ export class AlertQueryController {
 				.lean(),
 			Alert.countDocuments({ resolved: false })
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Active alerts retrieved successfully',
@@ -88,7 +79,6 @@ export class AlertQueryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

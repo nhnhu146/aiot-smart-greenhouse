@@ -6,7 +6,6 @@
 export class NotificationQueue {
 	private lastAlertTime: Map<string, number> = new Map();
 	private alertCooldown: number;
-
 	constructor(cooldownMinutes: number = 5) {
 		this.alertCooldown = cooldownMinutes * 60 * 1000;
 	}
@@ -17,7 +16,6 @@ export class NotificationQueue {
 	shouldSendAlert(alertKey: string): boolean {
 		const now = Date.now();
 		const lastAlert = this.lastAlertTime.get(alertKey);
-
 		if (lastAlert && (now - lastAlert) < this.alertCooldown) {
 			const timeLeft = Math.round((this.alertCooldown - (now - lastAlert)) / 1000);
 			console.log(`Alert cooldown active for ${alertKey}. Time left: ${timeLeft}s`);

@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { DeviceStatus } from '../types';
-
-export interface IDeviceStatus extends Omit<DeviceStatus, '_id'>, Document { }
+export interface IDeviceStatus extends Omit<DeviceStatus, '_id'>, Document {}
 
 const DeviceStatusSchema: Schema = new Schema({
 	deviceId: {
@@ -37,7 +36,6 @@ const DeviceStatusSchema: Schema = new Schema({
 	timestamps: true, // This creates createdAt and updatedAt automatically
 	versionKey: false
 });
-
 // Optimized indexes for better query performance
 DeviceStatusSchema.index({ deviceId: 1 });
 DeviceStatusSchema.index({ deviceType: 1 });

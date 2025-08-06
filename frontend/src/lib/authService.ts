@@ -1,3 +1,5 @@
+import { Config } from '../config/AppConfig';
+
 interface User {
 	id: string;
 	email: string;
@@ -6,13 +8,15 @@ interface User {
 
 interface AuthResponse {
 	success: boolean;
-	user?: User;
-	token?: string;
-	message?: string;
+	message: string;
+	data?: {
+		user: User;
+		token: string;
+	};
 }
 
 class AuthService {
-	private API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+	private API_BASE_URL = Config.api.baseUrl;
 	private currentUser: User | null = null;
 
 	constructor() {
@@ -25,7 +29,8 @@ class AuthService {
 					const parsedUser = JSON.parse(storedUser);
 					this.currentUser = { ...parsedUser, token: storedToken };
 				} catch (error) {
-										this.clearStorage();
+					console.error('Login error:', error);
+					this.clearStorage();
 				}
 			}
 		}
@@ -46,11 +51,25 @@ class AuthService {
 			if (data.success && data.user && data.token) {
 				this.currentUser = { ...data.user, token: data.token };
 				this.saveToStorage(data.user, data.token);
+
+				// Return consistent with AuthResponse interface
+				return {
+					success: true,
+					message: data.message || 'Login successful',
+					data: {
+						user: data.user,
+						token: data.token
+					}
+				};
 			}
 
-			return data;
+			return {
+				success: false,
+				message: data.message || 'Login failed'
+			};
 		} catch (error) {
-			console.error('Sign in error:', error);
+			console.error('Login error:', error);
+
 			return { success: false, message: 'Network error occurred' };
 		}
 	}
@@ -67,14 +86,28 @@ class AuthService {
 
 			const data = await response.json();
 
-			if (data.success && data.user) {
+			if (data.success && data.user && data.token) {
 				this.currentUser = { ...data.user, token: data.token };
 				this.saveToStorage(data.user, data.token);
+
+				// Return consistent with AuthResponse interface
+				return {
+					success: true,
+					message: data.message || 'Registration successful',
+					data: {
+						user: data.user,
+						token: data.token
+					}
+				};
 			}
 
-			return data;
+			return {
+				success: false,
+				message: data.message || 'Registration failed'
+			};
 		} catch (error) {
-			console.error('Sign up error:', error);
+			console.error('Login error:', error);
+
 			return { success: false, message: 'Network error occurred' };
 		}
 	}
@@ -86,7 +119,7 @@ class AuthService {
 
 	async forgotPassword(email: string): Promise<AuthResponse> {
 		try {
-			const response = await fetch(`${this.API_BASE_URL}/api/auth/password-reset`, {
+			const response = await fetch(`${this.API_BASE_URL}/api/auth/forgot-password`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -97,14 +130,15 @@ class AuthService {
 			const data = await response.json();
 			return data;
 		} catch (error) {
-			console.error('Forgot password error:', error);
+			console.error('Login error:', error);
+
 			return { success: false, message: 'Network error occurred' };
 		}
 	}
 
 	async resetPassword(token: string, newPassword: string): Promise<AuthResponse> {
 		try {
-			const response = await fetch(`${this.API_BASE_URL}/api/auth/password-reset/confirm`, {
+			const response = await fetch(`${this.API_BASE_URL}/api/auth/reset-password`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -115,7 +149,8 @@ class AuthService {
 			const data = await response.json();
 			return data;
 		} catch (error) {
-			console.error('Reset password error:', error);
+			console.error('Login error:', error);
+
 			return { success: false, message: 'Network error occurred' };
 		}
 	}

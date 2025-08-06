@@ -1,10 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { inline } from '@css-inline/css-inline';
-
 export class TemplateLoader {
 	private templateCache = new Map<string, string>();
-
 	async loadTemplate(templateName: string): Promise<string> {
 		// Check cache first
 		if (this.templateCache.has(templateName)) {
@@ -20,10 +18,8 @@ export class TemplateLoader {
 				path.join(process.cwd(), 'src', 'templates', templateName),
 				path.join(process.cwd(), 'templates', templateName)
 			];
-
 			let template = '';
 			let templateFound = false;
-
 			for (const templatePath of possiblePaths) {
 				try {
 					if (fs.existsSync(templatePath)) {
@@ -45,30 +41,25 @@ export class TemplateLoader {
 			// Cache the template
 			this.templateCache.set(templateName, template);
 			return template;
-
 		} catch (error) {
 			console.error(`❌ Failed to load template ${templateName}:`, error);
 			throw error;
 		}
 	}
 
-	processTemplate(template: string, variables: Record<string, any> = {}): string {
+	processTemplate(template: string, variables: Record<string, any> = { /* TODO: Implement */ }): string {
 		let processedTemplate = template;
-
 		// Replace variables using Map-based approach for better performance
 		const variableMap = new Map(Object.entries(variables));
-
 		variableMap.forEach((value, key) => {
 			const placeholder = `{{${key}}}`;
 			processedTemplate = processedTemplate.replace(new RegExp(placeholder, 'g'), String(value));
 		});
-
 		return processedTemplate;
 	}
 
-	async processTemplateWithCSS(template: string, variables: Record<string, any> = {}): Promise<string> {
+	async processTemplateWithCSS(template: string, variables: Record<string, any> = { /* TODO: Implement */ }): Promise<string> {
 		const processedTemplate = this.processTemplate(template, variables);
-
 		try {
 			// Inline CSS for better email compatibility
 			const inlinedTemplate = inline(processedTemplate);

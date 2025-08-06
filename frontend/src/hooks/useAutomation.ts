@@ -36,7 +36,7 @@ export const useAutomation = () => {
 			if (loadedConfig) {
 				setConfig(loadedConfig);
 			}
-		} catch (err) {
+		} catch {
 			setError('Failed to load automation config');
 		} finally {
 			setLoading(false);
@@ -50,7 +50,8 @@ export const useAutomation = () => {
 			if (automationStatus) {
 				setStatus(automationStatus);
 			}
-		} catch (err) {
+		} catch {
+			// Silently handle errors - automation status fetch is optional
 		}
 	}, []);
 
@@ -68,7 +69,7 @@ export const useAutomation = () => {
 				return true;
 			}
 			return false;
-		} catch (err) {
+		} catch {
 			setError('Failed to update automation config');
 			return false;
 		} finally {
@@ -90,7 +91,7 @@ export const useAutomation = () => {
 				return true;
 			}
 			return false;
-		} catch (err) {
+		} catch {
 			setError('Failed to toggle automation');
 			return false;
 		} finally {
@@ -106,7 +107,7 @@ export const useAutomation = () => {
 				await loadStatus(); // Reload status after trigger
 			}
 			return success;
-		} catch (err) {
+		} catch {
 			return false;
 		}
 	}, [loadStatus]);

@@ -1,15 +1,13 @@
 import express, { Request, Response } from 'express';
 import { UserSettings } from '../../models';
-
+import { asyncHandler } from '../../middleware';
 const router = express.Router();
-
 // PUT /api/user-settings/mqtt-config - Update MQTT configuration
-router.put('/mqtt-config', async (req: Request, res: Response): Promise<void> => {
+router.put('/mqtt-config', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const userId = (req as any).user?.id;
 		const userEmail = (req as any).user?.email;
 		const { host, port, username, password, clientId } = req.body;
-
 		if (!userId) {
 			res.status(401).json({
 				success: false,
@@ -51,10 +49,8 @@ router.put('/mqtt-config', async (req: Request, res: Response): Promise<void> =>
 		if (username !== undefined) mqttConfig.username = username;
 		if (password !== undefined) mqttConfig.password = password;
 		if (clientId !== undefined) mqttConfig.clientId = clientId;
-
 		settings.mqttConfig = mqttConfig;
 		await settings.save();
-
 		res.json({
 			success: true,
 			message: 'MQTT configuration updated successfully',
@@ -67,6 +63,5 @@ router.put('/mqtt-config', async (req: Request, res: Response): Promise<void> =>
 			message: 'Internal server error'
 		});
 	}
-});
-
+}));
 export default router;

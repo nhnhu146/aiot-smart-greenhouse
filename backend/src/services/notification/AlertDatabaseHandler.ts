@@ -1,17 +1,16 @@
 import { Alert, Settings } from '../../models';
-
 /**
  * Alert Database Handler - Manages alert persistence
  * Focused on database operations for alerts
  */
 
 export interface AlertData {
-	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'system';
-	level: 'low' | 'medium' | 'high' | 'critical';
-	message: string;
-	currentValue?: number;
-	threshold?: { min?: number; max?: number } | null;
-	deviceType?: string;
+	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'system'
+	level: 'low' | 'medium' | 'high' | 'critical'
+	message: string
+	currentValue?: number
+	threshold?: { min?: number; max?: number } | null
+	deviceType?: string
 }
 
 export class AlertDatabaseHandler {
@@ -33,7 +32,6 @@ export class AlertDatabaseHandler {
 				timestamp: new Date(),
 				resolved: false
 			});
-
 			await alert.save();
 			console.log(`Alert saved to database: ${alertData.type} - ${alertData.level}`);
 		} catch (error) {
@@ -65,7 +63,7 @@ export class AlertDatabaseHandler {
 				frequency: (settings?.notifications as any)?.alertFrequency || 5,
 				batchAlerts: (settings?.notifications as any)?.batchAlerts || false,
 				emailEnabled: settings?.notifications?.email || false,
-				emailAlerts: settings?.emailAlerts || {}
+				emailAlerts: settings?.emailAlerts || { /* TODO: Implement */ }
 			};
 		} catch (error) {
 			console.error('Error fetching alert settings:', error);
@@ -73,7 +71,7 @@ export class AlertDatabaseHandler {
 				frequency: 5,
 				batchAlerts: false,
 				emailEnabled: false,
-				emailAlerts: {}
+				emailAlerts: { /* TODO: Implement */ }
 			};
 		}
 	}

@@ -1,14 +1,12 @@
 import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
-
 export class SensorStatsController {
 	async getSensorStats(req: Request, res: Response): Promise<void> {
 		const { from, to } = req.query as any;
-
-		const query: any = {};
+		const query: any = { /* TODO: Implement */ };
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
@@ -36,7 +34,6 @@ export class SensorStatsController {
 				}
 			}
 		]);
-
 		const statsData = stats[0] || {
 			avgTemperature: 0,
 			maxTemperature: 0,
@@ -50,21 +47,18 @@ export class SensorStatsController {
 			totalReadings: 0,
 			completeness: 0
 		};
-
 		// Round numerical values
 		Object.keys(statsData).forEach(key => {
 			if (typeof statsData[key] === 'number' && key !== 'totalReadings') {
 				statsData[key] = Math.round(statsData[key] * 100) / 100;
 			}
 		});
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor statistics retrieved successfully',
 			data: statsData,
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -73,14 +67,12 @@ export class SensorStatsController {
 			.sort({ createdAt: -1 })
 			.limit(10)
 			.lean();
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Realtime sensor data retrieved successfully',
 			data: realtimeData.reverse(), // Latest first for chart display
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

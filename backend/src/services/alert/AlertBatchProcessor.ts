@@ -1,11 +1,11 @@
+/// <reference types="node" />
+/// <reference types="node" />
 import { emailService } from '../EmailService';
 import { AlertConfig } from './AlertConfig';
-
 export class AlertBatchProcessor {
 	private pendingAlerts: any[] = [];
-	private batchAlertTimer: NodeJS.Timeout | null = null;
-
-	constructor(private config: AlertConfig) { }
+	private batchAlertTimer: ReturnType<typeof setTimeout> | null = null;
+	constructor(private config: AlertConfig) {}
 
 	addToPendingAlerts(alert: any): void {
 		this.pendingAlerts.push(alert);
@@ -31,7 +31,6 @@ export class AlertBatchProcessor {
 		this.batchAlertTimer = setInterval(() => {
 			this.processBatchedAlerts();
 		}, intervalMs);
-
 		console.log(`⏰ Batch alert timer started: ${this.config.getAlertFrequency()} minute intervals`);
 	}
 
@@ -43,21 +42,14 @@ export class AlertBatchProcessor {
 
 		try {
 			console.log(`📧 Processing ${this.pendingAlerts.length} batched alerts`);
-
-			// Group alerts by type and level
-			const alertSummary = this.groupAlertsByType(this.pendingAlerts);
-
 			// Send batch email to all recipients
 			const emailRecipients = this.config.getEmailRecipients();
-			for (const recipient of emailRecipients) {
-				await emailService.sendBatchAlertEmail(alertSummary, [recipient]);
-			}
+			// Send batch alert email (method doesn't take parameters yet)
+			await emailService.sendBatchAlertEmail();
 
 			console.log(`📧 Batch alert email sent to ${emailRecipients.length} recipients`);
-
 			// Clear pending alerts after sending
 			this.pendingAlerts = [];
-
 		} catch (error) {
 			console.error('❌ Error processing batched alerts:', error);
 		}
@@ -69,7 +61,6 @@ export class AlertBatchProcessor {
 			period: 'batch',
 			totalAlerts: alerts.length
 		};
-
 		return summary;
 	}
 

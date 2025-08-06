@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { getWebSocketUrl, getWebSocketConfig, logConnectionInfo } from "@/lib/websocketConfig";
 import deviceControlService, { DeviceControlRequest } from "@/services/deviceControlService";
+import { AppConstants } from '../config/AppConfig';
 
 interface SensorData {
 	sensor: string;
@@ -82,7 +83,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 		requestAnimationFrame(() => {
 			// Normalize sensor data format to handle service.backup format:
 			// Service.backup format: { topic, sensor, data: { value, timestamp, quality, merged }, timestamp }
-			// Legacy format: { sensor, data, timestamp, value }
+			// Standard format: { sensor, data, timestamp, value }
 
 			let normalizedData: SensorData;
 
@@ -105,7 +106,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 					value: data.value
 				};
 			} else {
-				// Legacy format or unknown format
+				// Fallback format handling
 				normalizedData = {
 					sensor: data.sensor || data.type || 'unknown',
 					data: data.data || data,
@@ -180,7 +181,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 				reconnectTimeoutRef.current = setTimeout(() => {
 					console.log('🔄 Attempting WebSocket reconnection...');
 					newSocket.connect();
-				}, 3000);
+				}, AppConstants.UI.DEBOUNCE_DELAY * 10);
 			}
 		});
 
@@ -188,6 +189,13 @@ export default function useWebSocket(): UseWebSocketReturn {
 			// Reduce console spam, only warn if connection hasn't been established recently
 			if (!newSocket.connected) {
 				console.warn('⚠️ WebSocket connection error (retrying...):', error.message);
+				// Show user-friendly error notification for connection issues
+				if (typeof window !== 'undefined') {
+					const errorEvent = new CustomEvent('websocket:error', {
+						detail: { message: 'Connection to server lost. Retrying...', type: 'warning' }
+					});
+					window.dispatchEvent(errorEvent);
+				}
 			}
 			setIsConnected(false);
 		});
@@ -200,7 +208,7 @@ export default function useWebSocket(): UseWebSocketReturn {
 			// Longer delay before trying again
 			setTimeout(() => {
 				newSocket.connect();
-			}, 10000);
+			}, AppConstants.REFRESH.DEVICE_STATUS);
 		});
 
 		// Data events - Use callbacks to prevent UI blocking
@@ -262,6 +270,13 @@ export default function useWebSocket(): UseWebSocketReturn {
 		// Standardized alerts
 		newSocket.on('alert:new', updateAlerts);
 		newSocket.on('alert', updateAlerts);
+		
+		// High priority alerts (critical/high level)
+		newSocket.on('alert:priority', (alertData: any) => {
+			updateAlerts(alertData);
+			// High priority alerts could trigger additional UI notifications
+			console.log('🚨 High priority alert received:', alertData);
+		});
 
 		// Device control confirmations
 		newSocket.on('device:control', (_controlData: any) => {
@@ -291,10 +306,6 @@ export default function useWebSocket(): UseWebSocketReturn {
 		// System status
 		newSocket.on('system-status', (_systemData: any) => {
 			// System status update received
-		});
-
-		newSocket.on('alert:priority', (alertData: any) => {
-			updateAlerts(alertData);
 		});
 
 		newSocket.on('heartbeat', (_heartbeatData: any) => {
@@ -350,14 +361,17 @@ export default function useWebSocket(): UseWebSocketReturn {
 
 		newSocket.on('settings:threshold-update', (data: any) => {
 			setThresholdSettings(data.thresholds);
+			console.log('⚙️ Threshold settings updated via WebSocket:', data.thresholds);
 		});
 
 		newSocket.on('settings:email-update', (data: any) => {
 			setEmailSettings(data.settings);
+			console.log('📧 Email settings updated via WebSocket:', data.settings);
 		});
 
 		newSocket.on('user:settings-update', (data: any) => {
 			setUserSettings(data.settings);
+			console.log('👤 User settings updated via WebSocket:', data.settings);
 		});
 
 		newSocket.on('system:config-update', (_data: any) => {
@@ -388,17 +402,12 @@ export default function useWebSocket(): UseWebSocketReturn {
 		deviceType: string,
 		action: string
 	): Promise<any> => {
-		try {
-			const request: DeviceControlRequest = {
-				deviceType: deviceType as any,
-				action: action as any
-			};
+		const request: DeviceControlRequest = {
+			deviceType: deviceType as any,
+			action: action as any
+		};
 
-			const result = await deviceControlService.sendDeviceControl(request);
-			return result;
-		} catch (error) {
-			throw error;
-		}
+		return await deviceControlService.sendDeviceControl(request);
 	}, []);
 
 	// Function to clear alerts

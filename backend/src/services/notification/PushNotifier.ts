@@ -1,21 +1,20 @@
 import { sendPushNotification } from '../PushNotificationService';
-
+import { Config } from '../../config/AppConfig';
 /**
  * Push Notifier - Handles push notification sending
  * Focused on push notification functionality
  */
 
 export interface PushNotificationData {
-	title: string;
-	message: string;
-	priority?: 'low' | 'normal' | 'high';
+	title: string
+	message: string
+	priority?: 'low' | 'normal' | 'high'
 }
 
 export class PushNotifier {
 	private enabled: boolean;
-
 	constructor() {
-		this.enabled = process.env.PUSH_NOTIFICATIONS_ENABLED === 'true';
+		this.enabled = Config.pushNotifications.enabled;
 	}
 
 	/**

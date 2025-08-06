@@ -1,5 +1,5 @@
 // REST API Endpoints - Standardized Format Only
-// Updated: August 3, 2025 - Removed deprecated endpoints and legacy formats
+// Updated: August 3, 2025 - Current API endpoints configuration
 
 export const apiEndpoints = [
 	{

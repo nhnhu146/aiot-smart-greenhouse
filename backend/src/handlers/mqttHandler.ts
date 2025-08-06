@@ -1,18 +1,14 @@
-import { mqttService, alertService, webSocketService, DataMergerService, automationService, deviceStateService } from '../services';
+import { mqttService, alertService, webSocketService, automationService } from '../services';
 import { SensorData } from '../models';
-
 export class MQTTHandler {
 	static setup(): void {
 		// Inject AlertService into MQTTService to avoid circular dependency
 		mqttService.setAlertService(alertService);
-
 		mqttService.onMessage(async (topic: string, message: Buffer) => {
 			try {
 				console.log(`📨 Received MQTT message on topic: ${topic}`);
-
 				const messageString = message.toString().trim();
 				console.log(`📄 Message content: ${messageString}`);
-
 				// Handle sensor data - IoT devices send only simple numeric values
 				if (topic.startsWith('greenhouse/sensors/')) {
 					await this.handleSensorData(topic, messageString);
@@ -32,7 +28,6 @@ export class MQTTHandler {
 
 	private static async handleSensorData(topic: string, messageString: string): Promise<void> {
 		const sensorValue = parseFloat(messageString);
-
 		if (isNaN(sensorValue)) {
 			console.error('❌ Invalid sensor value received:', messageString);
 			// Send debug feedback for invalid data
@@ -43,10 +38,8 @@ export class MQTTHandler {
 		// Extract sensor type from topic
 		const sensorType = topic.split('/')[2];
 		console.log(`🔧 Processing ${sensorType} sensor with value: ${sensorValue}`);
-
 		// Save to database using correct model structure
 		await this.saveSensorDataToDatabase(sensorType, sensorValue);
-
 		// Broadcast sensor data to WebSocket clients with merged data
 		await webSocketService.broadcastSensorData(topic, {
 			type: sensorType,
@@ -54,9 +47,7 @@ export class MQTTHandler {
 			timestamp: new Date().toISOString(),
 			quality: 'good'
 		});
-
 		console.log(`📡 Broadcasted ${sensorType} sensor data: ${sensorValue}`);
-
 		// Check alerts
 		if (alertService) {
 			await this.checkSensorAlerts(sensorType, sensorValue);
@@ -68,20 +59,16 @@ export class MQTTHandler {
 
 	private static async handleVoiceCommand(messageString: string): Promise<void> {
 		console.log(`🎤 Received voice command: ${messageString}`);
-
 		// Import optimized voice command processor
 		const { VoiceCommandOptimizer } = await import('../services/voice/VoiceCommandOptimizer');
-
 		// Parse command and confidence score
 		let command = messageString;
 		let confidence: number | null = null;
-
 		// Check if message contains confidence score (format: commandName;score)
 		if (messageString.includes(';')) {
 			const parts = messageString.split(';');
 			command = parts[0];
 			const scoreStr = parts[1];
-
 			// Try to parse confidence score
 			const parsedScore = parseFloat(scoreStr.replace(',', '.'));
 			if (!isNaN(parsedScore)) {
@@ -91,12 +78,11 @@ export class MQTTHandler {
 				console.log(`⚠️ Invalid confidence score format: ${scoreStr}, keeping as N/A`);
 			}
 		} else {
-			console.log(`ℹ️ No confidence score provided, will display as N/A`);
+			console.log('ℹ️ No confidence score provided, will display as N/A');
 		}
 
 		// Process voice command with optimized handler for immediate response
 		await VoiceCommandOptimizer.processCommandOptimized(command, confidence);
-
 		// Send debug feedback
 		mqttService.publishDebugFeedback('greenhouse/command', messageString, 'voice_command_processed');
 	}
@@ -104,14 +90,12 @@ export class MQTTHandler {
 	private static async saveSensorDataToDatabase(sensorType: string, value: number): Promise<void> {
 		try {
 			const now = new Date();
-
 			// Prepare new sensor data
 			const newData: any = {
 				deviceId: 'esp32-greenhouse-01',
 				dataQuality: 'partial',
 				createdAt: now
 			};
-
 			// Map sensor type to database field
 			switch (sensorType) {
 				case 'temperature':
@@ -142,9 +126,7 @@ export class MQTTHandler {
 
 			// Set processing flag to prevent automation conflicts
 			automationService.setDataProcessing(true);
-
 			let finalDoc: any = null;
-
 			try {
 				// Save new document directly (merger service handles duplicates separately)
 				const sensorDoc = new SensorData(newData);
@@ -180,7 +162,7 @@ export class MQTTHandler {
 			}
 
 		} catch (error) {
-			console.error(`❌ Error saving sensor data to database:`, error);
+			console.error('❌ Error saving sensor data to database:', error);
 		}
 	}
 
@@ -193,7 +175,6 @@ export class MQTTHandler {
 				soilMoisture: null,
 				waterLevel: null
 			};
-
 			// Set the specific sensor value
 			switch (sensorType) {
 				case 'temperature':
@@ -216,7 +197,7 @@ export class MQTTHandler {
 			}
 
 		} catch (error) {
-			console.error(`❌ Error checking sensor alerts:`, error);
+			console.error('❌ Error checking sensor alerts:', error);
 		}
 	}
 }

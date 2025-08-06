@@ -1,24 +1,23 @@
 import { Schema, model, Document } from 'mongoose';
-
 export interface IUserSettings extends Document {
-	userId: string;
-	email: string;
-	alertRecipients: string[];
+	userId: string
+	email: string
+	alertRecipients: string[]
 	mqttConfig: {
-		host: string;
-		port: number;
-		username?: string;
-		password?: string;
-		clientId?: string;
-	};
+		host: string
+		port: number
+		username?: string
+		password?: string
+		clientId?: string
+	}
 	alertThresholds: {
-		temperature: { min: number; max: number };
-		humidity: { min: number; max: number };
-		soilMoisture: { min: number; max: number };
-		lightLevel: { min: number; max: number };
-	};
-	createdAt: Date;
-	updatedAt: Date;
+		temperature: { min: number; max: number }
+		humidity: { min: number; max: number }
+		soilMoisture: { min: number; max: number }
+		lightLevel: { min: number; max: number }
+	}
+	createdAt: Date
+	updatedAt: Date
 }
 
 const userSettingsSchema = new Schema<IUserSettings>({
@@ -90,7 +89,6 @@ const userSettingsSchema = new Schema<IUserSettings>({
 }, {
 	timestamps: true
 });
-
 // Pre-save middleware to ensure user's email is always included in alertRecipients
 userSettingsSchema.pre('save', function(next) {
 	if (this.email && !this.alertRecipients.includes(this.email)) {
@@ -98,5 +96,4 @@ userSettingsSchema.pre('save', function(next) {
 	}
 	next();
 });
-
 export const UserSettings = model<IUserSettings>('UserSettings', userSettingsSchema);

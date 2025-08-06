@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import { useAutomationContext } from '@/contexts/AutomationContext';
 import { getDeviceIcon } from '@/utils/deviceIcons';
+import { AppConstants } from '../config/AppConfig';
 
 export interface Activity {
 	title: string;
@@ -47,7 +48,7 @@ export const useDashboardState = () => {
 	];
 
 	// Handle device toggle for new DeviceControlCenter
-	// Legacy device toggle function - now handled by DeviceControlCenter internally
+	// Device toggle now handled by DeviceControlCenter internally
 	const handleDeviceToggle = useCallback(async (device: string) => {
 		const currentState = switchStates.get(device) || false;
 		const newState = !currentState;
@@ -68,7 +69,7 @@ export const useDashboardState = () => {
 		setUserInteraction(true);
 
 		// Clear user interaction flag after 5 minutes to re-enable auto mode
-		setTimeout(() => setUserInteraction(false), 5 * 60 * 1000);
+		setTimeout(() => setUserInteraction(false), AppConstants.REFRESH.SYSTEM_STATUS * 5);
 	}, [sendDeviceControl, switchStates]);
 
 	const toggleAutoMode = useCallback(async () => {

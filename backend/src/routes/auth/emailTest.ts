@@ -1,8 +1,6 @@
 import express, { Request, Response } from 'express';
 import { emailService } from '../../services';
-
 const router = express.Router();
-
 /**
  * Test email functionality
  * POST /api/auth/test-email
@@ -10,7 +8,6 @@ const router = express.Router();
 router.post('/test-email', async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email } = req.body;
-
 		if (!email) {
 			res.status(400).json({
 				success: false,
@@ -30,10 +27,8 @@ router.post('/test-email', async (req: Request, res: Response): Promise<void> =>
 		}
 
 		console.log(`📧 Sending test email to: ${email}`);
-
 		// Send test email
 		const success = await emailService.sendTestEmail(email);
-
 		if (success) {
 			res.status(200).json({
 				success: true,
@@ -54,5 +49,4 @@ router.post('/test-email', async (req: Request, res: Response): Promise<void> =>
 		});
 	}
 });
-
 export default router;

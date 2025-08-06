@@ -2,10 +2,8 @@ import { notificationService } from '../NotificationService';
 import { emailService, AlertEmailData } from '../EmailService';
 import { AlertConfig } from './AlertConfig';
 import { AlertCooldownManager } from './AlertCooldownManager';
-
 export class HumidityChecker {
 	private lastCheckedValues: Map<string, number> = new Map();
-
 	async checkHumidity(
 		value: number,
 		traceId: string,
@@ -15,12 +13,9 @@ export class HumidityChecker {
 	): Promise<void> {
 		const thresholds = config.getCurrentThresholds();
 		if (!thresholds) return;
-
 		const threshold = thresholds.humidityThreshold;
 		const lastValue = this.lastCheckedValues.get('humidity');
-
 		console.log(`[${traceId}] 💧 Checking humidity: ${value}% (min: ${threshold.min}, max: ${threshold.max})`);
-
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 2) {
 			console.log(`[${traceId}] 💧 Humidity change too small: ${value}% vs last ${lastValue}%`);
 			return;
@@ -52,7 +47,6 @@ export class HumidityChecker {
 			currentValue: value,
 			threshold: threshold
 		});
-
 		await this.sendEmailAlert(
 			{
 				type: 'humidity',
@@ -86,7 +80,6 @@ export class HumidityChecker {
 			currentValue: value,
 			threshold: threshold
 		});
-
 		await this.sendEmailAlert(
 			{
 				type: 'humidity',
@@ -116,7 +109,6 @@ export class HumidityChecker {
 	): Promise<void> {
 		const emailRecipients = config.getEmailRecipients();
 		const emailAlerts = config.getEmailAlerts();
-
 		if (emailRecipients.length > 0 && emailAlerts.humidity) {
 			if (config.isBatchAlertsEnabled()) {
 				pendingAlerts.push(alert);

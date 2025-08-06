@@ -1,14 +1,12 @@
-import { Request, Response } from 'express';
+
 import { Settings } from '../../models';
-import { alertService } from '../../services';
 import { APIResponse } from '../../types';
 import {
-	ThresholdSchema,
+	
 	EmailRecipientsSchema,
 	EmailAlertsSchema,
 	validateAlertFrequency
 } from './SettingsValidation';
-
 /**
  * Additional settings operations split from main controller
  */
@@ -18,13 +16,11 @@ export class SettingsOperations {
 	 */
 	static async updateEmailRecipients(data: any): Promise<APIResponse> {
 		const validatedData = EmailRecipientsSchema.parse(data);
-
 		await Settings.findOneAndUpdate(
-			{},
+			{ /* TODO: Implement */ },
 			{ $set: { 'notifications.emailRecipients': validatedData.recipients } },
 			{ upsert: true, new: true }
 		);
-
 		return {
 			success: true,
 			data: validatedData,
@@ -38,13 +34,11 @@ export class SettingsOperations {
 	 */
 	static async updateEmailAlerts(data: any): Promise<APIResponse> {
 		const validatedData = EmailAlertsSchema.parse(data);
-
 		await Settings.findOneAndUpdate(
-			{},
+			{ /* TODO: Implement */ },
 			{ $set: { emailAlerts: validatedData } },
 			{ upsert: true, new: true }
 		);
-
 		return {
 			success: true,
 			data: validatedData,
@@ -58,11 +52,10 @@ export class SettingsOperations {
 	 */
 	static async updateNotifications(data: any): Promise<APIResponse> {
 		await Settings.findOneAndUpdate(
-			{},
+			{ /* TODO: Implement */ },
 			{ $set: { notifications: data.notifications } },
 			{ upsert: true, new: true }
 		);
-
 		return {
 			success: true,
 			data: data,
@@ -76,11 +69,10 @@ export class SettingsOperations {
 	 */
 	static async updateAutoControl(data: any): Promise<APIResponse> {
 		await Settings.findOneAndUpdate(
-			{},
+			{ /* TODO: Implement */ },
 			{ $set: { autoControl: data.autoControl } },
 			{ upsert: true, new: true }
 		);
-
 		return {
 			success: true,
 			data: data,
@@ -102,13 +94,11 @@ export class SettingsOperations {
 			notifications: { email: true, threshold: true, emailRecipients: [] },
 			emailAlerts: { temperature: true, humidity: true, soilMoisture: true, waterLevel: true }
 		};
-
 		await Settings.findOneAndUpdate(
-			{},
+			{ /* TODO: Implement */ },
 			{ $set: defaultSettings },
 			{ upsert: true, new: true }
 		);
-
 		return {
 			success: true,
 			data: defaultSettings,
@@ -141,7 +131,6 @@ export class SettingsOperations {
 	static async updateAlertFrequency(data: any): Promise<APIResponse> {
 		const { alertFrequency } = data;
 		const isValid = validateAlertFrequency(alertFrequency);
-
 		if (!isValid) {
 			return {
 				success: false,
@@ -151,11 +140,10 @@ export class SettingsOperations {
 		}
 
 		await Settings.findOneAndUpdate(
-			{},
+			{ /* TODO: Implement */ },
 			{ $set: { alertFrequency } },
 			{ upsert: true, new: true }
 		);
-
 		return {
 			success: true,
 			data: { alertFrequency },

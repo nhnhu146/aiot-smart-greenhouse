@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { Alert } from '../../../models';
 import { APIResponse } from '../../../types';
-
 export class AlertStatsController {
 	/**
 	 * Get alert statistics
@@ -20,10 +19,8 @@ export class AlertStatsController {
 				}
 			}
 		]);
-
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
-
 		const todayStats = await Alert.aggregate([
 			{ $match: { timestamp: { $gte: today } } },
 			{
@@ -34,7 +31,6 @@ export class AlertStatsController {
 				}
 			}
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Alert statistics retrieved successfully',
@@ -44,7 +40,6 @@ export class AlertStatsController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

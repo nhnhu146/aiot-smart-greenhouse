@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { APIResponse } from '../types';
-
 export const validateBody = (schema: ZodSchema) => {
 	return (req: Request, res: Response, next: NextFunction): void => {
 		try {
@@ -29,7 +28,6 @@ export const validateBody = (schema: ZodSchema) => {
 		}
 	};
 };
-
 export const validateQuery = (schema: ZodSchema) => {
 	return (req: Request, res: Response, next: NextFunction): void => {
 		try {

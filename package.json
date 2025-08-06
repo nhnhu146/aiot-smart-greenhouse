@@ -1,0 +1,40 @@
+{
+	"name": "aiot-smart-greenhouse",
+	"version": "1.0.0",
+	"description": "AIOT Smart Greenhouse System",
+	"private": true,
+	"workspaces": [
+		"backend",
+		"frontend"
+	],
+	"scripts": {
+		"dev": "concurrently \"cd backend && yarn dev\" \"cd frontend && yarn dev\"",
+		"build": "cd backend && yarn build && cd ../frontend && yarn build",
+		"test": "cd backend && yarn test && cd ../frontend && yarn test --run",
+		"lint": "cd backend && yarn lint && cd ../frontend && yarn lint",
+		"clean": "cd backend && yarn clean && cd ../frontend && rm -rf dist",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"concurrently": "^8.2.0",
+		"husky": "^9.0.0"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/your-username/aiot-smart-greenhouse.git"
+	},
+	"keywords": [
+		"aiot",
+		"greenhouse",
+		"smart-agriculture",
+		"iot",
+		"nodejs",
+		"react",
+		"typescript"
+	],
+	"author": "Your Name",
+	"license": "MIT"
+}

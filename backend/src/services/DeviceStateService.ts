@@ -1,6 +1,5 @@
 import { DeviceStatus, DeviceHistory } from '../models';
 import { webSocketService } from './WebSocketService';
-
 export class DeviceStateService {
 
 	async updateDeviceState(
@@ -20,23 +19,19 @@ export class DeviceStateService {
 				lastCommand: lastCommand || (status ? 'on' : 'off'),
 				updatedAt: new Date()
 			};
-
-			const updatedState = await DeviceStatus.findOneAndUpdate(
+ await DeviceStatus.findOneAndUpdate(
 				{ deviceType },
 				updateData,
 				{ upsert: true, new: true }
 			);
-
 			// Save to device history based on source
 			await this.saveDeviceHistory(deviceType, status, lastCommand || (status ? 'on' : 'off'), source, userId, triggeredBy, sensorValue);
-
 			// Enhanced WebSocket broadcasting
 			webSocketService.broadcastDeviceStatus(`greenhouse/devices/${deviceType}/status`, {
 				device: deviceType,
 				status: status ? 'on' : 'off',
 				timestamp: new Date().toISOString()
 			});
-
 			// Broadcast individual device state update
 			webSocketService.broadcastDeviceStateUpdate(deviceType, {
 				status,
@@ -44,16 +39,13 @@ export class DeviceStateService {
 				lastCommand: updateData.lastCommand,
 				updatedAt: updateData.updatedAt
 			});
-
 			// Broadcast database change
 			webSocketService.broadcastDatabaseChange('DeviceStatus', 'update', {
 				deviceType,
 				previousState: null, // Could store previous state if needed
 				newState: updateData
 			});
-
 			console.log(`📊 Device state updated and broadcasted: ${deviceType} -> ${status ? 'ON' : 'OFF'} (${source})`);
-
 		} catch (error) {
 			console.error(`❌ Error updating device state for ${deviceType}:`, error);
 		}
@@ -84,11 +76,9 @@ export class DeviceStateService {
 				timestamp: new Date(),
 				success: true
 			};
-
 			// Save to database
 			const deviceHistory = new DeviceHistory(historyData);
 			await deviceHistory.save();
-
 			// Broadcast via WebSocket based on source
 			if (source === 'automation') {
 				webSocketService.broadcastAutomationHistory({
@@ -111,7 +101,7 @@ export class DeviceStateService {
 
 			console.log(`📝 Device history saved: ${deviceType} ${action} (${source})`);
 		} catch (error) {
-			console.error(`❌ Error saving device history:`, error);
+			console.error('❌ Error saving device history:', error);
 		}
 	}
 
@@ -126,7 +116,7 @@ export class DeviceStateService {
 
 	async getAllDeviceStates(): Promise<any[]> {
 		try {
-			return await DeviceStatus.find({});
+			return await DeviceStatus.find({}).sort({ updatedAt: -1 });
 		} catch (error) {
 			console.error('❌ Error fetching all device states:', error);
 			return [];
@@ -135,9 +125,8 @@ export class DeviceStateService {
 
 	async syncAllDeviceStates(): Promise<void> {
 		try {
-			const allStates = await DeviceStatus.find({});
-			const statesMap: any = {};
-
+			const allStates = await DeviceStatus.find({ /* TODO: Implement */ });
+			const statesMap: any = { /* TODO: Implement */ };
 			allStates.forEach(device => {
 				statesMap[device.deviceType] = {
 					status: device.status,
@@ -146,10 +135,8 @@ export class DeviceStateService {
 					updatedAt: device.updatedAt
 				};
 			});
-
 			// Broadcast complete state sync using the new method
 			webSocketService.broadcastDeviceStateSync(statesMap);
-
 			console.log('📡 All device states synchronized via WebSocket');
 		} catch (error) {
 			console.error('❌ Error syncing all device states:', error);

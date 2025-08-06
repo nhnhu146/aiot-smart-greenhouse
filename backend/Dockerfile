@@ -1,14 +1,8 @@
-# Use Node.js 20 Alpine with multiple registry fallbacks
+# Use Node.js 20 Alpine - Prioritized for Yarn
 FROM node:20-alpine AS base
 
 # Set working directory
 WORKDIR /app
-
-# Configure npm registry with fallbacks
-RUN npm config set registry https://registry.npmjs.org/ && \
-	npm config set fetch-retry-mintimeout 20000 && \
-	npm config set fetch-retry-maxtimeout 120000 && \
-	npm config set fetch-retries 3
 
 # Install system dependencies with retry
 RUN apk add --no-cache \
@@ -16,26 +10,19 @@ RUN apk add --no-cache \
 	dumb-init \
 	&& rm -rf /var/cache/apk/*
 
-# Copy package files
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# Copy package files - Only yarn.lock needed
+COPY package.json yarn.lock* ./
 
-# Install dependencies based on the preferred package manager with retry
+# Install dependencies with Yarn (prioritized)
 RUN \
 	if [ -f yarn.lock ]; then \
 	echo "📦 Installing with yarn (yarn.lock found)..." && \
 	yarn config set registry https://registry.npmjs.org/ && \
 	yarn install --frozen-lockfile --network-timeout 300000 --network-concurrency 1; \
-	elif [ -f package-lock.json ]; then \
-	echo "📦 Installing with npm (package-lock.json found)..." && \
-	npm ci --registry https://registry.npmjs.org/; \
-	elif [ -f pnpm-lock.yaml ]; then \
-	echo "📦 Installing with pnpm (pnpm-lock.yaml found)..." && \
-	npm install -g pnpm@latest --registry https://registry.npmjs.org/ && \
-	pnpm config set registry https://registry.npmjs.org/ && \
-	pnpm i --frozen-lockfile; \
 	else \
-	echo "📦 No lock file found, defaulting to npm install..." && \
-	npm install --registry https://registry.npmjs.org/; \
+	echo "📦 No yarn.lock found, using yarn anyway..." && \
+	yarn config set registry https://registry.npmjs.org/ && \
+	yarn install --network-timeout 300000 --network-concurrency 1; \
 	fi
 
 # Development stage
@@ -47,16 +34,8 @@ CMD ["yarn", "dev"]
 # Build stage
 FROM base AS builder
 COPY . .
-RUN \
-	if [ -f yarn.lock ]; then \
-	echo "Building with yarn (yarn.lock found)..." && yarn build || (echo "Build failed, trying TypeScript compile only..." && npx tsc); \
-	elif [ -f package-lock.json ]; then \
-	echo "Building with npm (package-lock.json found)..." && npm run build || (echo "Build failed, trying TypeScript compile only..." && npx tsc); \
-	elif [ -f pnpm-lock.yaml ]; then \
-	echo "Building with pnpm (pnpm-lock.yaml found)..." && corepack enable pnpm && pnpm build || (echo "Build failed, trying TypeScript compile only..." && npx tsc); \
-	else \
-	echo "No lock file found, defaulting to yarn build..." && yarn build || (echo "Build failed, trying TypeScript compile only..." && npx tsc); \
-	fi
+# Install dependencies - Prioritize yarn over npm/pnpm
+RUN echo "🔨 Building backend..." && yarn build
 
 # Production stage - Use reliable base image
 FROM node:20-alpine AS production

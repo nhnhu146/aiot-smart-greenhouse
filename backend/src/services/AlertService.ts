@@ -5,7 +5,6 @@ import { HumidityChecker } from './alert/HumidityChecker';
 import { BinarySensorChecker } from './alert/BinarySensorChecker';
 import { AlertBatchProcessor } from './alert/AlertBatchProcessor';
 import { SystemErrorHandler } from './alert/SystemErrorHandler';
-
 class AlertService {
 	private config: AlertConfig;
 	private cooldownManager: AlertCooldownManager;
@@ -14,7 +13,6 @@ class AlertService {
 	private binarySensorChecker: BinarySensorChecker;
 	private batchProcessor: AlertBatchProcessor;
 	private systemErrorHandler: SystemErrorHandler;
-
 	constructor() {
 		this.config = new AlertConfig();
 		this.cooldownManager = new AlertCooldownManager();
@@ -23,7 +21,6 @@ class AlertService {
 		this.binarySensorChecker = new BinarySensorChecker();
 		this.batchProcessor = new AlertBatchProcessor(this.config);
 		this.systemErrorHandler = new SystemErrorHandler(this.config, this.batchProcessor.getPendingAlerts());
-
 		this.initialize();
 	}
 
@@ -33,14 +30,13 @@ class AlertService {
 	}
 
 	async checkSensorThresholds(sensorData: {
-		temperature: number;
-		humidity: number;
-		soilMoisture: number;
-		waterLevel: number;
+		temperature: number
+		humidity: number
+		soilMoisture: number
+		waterLevel: number
 	}): Promise<void> {
 		const traceId = Math.random().toString(36).substr(2, 9);
 		console.log(`[${traceId}] 👀 Checking thresholds for data:`, sensorData);
-
 		const thresholds = this.config.getCurrentThresholds();
 		if (!thresholds) {
 			await this.config.loadConfiguration();
@@ -52,9 +48,7 @@ class AlertService {
 		}
 
 		console.log(`[${traceId}] 📊 Current thresholds:`, this.config.getCurrentThresholds());
-
 		const pendingAlerts = this.batchProcessor.getPendingAlerts();
-
 		// Sequential execution to avoid duplicate alerts
 		await this.temperatureChecker.checkTemperature(
 			sensorData.temperature,
@@ -63,7 +57,6 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
-
 		await this.humidityChecker.checkHumidity(
 			sensorData.humidity,
 			traceId,
@@ -71,7 +64,6 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
-
 		await this.binarySensorChecker.checkSoilMoisture(
 			sensorData.soilMoisture,
 			traceId,
@@ -79,7 +71,6 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
-
 		await this.binarySensorChecker.checkWaterLevel(
 			sensorData.waterLevel,
 			traceId,

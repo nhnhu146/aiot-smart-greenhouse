@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { SettingsController } from './SettingsCore';
 import { SettingsOperations } from './SettingsOperations';
 import { EmailRecipientsSchema } from './SettingsValidation';
-
 /**
  * Settings Route Handlers - HTTP request/response handling
  * Focused on handling HTTP layer concerns and delegation to controller
@@ -99,7 +98,7 @@ export class SettingsHandlers {
 	 */
 	static async testEmail(req: Request, res: Response): Promise<void> {
 		try {
-			const { recipients } = EmailRecipientsSchema.parse(req.body);
+			EmailRecipientsSchema.parse(req.body);
 			const response = await SettingsOperations.testAlert();
 			res.json(response);
 		} catch (error) {

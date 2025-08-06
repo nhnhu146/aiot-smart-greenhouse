@@ -1,19 +1,15 @@
 import { webSocketService } from '../WebSocketService';
 import { alertService } from '../AlertService';
-import { mqttService } from '../MQTTService';
 import { deviceStateService } from '../DeviceStateService';
 import automationService from '../AutomationService';
-import DeviceStatus from '../../models/DeviceStatus';
 import VoiceCommand from '../../models/VoiceCommand';
 import SensorData from '../../models/SensorData';
-
 export class MQTTMessageHandler {
 
 	static async handleSensorData(topic: string, message: string): Promise<void> {
 		try {
 			const sensorType = this.extractSensorType(topic);
 			const sensorValue = parseFloat(message);
-
 			if (isNaN(sensorValue)) {
 				console.warn(`Invalid sensor value: ${message}`);
 				return;
@@ -21,7 +17,6 @@ export class MQTTMessageHandler {
 
 			// Save to database with optimized batch processing
 			await this.saveSensorDataOptimized(sensorType, sensorValue);
-
 			// Broadcast via WebSocket (non-blocking)
 			setImmediate(() => {
 				webSocketService.broadcastSensorData(topic, {
@@ -31,7 +26,6 @@ export class MQTTMessageHandler {
 					quality: 'good'
 				});
 			});
-
 			// Check alerts (non-blocking)
 			setImmediate(() => {
 				alertService.checkSensorThresholds({
@@ -41,7 +35,6 @@ export class MQTTMessageHandler {
 					waterLevel: sensorType === 'water' ? sensorValue : 0
 				});
 			});
-
 		} catch (error) {
 			console.error('Error handling sensor data:', error);
 		}
@@ -51,12 +44,10 @@ export class MQTTMessageHandler {
 		try {
 			let command = message;
 			let confidence: number | null = null;
-
 			if (message.includes(';')) {
 				const parts = message.split(';');
 				command = parts[0];
 				const scoreStr = parts[1];
-
 				const parsedScore = parseFloat(scoreStr.replace(',', '.'));
 				if (!isNaN(parsedScore)) {
 					confidence = parsedScore;
@@ -65,7 +56,6 @@ export class MQTTMessageHandler {
 
 			// Process voice command with immediate device control
 			await this.processVoiceCommandImmediate(command, confidence);
-
 		} catch (error) {
 			console.error('Error handling voice command:', error);
 		}
@@ -73,7 +63,6 @@ export class MQTTMessageHandler {
 
 	private static async processVoiceCommandImmediate(command: string, confidence: number | null): Promise<void> {
 		const cmd = command.toLowerCase().trim();
-
 		// Execute device control IMMEDIATELY without saving to database first
 		const deviceAction = this.mapCommandToDevice(cmd);
 		if (deviceAction) {
@@ -82,12 +71,10 @@ export class MQTTMessageHandler {
 				try {
 					const status = (deviceAction.action === 'on' || deviceAction.action === 'open');
 					await deviceStateService.updateDeviceState(deviceAction.device, status, deviceAction.action);
-
 				} catch (error) {
 					console.error('Error updating device status:', error);
 				}
 			});
-
 			// Save voice command to database (non-blocking)
 			setImmediate(async () => {
 				try {
@@ -98,7 +85,6 @@ export class MQTTMessageHandler {
 						processed: true
 					});
 					await voiceCommand.save();
-
 					// Broadcast via WebSocket
 					webSocketService.broadcastVoiceCommand({
 						id: (voiceCommand as any)._id.toString(),
@@ -148,7 +134,6 @@ export class MQTTMessageHandler {
 			const sensorDataObject: any = {
 				dataQuality: 'complete'
 			};
-
 			// Map MQTT sensor types to model fields
 			switch (sensorType) {
 				case 'temperature':
@@ -184,9 +169,7 @@ export class MQTTMessageHandler {
 
 			const sensorData = new SensorData(sensorDataObject);
 			await sensorData.save();
-
 			console.log(`💾 Saved sensor data: ${sensorType} = ${value}`);
-
 			// Trigger automation processing for the specific sensor type
 			if (automationService) {
 				// Use the correct field name for automation
@@ -195,7 +178,6 @@ export class MQTTMessageHandler {
 						sensorType === 'light' ? 'lightLevel' :
 							sensorType === 'rain' ? 'rainStatus' :
 								sensorType === 'height' ? 'plantHeight' : sensorType;
-
 				await automationService.processSensorData(automationSensorType, value);
 			}
 

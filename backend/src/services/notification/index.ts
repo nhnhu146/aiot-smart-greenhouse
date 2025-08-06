@@ -2,7 +2,6 @@ import { EmailNotifier } from './EmailNotifier';
 import { PushNotifier } from './PushNotifier';
 import { NotificationQueue } from './NotificationQueue';
 import { AlertDatabaseHandler, AlertData } from './AlertDatabaseHandler';
-
 /**
  * Notification Service - Orchestrates all notification types
  * Main service that coordinates email, push, and database operations
@@ -13,7 +12,6 @@ export class NotificationService {
 	private pushNotifier: PushNotifier;
 	private queue: NotificationQueue;
 	private dbHandler: AlertDatabaseHandler;
-
 	constructor() {
 		this.emailNotifier = new EmailNotifier();
 		this.pushNotifier = new PushNotifier();
@@ -27,7 +25,6 @@ export class NotificationService {
 	async triggerAlert(alertData: AlertData): Promise<void> {
 		const requestId = Math.random().toString(36).substr(2, 9);
 		console.log(`[${requestId}] Alert triggered:`, alertData);
-
 		try {
 			// Generate alert key for cooldown
 			const alertKey = this.queue.generateAlertKey(
@@ -35,7 +32,6 @@ export class NotificationService {
 				alertData.level,
 				alertData.currentValue
 			);
-
 			// Check cooldown
 			if (!this.queue.shouldSendAlert(alertKey)) {
 				return;
@@ -43,7 +39,6 @@ export class NotificationService {
 
 			// Mark as sent immediately to prevent concurrent triggers
 			this.queue.markAlertSent(alertKey);
-
 			// Save to database
 			try {
 				await this.dbHandler.saveAlert(alertData);
@@ -55,14 +50,12 @@ export class NotificationService {
 			// Get recipients and settings
 			const recipients = await this.dbHandler.getEmailRecipients();
 			const settings = await this.dbHandler.getAlertSettings();
-
 			// Send email notification
 			if (settings.emailEnabled && recipients.length > 0) {
 				try {
 					this.emailNotifier.setRecipients(recipients);
 					const subject = `🌿 Greenhouse Alert: ${alertData.type.toUpperCase()}`;
 					const html = this.generateEmailHTML(alertData);
-
 					await this.emailNotifier.sendEmail(subject, html, recipients);
 					console.log(`[${requestId}] Email sent to ${recipients.length} recipients`);
 				} catch (emailError) {
@@ -97,11 +90,10 @@ export class NotificationService {
 			high: '🔴',
 			critical: '🚨'
 		};
-
 		return `
-			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-				<h2 style="color: #2b512b;">${levelEmoji[alertData.level]} Greenhouse Alert</h2>
-				<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+			<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+				<h2 style='color: #2b512b;'>${levelEmoji[alertData.level]} Greenhouse Alert</h2>
+				<div style='background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;'>
 					<h3>Alert Details</h3>
 					<p><strong>Type:</strong> ${alertData.type}</p>
 					<p><strong>Level:</strong> ${alertData.level.toUpperCase()}</p>
@@ -110,7 +102,7 @@ export class NotificationService {
 					${alertData.threshold ? `<p><strong>Threshold:</strong> ${alertData.threshold.min || 'N/A'} - ${alertData.threshold.max || 'N/A'}</p>` : ''}
 					<p><strong>Time:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>
 				</div>
-				<p style="color: #666;">This is an automated alert from your AIoT Smart Greenhouse system.</p>
+				<p style='color: #666;'>This is an automated alert from your AIoT Smart Greenhouse system.</p>
 			</div>
 		`;
 	}
@@ -123,7 +115,6 @@ export class NotificationService {
 			email: false,
 			push: false
 		};
-
 		try {
 			results.email = await this.emailNotifier.testEmail();
 		} catch (error) {
@@ -162,6 +153,5 @@ export class NotificationService {
 
 // Export singleton instance
 export const notificationService = new NotificationService();
-
 // Export types
 export type { AlertData };

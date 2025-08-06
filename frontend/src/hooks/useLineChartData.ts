@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import { AppConstants, Config } from '../config/AppConfig';
 
 interface SensorData {
 	temperature?: number;
@@ -27,7 +28,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 	const maxDataPoints = 50; // Limit data points for performance
 
 	const { socket } = useWebSocketContext();
-	const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+	const API_BASE_URL = Config.api.baseUrl;
 
 	// Track initial load to prevent excessive API calls
 	const lastFetchTimeRef = useRef<number>(0);
@@ -35,7 +36,7 @@ export const useLineChartData = (): UseLineChartDataReturn => {
 	const fetchData = async (limit: number = maxDataPoints) => {
 		// Only allow fetch on initial load or explicit user request (button click)
 		const now = Date.now();
-		if (hasInitialLoad && now - lastFetchTimeRef.current < 30000) {
+		if (hasInitialLoad && now - lastFetchTimeRef.current < AppConstants.REFRESH.CHART_DATA) {
 			console.log('⏳ Fetch prevented - use WebSocket data for updates');
 			return;
 		}

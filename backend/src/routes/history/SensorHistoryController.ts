@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
 import { DataMergerService } from '../../services/DataMergerService';
-
 export class SensorHistoryController {
 	async getSensorHistory(req: Request, res: Response): Promise<void> {
 		const {
@@ -12,6 +11,8 @@ export class SensorHistoryController {
 			dateTo,
 			from,
 			to,
+			sensorType,
+			minValue,
 			minTemperature,
 			maxTemperature,
 			minHumidity,
@@ -23,23 +24,47 @@ export class SensorHistoryController {
 			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
-
 		// Validate sortBy parameter - include all possible sort fields for sensor data
 		const validSortFields = ['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel', 'lightIntensity', 'rainStatus'];
 		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-
 		// Log sort parameters for debugging
 		console.log(`🔍 SensorHistory sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
-
+		// Build query object for sensor history
 		const query: any = {};
-
+		
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+		
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+		
+		// Filter by sensor type if specified
+		if (sensorType && sensorType !== 'all') {
+			query[sensorType] = { $exists: true, $ne: null };
+		}
+		
+		// Filter by value range if specified
+		if (minValue !== undefined) {
+			// Apply to all numeric sensor fields
+			const numericFields = ['temperature', 'humidity', 'soilMoisture', 'lightIntensity'];
+			const orConditions = numericFields.map(field => ({ [field]: { $gte: parseFloat(minValue) } }));
+			query.$or = orConditions;
+		}
 		// Handle date filters - support both from/to and dateFrom/dateTo
 		const fromDate = dateFrom || from;
 		const toDate = dateTo || to;
-
 		// Apply date filters only if specified
 		if (fromDate || toDate) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (fromDate) query.createdAt.$gte = new Date(fromDate);
 			if (toDate) query.createdAt.$lte = new Date(toDate);
 		}
@@ -72,11 +97,9 @@ export class SensorHistoryController {
 		}
 
 		const skip = (page - 1) * limit;
-
 		// Build sort object
-		const sortObj: any = {};
+		const sortObj: any = { /* TODO: Implement */ };
 		sortObj[actualSortBy] = sortOrder === 'asc' ? 1 : -1;
-
 		// Smart merge for sensors: only if duplicates exist
 		const mergerService = DataMergerService.getInstance();
 		try {
@@ -92,7 +115,6 @@ export class SensorHistoryController {
 				{ $match: { count: { $gt: 1 } } },
 				{ $limit: 1 }
 			]);
-
 			if (quickDuplicateCheck.length > 0) {
 				await mergerService.mergeSameTimestampData();
 				console.log('✅ Sensor data merged (duplicates found)');
@@ -106,7 +128,6 @@ export class SensorHistoryController {
 			.skip(skip)
 			.limit(limit)
 			.lean();
-
 		// Format dates to ensure proper HH:mm:ss format
 		const formattedSensorData = sensorData.map(sensor => ({
 			...sensor,
@@ -115,9 +136,7 @@ export class SensorHistoryController {
 			// Add formatted timestamp for display
 			timestamp: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString()
 		}));
-
 		const total = await SensorData.countDocuments(query);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor history retrieved successfully',
@@ -134,16 +153,43 @@ export class SensorHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
 	async getSensorSummary(req: Request, res: Response): Promise<void> {
-		const { from, to } = req.query as any;
-
+		const { from, to, dateFrom, dateTo, sensorType, minValue } = req.query as any;
+		// Build query object for sensor history
 		const query: any = {};
+		
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+		
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+		
+		// Filter by sensor type if specified
+		if (sensorType && sensorType !== 'all') {
+			query[sensorType] = { $exists: true, $ne: null };
+		}
+		
+		// Filter by value range if specified
+		if (minValue !== undefined) {
+			// Apply to all numeric sensor fields
+			const numericFields = ['temperature', 'humidity', 'soilMoisture', 'lightIntensity'];
+			const orConditions = numericFields.map(field => ({ [field]: { $gte: parseFloat(minValue) } }));
+			query.$or = orConditions;
+		}
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
@@ -165,7 +211,6 @@ export class SensorHistoryController {
 				}
 			}
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor summary retrieved successfully',
@@ -184,13 +229,11 @@ export class SensorHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
 	async getSensorTrends(req: Request, res: Response): Promise<void> {
-		const { from, to, interval = 'hour' } = req.query as any;
-
+		const { from, to, dateFrom, dateTo, sensorType, minValue, interval = 'hour' } = req.query as any;
 		let dateFormat: string;
 		switch (interval) {
 			case 'day':
@@ -202,9 +245,38 @@ export class SensorHistoryController {
 				break;
 		}
 
+		// Build query object for sensor history
 		const query: any = {};
+		
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+		
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+		
+		// Filter by sensor type if specified
+		if (sensorType && sensorType !== 'all') {
+			query[sensorType] = { $exists: true, $ne: null };
+		}
+		
+		// Filter by value range if specified
+		if (minValue !== undefined) {
+			// Apply to all numeric sensor fields
+			const numericFields = ['temperature', 'humidity', 'soilMoisture', 'lightIntensity'];
+			const orConditions = numericFields.map(field => ({ [field]: { $gte: parseFloat(minValue) } }));
+			query.$or = orConditions;
+		}
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
@@ -228,7 +300,6 @@ export class SensorHistoryController {
 			},
 			{ $sort: { _id: 1 } }
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor trends retrieved successfully',
@@ -238,7 +309,6 @@ export class SensorHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

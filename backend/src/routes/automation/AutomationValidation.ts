@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 // Automation settings schema
 export const AutomationConfigSchema = z.object({
 	automationEnabled: z.boolean(),
@@ -30,12 +29,10 @@ export const AutomationConfigSchema = z.object({
 		autoOpenDoorOnFlood: z.boolean()
 	}).optional()
 });
-
 // Simple toggle schema for API compatibility
 export const AutomationToggleSchema = z.object({
 	enabled: z.boolean()
 });
-
 // Sensor trigger schema
 export const SensorTriggerSchema = z.object({
 	sensorType: z.string().min(1),

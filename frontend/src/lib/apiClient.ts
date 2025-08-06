@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { Config } from '../config/AppConfig';
+import { errorHandlingService } from '../services/ErrorHandlingService';
+
+const API_BASE_URL = Config.api.baseUrl;
 
 export interface SensorData {
 	_id?: string;
@@ -16,6 +19,22 @@ export interface DeviceStatus {
 	timestamp?: string;
 }
 
+export interface APIError {
+	success: false;
+	message: string;
+	error?: any;
+	timestamp?: string;
+}
+
+export interface APISuccess<T = any> {
+	success: true;
+	data?: T;
+	message?: string;
+	timestamp?: string;
+}
+
+export type APIResponse<T = any> = APISuccess<T> | APIError;
+
 class ApiClient {
 	private async request(endpoint: string, options: any = {}) {
 		try {
@@ -32,17 +51,37 @@ class ApiClient {
 			});
 
 			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+				// Handle HTTP errors consistently
+				const errorData = await response.json().catch(() => ({
+					success: false,
+					message: `HTTP ${response.status}: ${response.statusText}`,
+					timestamp: new Date().toISOString()
+				}));
+
+				throw new Error(errorData.message || `Request failed with status ${response.status}`);
 			}
 
-			return await response.json();
+			const data = await response.json();
+
+			// Handle API-level errors
+			if (data.success === false) {
+				throw new Error(data.message || 'API request failed');
+			}
+
+			return data;
 		} catch (error) {
 			// Filter out browser extension errors
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			if (!errorMessage.includes('extension') &&
 				!errorMessage.includes('runtime.lastError') &&
 				!errorMessage.includes('Could not establish connection')) {
-				console.error(`API request failed: ${endpoint}`, error);
+				
+				// Use error handling service for user notifications
+				errorHandlingService.handleError(error, {
+					source: 'api',
+					endpoint,
+					timestamp: new Date().toISOString()
+				});
 			}
 			throw error;
 		}

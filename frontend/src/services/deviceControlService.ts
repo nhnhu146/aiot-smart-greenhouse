@@ -1,3 +1,5 @@
+import { Config } from '../config/AppConfig';
+
 export interface DeviceControlRequest {
 	deviceType: 'light' | 'pump' | 'door' | 'window';
 	action: 'on' | 'off' | 'open' | 'close';
@@ -7,20 +9,15 @@ export interface DeviceControlRequest {
 export interface DeviceControlResponse {
 	success: boolean;
 	message: string;
-	data?: {
-		deviceType: string;
-		action: string;
-		status: boolean;
-		timestamp: string;
-	};
-	error?: string;
+	data?: any;
+	timestamp: string;
 }
 
 class DeviceControlService {
 	private apiBaseUrl: string;
 
 	constructor() {
-		this.apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+		this.apiBaseUrl = Config.api.baseUrl;
 	}
 
 	/**

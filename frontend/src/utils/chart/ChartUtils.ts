@@ -39,6 +39,7 @@ export class ChartUtils {
 			}
 			return date.toISOString();
 		} catch (error) {
+      console.error('Chart error:', error);
 						return new Date().toISOString();
 		}
 	}
@@ -59,6 +60,7 @@ export class ChartUtils {
 			const isValid = !isNaN(date.getTime());
 
 			if (!isValid) {
+				// Skip invalid timestamps - continue with filter
 			}
 
 			return isValid;

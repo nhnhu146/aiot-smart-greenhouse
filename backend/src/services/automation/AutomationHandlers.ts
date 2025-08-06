@@ -1,6 +1,6 @@
 import { AutomationConfig } from './AutomationConfig';
 import { DeviceController } from './DeviceController';
-
+import { AppConstants } from '../../config/AppConfig';
 export class AutomationHandlers {
 	private deviceController: DeviceController;
 	private config: AutomationConfig;
@@ -8,7 +8,7 @@ export class AutomationHandlers {
 	private lastPumpAutomation = 0;
 	private lastDoorAutomation = 0;
 	private lastWindowAutomation = 0;
-	private readonly AUTOMATION_COOLDOWN = 15000; // 15 seconds
+	private readonly AUTOMATION_COOLDOWN = AppConstants.ALERT_DEBOUNCE_TIME / 8; // 15 seconds
 
 	constructor(config: AutomationConfig, deviceController: DeviceController) {
 		this.config = config;

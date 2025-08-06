@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
 import { formatVietnamTimestamp } from '../../utils/timezone';
-
 export class SensorDataController {
 	async getSensorData(req: Request, res: Response): Promise<void> {
 		const {
@@ -24,37 +23,35 @@ export class SensorDataController {
 			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
-
-		const query: any = {};
-
+		const query: any = { /* TODO: Implement */ };
 		// Filter by date range if provided
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
 
 		// Value range filters
 		if (minTemperature !== undefined || maxTemperature !== undefined) {
-			query.temperature = {};
+			query.temperature = { /* TODO: Implement */ };
 			if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
 			if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
 		}
 
 		if (minHumidity !== undefined || maxHumidity !== undefined) {
-			query.humidity = {};
+			query.humidity = { /* TODO: Implement */ };
 			if (minHumidity !== undefined) query.humidity.$gte = minHumidity;
 			if (maxHumidity !== undefined) query.humidity.$lte = maxHumidity;
 		}
 
 		if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
-			query.soilMoisture = {};
+			query.soilMoisture = { /* TODO: Implement */ };
 			if (minSoilMoisture !== undefined) query.soilMoisture.$gte = minSoilMoisture;
 			if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = maxSoilMoisture;
 		}
 
 		if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
-			query.waterLevel = {};
+			query.waterLevel = { /* TODO: Implement */ };
 			if (minWaterLevel !== undefined) query.waterLevel.$gte = minWaterLevel;
 			if (maxWaterLevel !== undefined) query.waterLevel.$lte = maxWaterLevel;
 		}
@@ -63,11 +60,9 @@ export class SensorDataController {
 		if (soilMoisture !== undefined) query.soilMoisture = soilMoisture;
 		if (waterLevel !== undefined) query.waterLevel = waterLevel;
 		if (rainStatus !== undefined) query.rainStatus = rainStatus;
-
 		const skip = (page - 1) * limit;
-		const sortCriteria: any = {};
+		const sortCriteria: any = { /* TODO: Implement */ };
 		sortCriteria[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
 		const [data, total] = await Promise.all([
 			SensorData.find(query)
 				.sort(sortCriteria)
@@ -76,13 +71,11 @@ export class SensorDataController {
 				.lean(),
 			SensorData.countDocuments(query)
 		]);
-
 		// Format timestamps for Vietnamese timezone
 		const formattedData = data.map(item => ({
 			...item,
 			formattedTime: formatVietnamTimestamp(item.createdAt)
 		}));
-
 		const response: APIResponse & { pagination?: any } = {
 			success: true,
 			message: 'Sensor data retrieved successfully',
@@ -99,7 +92,6 @@ export class SensorDataController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -107,7 +99,6 @@ export class SensorDataController {
 		const latestData = await SensorData.findOne()
 			.sort({ createdAt: -1 })
 			.lean();
-
 		if (!latestData) {
 			const response: APIResponse = {
 				success: false,
@@ -123,7 +114,6 @@ export class SensorDataController {
 			...latestData,
 			formattedTime: formatVietnamTimestamp(latestData.createdAt)
 		};
-
 		// Standardized format: always return data.sensors array
 		const response: APIResponse = {
 			success: true,
@@ -133,7 +123,6 @@ export class SensorDataController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -141,7 +130,6 @@ export class SensorDataController {
 		const latestData = await SensorData.findOne()
 			.sort({ createdAt: -1 })
 			.lean();
-
 		if (!latestData) {
 			const response: APIResponse = {
 				success: false,
@@ -164,14 +152,12 @@ export class SensorDataController {
 			lastUpdate: formatVietnamTimestamp(latestData.createdAt),
 			dataQuality: latestData.dataQuality
 		};
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Current sensor status retrieved successfully',
 			data: currentStatus,
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

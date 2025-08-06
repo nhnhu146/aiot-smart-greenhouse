@@ -1,11 +1,9 @@
 import { notificationService } from '../NotificationService';
 import { emailService, AlertEmailData } from '../EmailService';
-import { AlertConfig, ThresholdConfig } from './AlertConfig';
 import { AlertCooldownManager } from './AlertCooldownManager';
-
+import { AlertConfig } from './AlertConfig';
 export class TemperatureChecker {
 	private lastCheckedValues: Map<string, number> = new Map();
-
 	async checkTemperature(
 		value: number,
 		traceId: string,
@@ -15,12 +13,9 @@ export class TemperatureChecker {
 	): Promise<void> {
 		const thresholds = config.getCurrentThresholds();
 		if (!thresholds) return;
-
 		const threshold = thresholds.temperatureThreshold;
 		const lastValue = this.lastCheckedValues.get('temperature');
-
 		console.log(`[${traceId}] 🌡️ Checking temperature: ${value}°C (min: ${threshold.min}, max: ${threshold.max})`);
-
 		// Only trigger if value changes significantly or crosses threshold
 		if (lastValue !== undefined && Math.abs(value - lastValue) < 0.5) {
 			console.log(`[${traceId}] 🌡️ Temperature change too small: ${value}°C vs last ${lastValue}°C`);
@@ -57,7 +52,6 @@ export class TemperatureChecker {
 	): Promise<void> {
 		console.log(`[${traceId}] 🚨 [Temperature] BELOW threshold: ${value}°C < ${threshold.min}°C`);
 		cooldownManager.setAlertTime('temperature');
-
 		await notificationService.triggerAlert({
 			type: 'temperature',
 			level: value < threshold.min - 5 ? 'critical' : 'high',
@@ -65,7 +59,6 @@ export class TemperatureChecker {
 			currentValue: value,
 			threshold: threshold
 		});
-
 		await this.sendEmailAlert(
 			{
 				type: 'temperature',
@@ -94,7 +87,6 @@ export class TemperatureChecker {
 	): Promise<void> {
 		console.log(`[${traceId}] 🚨 [Temperature] ABOVE threshold: ${value}°C > ${threshold.max}°C`);
 		cooldownManager.setAlertTime('temperature');
-
 		await notificationService.triggerAlert({
 			type: 'temperature',
 			level: value > threshold.max + 5 ? 'critical' : 'high',
@@ -102,7 +94,6 @@ export class TemperatureChecker {
 			currentValue: value,
 			threshold: threshold
 		});
-
 		await this.sendEmailAlert(
 			{
 				type: 'temperature',
@@ -132,7 +123,6 @@ export class TemperatureChecker {
 	): Promise<void> {
 		const emailRecipients = config.getEmailRecipients();
 		const emailAlerts = config.getEmailAlerts();
-
 		if (emailRecipients.length > 0 && emailAlerts.temperature) {
 			if (config.isBatchAlertsEnabled()) {
 				pendingAlerts.push(alert);

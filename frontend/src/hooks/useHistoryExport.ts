@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import apiClient from '@/lib/apiClient';
 import { FilterState } from '@/types/history';
+import { AppConstants } from '../config/AppConfig';
 
 export const useHistoryExport = () => {
 	// Removed isExporting state to eliminate loading effects
@@ -45,7 +46,7 @@ export const useHistoryExport = () => {
 			params.append('format', format);
 			params.append('sortBy', 'createdAt');
 			params.append('sortOrder', 'desc');
-			params.append('limit', '10000'); // Higher limit for export
+			params.append('limit', AppConstants.MAX_EXPORT_RECORDS.toString()); // Higher limit for export
 
 			// Apply filters if provided - only add non-empty values
 			if (filters) {

@@ -1,13 +1,10 @@
 import { IAutomationSettings } from '../../models/AutomationSettings';
 import { AutomationSettings } from '../../models';
-
 export class AutomationConfig {
 	private config: IAutomationSettings | null = null;
-
 	async loadConfiguration(): Promise<void> {
 		try {
 			let settings = await AutomationSettings.findOne();
-
 			if (!settings) {
 				// Create default settings if none exist
 				settings = new AutomationSettings();
@@ -37,7 +34,7 @@ export class AutomationConfig {
 	async updateConfiguration(newConfig: Partial<IAutomationSettings>): Promise<void> {
 		try {
 			const updatedSettings = await AutomationSettings.findOneAndUpdate(
-				{},
+				{ /* TODO: Implement */ },
 				newConfig,
 				{
 					new: true,
@@ -45,7 +42,6 @@ export class AutomationConfig {
 					runValidators: true
 				}
 			);
-
 			if (updatedSettings) {
 				this.config = updatedSettings;
 				console.log('🔧 Automation configuration updated:', newConfig);

@@ -1,9 +1,8 @@
 import { notificationService } from '../NotificationService';
 import { emailService, AlertEmailData } from '../EmailService';
 import { AlertConfig } from './AlertConfig';
-
 export class SystemErrorHandler {
-	constructor(private config: AlertConfig, private pendingAlerts: any[]) { }
+	constructor(private config: AlertConfig, private pendingAlerts: any[]) {}
 
 	async handleSystemError(error: string, component: string): Promise<void> {
 		try {
@@ -14,7 +13,6 @@ export class SystemErrorHandler {
 				currentValue: 0,
 				threshold: { min: 0, max: 0 }
 			});
-
 			const emailRecipients = this.config.getEmailRecipients();
 			if (emailRecipients.length > 0) {
 				const alert = {
@@ -25,7 +23,6 @@ export class SystemErrorHandler {
 					threshold: { min: 0, max: 0 },
 					timestamp: new Date().toISOString()
 				};
-
 				if (this.config.isBatchAlertsEnabled()) {
 					this.pendingAlerts.push(alert);
 					console.log(`🔄 System error alert added to batch (${this.pendingAlerts.length} pending)`);

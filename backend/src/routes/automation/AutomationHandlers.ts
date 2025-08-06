@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { APIResponse } from '../../types';
 import { SensorTriggerSchema } from './AutomationValidation';
 import { automationService } from '../../services';
-
 export class AutomationHandlers {
 	/**
 	 * Manually trigger automation check with current sensor values
@@ -11,10 +10,8 @@ export class AutomationHandlers {
 	static async triggerCheck(req: Request, res: Response) {
 		try {
 			console.log('[AUTOMATION-TRIGGER] Manual automation trigger requested');
-
 			// Trigger immediate automation check with current sensor values
 			await automationService.processImmediateAutomationCheck();
-
 			const response: APIResponse = {
 				success: true,
 				message: 'Automation check triggered successfully',
@@ -24,7 +21,6 @@ export class AutomationHandlers {
 				},
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-TRIGGER] Error:', error);
@@ -43,12 +39,9 @@ export class AutomationHandlers {
 	static async triggerSensorAutomation(req: Request, res: Response) {
 		try {
 			const { sensorType, value } = SensorTriggerSchema.parse(req.body);
-
 			console.log(`[AUTOMATION-SENSOR-TRIGGER] Triggering automation for ${sensorType}: ${value}`);
-
 			// Process automation for the specific sensor
 			await automationService.processSensorData(sensorType, value);
-
 			const response: APIResponse = {
 				success: true,
 				message: `Automation triggered for ${sensorType}`,
@@ -59,7 +52,6 @@ export class AutomationHandlers {
 				},
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-SENSOR-TRIGGER] Error:', error);
@@ -78,10 +70,8 @@ export class AutomationHandlers {
 	static async runImmediateCheck(req: Request, res: Response) {
 		try {
 			const { automationService } = await import('../../services');
-
 			// Get current automation status
 			const automationStatus = automationService.getAutomationStatus();
-
 			if (!automationStatus.enabled) {
 				const response: APIResponse = {
 					success: false,
@@ -94,7 +84,6 @@ export class AutomationHandlers {
 
 			// Trigger immediate automation check
 			await automationService.processImmediateAutomationCheck();
-
 			const response: APIResponse = {
 				success: true,
 				message: 'Automation check triggered successfully',
@@ -104,7 +93,6 @@ export class AutomationHandlers {
 				},
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-RUN-CHECK] Error:', error);

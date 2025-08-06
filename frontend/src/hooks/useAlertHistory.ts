@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import apiClient from '@/lib/apiClient';
+import { AppConstants } from '../config/AppConfig';
 
 export interface AlertHistoryItem {
 	_id: string;
@@ -47,7 +48,7 @@ export const useAlertHistory = (
 	const fetchData = async () => {
 		// Prevent excessive API calls - minimum 3 seconds between requests
 		const now = Date.now();
-		const MIN_FETCH_INTERVAL = 3000;
+		const MIN_FETCH_INTERVAL = AppConstants.UI.DEBOUNCE_DELAY * 10;
 		if (now - lastFetchTimeRef.current < MIN_FETCH_INTERVAL) {
 			console.log('⏳ Alert history fetch skipped - too soon since last fetch');
 			return;

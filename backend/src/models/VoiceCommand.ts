@@ -1,12 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
-
 export interface IVoiceCommand extends Document {
-	command: string;
-	confidence: number | null;
-	processed: boolean;
-	errorMessage?: string;
-	createdAt?: Date;
-	updatedAt?: Date;
+	command: string
+	confidence: number | null
+	processed: boolean
+	errorMessage?: string
+	createdAt?: Date
+	updatedAt?: Date
 }
 
 const VoiceCommandSchema = new Schema<IVoiceCommand>({
@@ -32,9 +31,7 @@ const VoiceCommandSchema = new Schema<IVoiceCommand>({
 	}
 }, {
 	timestamps: true // Use MongoDB's createdAt/updatedAt instead of custom timestamp
-});;
-
+});
 VoiceCommandSchema.index({ createdAt: -1 });
 VoiceCommandSchema.index({ processed: 1 });
-
 export default mongoose.model<IVoiceCommand>('VoiceCommand', VoiceCommandSchema);

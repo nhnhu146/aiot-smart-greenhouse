@@ -1,20 +1,16 @@
 import { Socket } from 'socket.io';
-
 export class WebSocketConnectionManager {
 	private connectedClients: Map<string, Socket> = new Map();
-
 	// Handle new client connection
 	handleConnection(socket: Socket) {
 		console.log(`📡 WebSocket client connected: ${socket.id}`);
 		this.connectedClients.set(socket.id, socket);
-
 		// Send welcome message with current status
 		socket.emit('connection-status', {
 			status: 'connected',
 			clientId: socket.id,
 			timestamp: new Date().toISOString()
 		});
-
 		// Set up event handlers
 		this.setupSocketHandlers(socket);
 	}
@@ -51,12 +47,10 @@ export class WebSocketConnectionManager {
 			console.log(`📊 Chart data requested by ${socket.id}`);
 			this.sendLatestChartData(socket);
 		});
-
 		// Handle client disconnect
 		socket.on('disconnect', (reason) => {
 			this.handleDisconnection(socket.id, reason);
 		});
-
 		// Handle ping requests for connection health
 		socket.on('ping', () => {
 			socket.emit('pong', { timestamp: new Date().toISOString() });

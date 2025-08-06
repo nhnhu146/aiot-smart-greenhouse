@@ -1,11 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose';
-
 export interface IPasswordReset extends Document {
-	email: string;
-	token: string;
-	expiresAt: Date;
-	used: boolean;
-	createdAt: Date;
+	email: string
+	token: string
+	expiresAt: Date
+	used: boolean
+	createdAt: Date
 }
 
 const PasswordResetSchema = new Schema<IPasswordReset>({
@@ -34,9 +33,7 @@ const PasswordResetSchema = new Schema<IPasswordReset>({
 		default: Date.now
 	}
 });
-
 // Index for efficient queries
 PasswordResetSchema.index({ email: 1, used: 1 });
 PasswordResetSchema.index({ token: 1 });
-
 export default mongoose.model<IPasswordReset>('PasswordReset', PasswordResetSchema);

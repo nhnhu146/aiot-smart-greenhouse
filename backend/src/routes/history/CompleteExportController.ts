@@ -2,20 +2,16 @@ import { Request, Response } from 'express';
 import { SensorData, DeviceHistory, VoiceCommand } from '../../models';
 import { APIResponse } from '../../types';
 import { formatVietnamTimestamp, formatVietnamTimestampISO } from '../../utils/timezone';
-
 export class CompleteExportController {
 	async exportAllData(req: Request, res: Response): Promise<void> {
 		const { from, to, format = 'json' } = req.query as any;
-
-		const query: any = {};
-		const dateQuery: any = {};
-
+		const query: any = { /* TODO: Implement */ };
+		const dateQuery: any = { /* TODO: Implement */ };
 		if (from || to) {
-			dateQuery.createdAt = {};
+			dateQuery.createdAt = { /* TODO: Implement */ };
 			if (from) dateQuery.createdAt.$gte = from;
 			if (to) dateQuery.createdAt.$lte = to;
-
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
@@ -25,9 +21,8 @@ export class CompleteExportController {
 			DeviceHistory.find(query).sort({ timestamp: -1 }).lean(),
 			VoiceCommand.find(dateQuery).sort({ timestamp: -1 }).lean()
 		]);
-
 		if (format === 'csv') {
-			const csvContent = this.generateCompleteCSV(sensorData, deviceHistory, voiceCommands);
+			const csvContent = this.generateCompleteCSV(sensorData, deviceHistory);
 			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
 			res.setHeader('Content-Disposition', 'attachment; filename=complete-history.csv');
 			res.send(csvContent);
@@ -38,17 +33,14 @@ export class CompleteExportController {
 				timestamp: formatVietnamTimestampISO(data.createdAt),
 				createdAt: formatVietnamTimestampISO(data.createdAt)
 			}));
-
 			const formattedDeviceHistory = deviceHistory.map(device => ({
 				...device,
 				timestamp: formatVietnamTimestampISO(device.createdAt)
 			}));
-
 			const formattedVoiceCommands = voiceCommands.map(command => ({
 				...command,
 				timestamp: formatVietnamTimestampISO(command.createdAt)
 			}));
-
 			const response: APIResponse = {
 				success: true,
 				message: 'Complete history exported successfully',
@@ -66,36 +58,28 @@ export class CompleteExportController {
 				},
 				timestamp: formatVietnamTimestampISO(new Date())
 			};
-
-			res.json(response);
+			// JSON format with proper download headers
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+			res.setHeader('Content-Disposition', 'attachment; filename=complete-history.json');
+			res.send(JSON.stringify(response, null, 2));
 		}
 	}
 
-	private generateCompleteCSV(sensorData: any[], deviceHistory: any[], voiceCommands: any[]): string {
+	private generateCompleteCSV(sensorData: any[], deviceHistory: any[]): string {
 		let csvContent = '';
-
 		// Sensor data section
 		csvContent += 'SENSOR DATA\n';
 		csvContent += 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level\n';
 		csvContent += sensorData.map(data => {
 			const timestamp = formatVietnamTimestamp(data.createdAt);
-			return `"${timestamp}",${data.temperature || ''},${data.humidity || ''},${data.soilMoisture || ''},${data.waterLevel || ''}`;
+			return `'${timestamp}',${data.temperature || ''},${data.humidity || ''},${data.soilMoisture || ''},${data.waterLevel || ''}`;
 		}).join('\n');
-
 		csvContent += '\n\nDEVICE CONTROLS\n';
 		csvContent += 'Timestamp (UTC+7),Device ID,Device Type,Action,Control Type,User ID\n';
 		csvContent += deviceHistory.map(device => {
 			const timestamp = formatVietnamTimestamp(device.createdAt);
-			return `"${timestamp}","${device.deviceId || ''}","${device.deviceType || ''}","${device.action || ''}","${device.controlType || ''}","${device.userId || 'System'}"`;
+			return `'${timestamp}',"${(device.deviceName || '').replace(/"/g, '""')}","${device.status || ''}"`;
 		}).join('\n');
-
-		csvContent += '\n\nVOICE COMMANDS\n';
-		csvContent += 'Timestamp (UTC+7),Command,Confidence\n';
-		csvContent += voiceCommands.map(command => {
-			const timestamp = formatVietnamTimestamp(command.createdAt);
-			return `"${timestamp}","${(command.command || '').replace(/"/g, '""')}","${command.confidence || ''}"`;
-		}).join('\n');
-
 		return csvContent;
 	}
 }

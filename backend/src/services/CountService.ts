@@ -1,12 +1,10 @@
 import { SensorData, DeviceHistory, VoiceCommand, Alert } from '../models';
-
 /**
  * Service for counting various data types
  * Provides centralized count functionality for API endpoints
  */
 export class CountService {
 	private static instance: CountService;
-
 	public static getInstance(): CountService {
 		if (!CountService.instance) {
 			CountService.instance = new CountService();
@@ -17,26 +15,25 @@ export class CountService {
 	/**
 	 * Count sensor data with optional filters
 	 */
-	async countSensors(filters: any = {}): Promise<number> {
+	async countSensors(filters: any = { /* TODO: Implement */ }): Promise<number> {
 		try {
-			const query: any = {};
-
+			const query: any = { /* TODO: Implement */ };
 			// Date range filter
 			if (filters.from || filters.to) {
-				query.createdAt = {};
+				query.createdAt = { /* TODO: Implement */ };
 				if (filters.from) query.createdAt.$gte = new Date(filters.from);
 				if (filters.to) query.createdAt.$lte = new Date(filters.to);
 			}
 
 			// Value filters
 			if (filters.minTemperature !== undefined || filters.maxTemperature !== undefined) {
-				query.temperature = {};
+				query.temperature = { /* TODO: Implement */ };
 				if (filters.minTemperature !== undefined) query.temperature.$gte = filters.minTemperature;
 				if (filters.maxTemperature !== undefined) query.temperature.$lte = filters.maxTemperature;
 			}
 
 			if (filters.minHumidity !== undefined || filters.maxHumidity !== undefined) {
-				query.humidity = {};
+				query.humidity = { /* TODO: Implement */ };
 				if (filters.minHumidity !== undefined) query.humidity.$gte = filters.minHumidity;
 				if (filters.maxHumidity !== undefined) query.humidity.$lte = filters.maxHumidity;
 			}
@@ -51,13 +48,12 @@ export class CountService {
 	/**
 	 * Count device controls with optional filters
 	 */
-	async countDeviceControls(filters: any = {}): Promise<number> {
+	async countDeviceControls(filters: any = { /* TODO: Implement */ }): Promise<number> {
 		try {
-			const query: any = {};
-
+			const query: any = { /* TODO: Implement */ };
 			// Date range filter
 			if (filters.from || filters.to) {
-				query.timestamp = {};
+				query.timestamp = { /* TODO: Implement */ };
 				if (filters.from) query.timestamp.$gte = new Date(filters.from);
 				if (filters.to) query.timestamp.$lte = new Date(filters.to);
 			}
@@ -82,13 +78,12 @@ export class CountService {
 	/**
 	 * Count voice commands with optional filters
 	 */
-	async countVoiceCommands(filters: any = {}): Promise<number> {
+	async countVoiceCommands(filters: any = { /* TODO: Implement */ }): Promise<number> {
 		try {
-			const query: any = {};
-
+			const query: any = { /* TODO: Implement */ };
 			// Date range filter
 			if (filters.from || filters.to) {
-				query.timestamp = {};
+				query.timestamp = { /* TODO: Implement */ };
 				if (filters.from) query.timestamp.$gte = new Date(filters.from);
 				if (filters.to) query.timestamp.$lte = new Date(filters.to);
 			}
@@ -113,13 +108,12 @@ export class CountService {
 	/**
 	 * Count alerts with optional filters
 	 */
-	async countAlerts(filters: any = {}): Promise<number> {
+	async countAlerts(filters: any = { /* TODO: Implement */ }): Promise<number> {
 		try {
-			const query: any = {};
-
+			const query: any = { /* TODO: Implement */ };
 			// Date range filter
 			if (filters.from || filters.to) {
-				query.createdAt = {};
+				query.createdAt = { /* TODO: Implement */ };
 				if (filters.from) query.createdAt.$gte = new Date(filters.from);
 				if (filters.to) query.createdAt.$lte = new Date(filters.to);
 			}
@@ -144,7 +138,7 @@ export class CountService {
 	/**
 	 * Get all counts at once for dashboard
 	 */
-	async getAllCounts(filters: any = {}) {
+	async getAllCounts(filters: any = { /* TODO: Implement */ }) {
 		const [
 			sensorsCount,
 			deviceControlsCount,
@@ -156,7 +150,6 @@ export class CountService {
 			this.countVoiceCommands(filters),
 			this.countAlerts(filters)
 		]);
-
 		return {
 			sensors: sensorsCount,
 			deviceControls: deviceControlsCount,

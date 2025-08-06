@@ -3,7 +3,6 @@ import { SensorData } from '../../models';
 import { formatVietnamTimestamp } from '../../utils/timezone';
 import { countService } from '../../services';
 import { APIResponse } from '../../types';
-
 export class SensorExportController {
 	async exportSensorData(req: Request, res: Response): Promise<void> {
 		const {
@@ -23,36 +22,34 @@ export class SensorExportController {
 			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
-
-		const query: any = {};
-
+		const query: any = { /* TODO: Implement */ };
 		// Apply same filters as main query
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
 
 		if (minTemperature !== undefined || maxTemperature !== undefined) {
-			query.temperature = {};
+			query.temperature = { /* TODO: Implement */ };
 			if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
 			if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
 		}
 
 		if (minHumidity !== undefined || maxHumidity !== undefined) {
-			query.humidity = {};
+			query.humidity = { /* TODO: Implement */ };
 			if (minHumidity !== undefined) query.humidity.$gte = minHumidity;
 			if (maxHumidity !== undefined) query.humidity.$lte = maxHumidity;
 		}
 
 		if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
-			query.soilMoisture = {};
+			query.soilMoisture = { /* TODO: Implement */ };
 			if (minSoilMoisture !== undefined) query.soilMoisture.$gte = minSoilMoisture;
 			if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = maxSoilMoisture;
 		}
 
 		if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
-			query.waterLevel = {};
+			query.waterLevel = { /* TODO: Implement */ };
 			if (minWaterLevel !== undefined) query.waterLevel.$gte = minWaterLevel;
 			if (maxWaterLevel !== undefined) query.waterLevel.$lte = maxWaterLevel;
 		}
@@ -60,19 +57,15 @@ export class SensorExportController {
 		if (soilMoisture !== undefined) query.soilMoisture = soilMoisture;
 		if (waterLevel !== undefined) query.waterLevel = waterLevel;
 		if (rainStatus !== undefined) query.rainStatus = rainStatus;
-
-		const sortCriteria: any = {};
+		const sortCriteria: any = { /* TODO: Implement */ };
 		sortCriteria[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
 		// Get data for export (limit to reasonable size for CSV)
 		const data = await SensorData.find(query)
 			.sort(sortCriteria)
 			.limit(10000) // Limit for performance
 			.lean();
-
 		// Generate CSV content
 		const csvHeader = 'Timestamp,Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status,Data Quality\n';
-
 		const csvContent = csvHeader + data.map(item => {
 			const timestamp = formatVietnamTimestamp(item.createdAt);
 			return [
@@ -87,7 +80,6 @@ export class SensorExportController {
 				item.dataQuality || ''
 			].join(',');
 		}).join('\n');
-
 		// Set headers for file download
 		res.setHeader('Content-Type', 'text/csv');
 		res.setHeader('Content-Disposition', 'attachment; filename=sensor-data.csv');
@@ -96,29 +88,26 @@ export class SensorExportController {
 
 	async getSensorCount(req: Request, res: Response): Promise<void> {
 		const { from, to, minTemperature, maxTemperature } = req.query as any;
-
-		const query: any = {};
+		const query: any = { /* TODO: Implement */ };
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
 
 		if (minTemperature !== undefined || maxTemperature !== undefined) {
-			query.temperature = {};
+			query.temperature = { /* TODO: Implement */ };
 			if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
 			if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
 		}
 
 		const count = await countService.countSensors({ from, to, minTemperature, maxTemperature });
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor data count retrieved successfully',
 			data: { count },
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

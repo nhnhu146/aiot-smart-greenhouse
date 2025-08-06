@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { SensorData, DeviceStatus, Alert } from '../models';
 import { asyncHandler } from '../middleware';
 import { mqttService, emailService } from '../services';
+import { AppConstants } from '../config/AppConfig';
 import { APIResponse } from '../types';
 import sensorsRouter from './sensors';
 import devicesRouter from './devices';
@@ -15,9 +16,7 @@ import automationRouter from './automation';
 import voiceCommandsRouter from './voiceCommands';
 import alertHistoryRouter from './alertHistory';
 import chatRouter from './chat';
-
 const router = Router();
-
 // Mount routes
 router.use('/sensors', sensorsRouter);
 router.use('/devices', devicesRouter);
@@ -31,7 +30,6 @@ router.use('/automation', automationRouter);
 router.use('/voice-commands', voiceCommandsRouter);
 router.use('/alert-history', alertHistoryRouter);
 router.use('/chat', chatRouter);
-
 // Health check endpoint
 router.get('/health', (req, res) => {
 	res.json({
@@ -41,11 +39,9 @@ router.get('/health', (req, res) => {
 		version: '1.0.0'
 	});
 });
-
 // Test email endpoint
 router.post('/test-email', asyncHandler(async (req: Request, res: Response) => {
 	const { recipients } = req.body;
-
 	if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
 		res.status(400).json({
 			success: false,
@@ -56,14 +52,11 @@ router.post('/test-email', asyncHandler(async (req: Request, res: Response) => {
 	}
 
 	console.log(`📧 Testing email service - sending to: ${recipients.join(', ')}`);
-
 	// Get email service status
 	const emailStatus = emailService.getStatus();
 	console.log('📊 Email Status:', emailStatus);
-
 	// Send test email
 	const success = await emailService.sendTestEmail(recipients);
-
 	res.json({
 		success,
 		message: success ? 'Test email sent successfully' : 'Failed to send test email',
@@ -74,22 +67,17 @@ router.post('/test-email', asyncHandler(async (req: Request, res: Response) => {
 		timestamp: new Date().toISOString()
 	});
 }));
-
 // GET /api/dashboard - Lấy dữ liệu tổng quan cho dashboard
 router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 	const now = new Date();
 	const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 	const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
 	// Get latest sensor data
 	const latestSensor = await SensorData.findOne().sort({ createdAt: -1 }).lean();
-
 	// Get device status
 	const devices = await DeviceStatus.find().lean();
-
 	// Get active alerts
 	const activeAlerts = await Alert.find({ resolved: false }).sort({ timestamp: -1 }).lean();
-
 	// Get 24h statistics
 	const stats24h = await SensorData.aggregate([
 		{ $match: { createdAt: { $gte: last24h } } },
@@ -109,7 +97,6 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 			}
 		}
 	]);
-
 	// Get 7 days trend
 	const trend7d = await SensorData.aggregate([
 		{ $match: { createdAt: { $gte: last7d } } },
@@ -128,19 +115,17 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 		},
 		{ $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
 	]);
-
 	// System health check
 	const systemHealth = {
 		database: 'healthy',
 		mqtt: mqttService.isClientConnected() ? 'healthy' : 'disconnected',
-		sensors: latestSensor && latestSensor.createdAt && (now.getTime() - new Date(latestSensor.createdAt).getTime()) < 300000 ? 'healthy' : 'stale',
+		sensors: latestSensor && latestSensor.createdAt && (now.getTime() - new Date(latestSensor.createdAt).getTime()) < AppConstants.SENSOR_DATA_STALE_THRESHOLD ? 'healthy' : 'stale',
 		devices: {
 			total: devices.length,
 			online: devices.filter(d => d.status).length,
 			offline: devices.filter(d => !d.status).length
 		}
 	};
-
 	const response: APIResponse = {
 		success: true,
 		message: 'Dashboard data retrieved successfully',
@@ -152,21 +137,19 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 					updatedAt: device.updatedAt
 				};
 				return acc;
-			}, {}),
+			}, { /* TODO: Implement */ }),
 			alerts: {
 				active: activeAlerts,
 				count: activeAlerts.length
 			},
 			statistics: {
-				last24h: stats24h[0] || {},
+				last24h: stats24h[0] || { /* TODO: Implement */ },
 				trend7d: trend7d
 			},
 			systemHealth
 		},
 		timestamp: new Date().toISOString()
 	};
-
 	res.json(response);
 }));
-
 export default router;

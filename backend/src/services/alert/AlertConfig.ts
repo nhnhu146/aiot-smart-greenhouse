@@ -1,15 +1,14 @@
 import { Settings } from '../../models';
-
 export interface ThresholdConfig {
-	temperatureThreshold: { min: number; max: number };
-	humidityThreshold: { min: number; max: number };
+	temperatureThreshold: { min: number; max: number }
+	humidityThreshold: { min: number; max: number }
 }
 
 export interface EmailAlertsConfig {
-	temperature: boolean;
-	humidity: boolean;
-	soilMoisture: boolean;
-	waterLevel: boolean;
+	temperature: boolean
+	humidity: boolean
+	soilMoisture: boolean
+	waterLevel: boolean
 }
 
 export class AlertConfig {
@@ -23,7 +22,6 @@ export class AlertConfig {
 	};
 	private alertFrequency: number = 5; // minutes
 	private batchAlerts: boolean = true;
-
 	async loadConfiguration(): Promise<void> {
 		await this.loadThresholds();
 		await this.loadEmailSettings();
