@@ -81,9 +81,6 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
     container_name: aiot_greenhouse_frontend
     restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
