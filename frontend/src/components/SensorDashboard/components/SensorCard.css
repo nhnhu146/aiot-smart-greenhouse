@@ -78,3 +78,90 @@
 	font-weight: 500;
 	color: #6c757d;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.sensor-card {
+		padding: 1rem;
+		flex-direction: column;
+		text-align: center;
+		border-left: none;
+		border-top: 4px solid #ddd;
+	}
+
+	.sensor-card.danger {
+		border-top-color: #dc3545;
+		border-left-color: transparent;
+	}
+
+	.sensor-card.info {
+		border-top-color: #17a2b8;
+		border-left-color: transparent;
+	}
+
+	.sensor-card.success {
+		border-top-color: #28a745;
+		border-left-color: transparent;
+	}
+
+	.sensor-card.primary {
+		border-top-color: #007bff;
+		border-left-color: transparent;
+	}
+
+	.sensor-card.warning {
+		border-top-color: #ffc107;
+		border-left-color: transparent;
+	}
+
+	.sensor-card.secondary {
+		border-top-color: #6c757d;
+		border-left-color: transparent;
+	}
+
+	.sensor-icon {
+		font-size: 2rem;
+		margin-right: 0;
+		margin-bottom: 0.5rem;
+	}
+
+	.sensor-info {
+		flex: none;
+	}
+
+	.sensor-title {
+		font-size: 0.8rem;
+		margin-bottom: 0.25rem;
+	}
+
+	.sensor-value {
+		font-size: 1.5rem;
+		justify-content: center;
+	}
+
+	.sensor-unit {
+		font-size: 0.9rem;
+	}
+}
+
+@media (max-width: 576px) {
+	.sensor-card {
+		padding: 0.75rem;
+	}
+
+	.sensor-icon {
+		font-size: 1.75rem;
+	}
+
+	.sensor-title {
+		font-size: 0.75rem;
+	}
+
+	.sensor-value {
+		font-size: 1.25rem;
+	}
+
+	.sensor-unit {
+		font-size: 0.8rem;
+	}
+}
