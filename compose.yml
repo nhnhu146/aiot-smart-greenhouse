@@ -61,6 +61,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
+      - ./.env:/app/.env
       - ./backend/logs:/app/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
@@ -91,6 +92,7 @@ services:
     ports:
       - "3500:3000"
     volumes:
+      - ./.env:/app/.env
       - ./frontend/logs:/app/logs
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
