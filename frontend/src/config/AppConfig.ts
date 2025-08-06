@@ -201,9 +201,9 @@ export const getWebSocketUrl = (): string => {
 	
 	// Auto-detect WebSocket URL based on current page URL in production
 	if (!isDevelopment && typeof window !== 'undefined') {
-		const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-		const host = window.location.host;
-		serverUrl = `${protocol}//${host}`;
+		// const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+		// const host = window.location.host;
+		// serverUrl = `${protocol}//${host}`;
 		console.log(`🔌 Production WebSocket URL detected: ${serverUrl}`);
 	} else {
 		console.log(`🔧 Development WebSocket URL: ${serverUrl}`);
