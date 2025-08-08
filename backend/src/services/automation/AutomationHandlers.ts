@@ -17,7 +17,7 @@ export class AutomationHandlers {
 	private deviceStateCache = new Map<string, DeviceStateCache>();
 
 	// Minimum time between checking same condition (anti-spam)
-	private readonly MIN_RECHECK_INTERVAL = 1000; // 1 second
+	private readonly MIN_RECHECK_INTERVAL = 10; // 1 second
 
 	constructor(config: AutomationConfig, deviceController: DeviceController) {
 		this.config = config;
