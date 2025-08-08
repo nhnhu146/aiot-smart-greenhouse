@@ -17,7 +17,7 @@ export class AutomationHandlers {
 	private deviceStateCache = new Map<string, DeviceStateCache>();
 
 	// Minimum time between checking same condition (anti-spam)
-	private readonly MIN_RECHECK_INTERVAL = 10; // 1 second
+	private readonly MIN_RECHECK_INTERVAL = 1000; // 1 second
 
 	constructor(config: AutomationConfig, deviceController: DeviceController) {
 		this.config = config;
@@ -72,17 +72,17 @@ export class AutomationHandlers {
 		}
 
 		// If device is already in target state, don't trigger unless sensor value changed significantly
-		if (currentState.status === targetStatus) {
-			const sensorValueChanged = currentState.lastSensorValue !== undefined &&
-				Math.abs(sensorValue - currentState.lastSensorValue) > 0.1; // Allow small variations
+		// if (currentState.status === targetStatus) {
+		// 	const sensorValueChanged = currentState.lastSensorValue !== undefined &&
+		// 		Math.abs(sensorValue - currentState.lastSensorValue) > 0.1; // Allow small variations
 
-			if (!sensorValueChanged) {
-				console.log(`🔄 [${deviceType}] Device already in target state (${targetStatus ? 'ON' : 'OFF'}), sensor unchanged, skipping`);
-				return false;
-			}
+		// 	if (!sensorValueChanged) {
+		// 		console.log(`🔄 [${deviceType}] Device already in target state (${targetStatus ? 'ON' : 'OFF'}), sensor unchanged, skipping`);
+		// 		return false;
+		// 	}
 
-			console.log(`🔄 [${deviceType}] Device in target state but sensor value changed: ${currentState.lastSensorValue} → ${sensorValue}`);
-		}
+		// 	console.log(`🔄 [${deviceType}] Device in target state but sensor value changed: ${currentState.lastSensorValue} → ${sensorValue}`);
+		// }
 
 		return true;
 	}
