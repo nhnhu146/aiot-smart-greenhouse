@@ -17,7 +17,7 @@ export class SettingsOperations {
 	static async updateEmailRecipients(data: any): Promise<APIResponse> {
 		const validatedData = EmailRecipientsSchema.parse(data);
 		await Settings.findOneAndUpdate(
-			{ /* TODO: Implement */ },
+			{}, // Find any settings document (there should be only one)
 			{ $set: { 'notifications.emailRecipients': validatedData.recipients } },
 			{ upsert: true, new: true }
 		);
@@ -35,7 +35,7 @@ export class SettingsOperations {
 	static async updateEmailAlerts(data: any): Promise<APIResponse> {
 		const validatedData = EmailAlertsSchema.parse(data);
 		await Settings.findOneAndUpdate(
-			{ /* TODO: Implement */ },
+			{}, // Find any settings document (there should be only one)
 			{ $set: { emailAlerts: validatedData } },
 			{ upsert: true, new: true }
 		);
@@ -95,7 +95,7 @@ export class SettingsOperations {
 			emailAlerts: { temperature: true, humidity: true, soilMoisture: true, waterLevel: true }
 		};
 		await Settings.findOneAndUpdate(
-			{ /* TODO: Implement */ },
+			{}, // Find any settings document (there should be only one)
 			{ $set: defaultSettings },
 			{ upsert: true, new: true }
 		);
@@ -112,24 +112,100 @@ export class SettingsOperations {
 	 */
 	static async testAlert(): Promise<APIResponse> {
 		try {
-			// Send test alert through available methods
-			console.log('🔔 Test alert triggered from settings panel');
+			// Import email service
+			const { emailService } = await import('../../services');
+			
+			// Get current settings to find recipients
+			const settings = await Settings.findOne().lean();
+			const recipients = settings?.notifications?.emailRecipients || [];
+			
+			if (recipients.length === 0) {
+				return {
+					success: false,
+					message: 'No email recipients configured. Please add email addresses first.',
+					timestamp: new Date().toISOString()
+				};
+			}
+
+			// Send test email through email service
+			console.log('🔔 Sending test email to:', recipients.join(', '));
+			const success = await emailService.sendTestEmail(recipients);
+			
+			if (success) {
+				console.log('✅ Test email sent successfully');
+				return {
+					success: true,
+					message: `Test email sent successfully to ${recipients.length} recipient(s)`,
+					timestamp: new Date().toISOString()
+				};
+			} else {
+				console.log('❌ Test email failed to send');
+				return {
+					success: false,
+					message: 'Test email failed to send. Please check email configuration.',
+					timestamp: new Date().toISOString()
+				};
+			}
 		} catch (error) {
 			console.error('❌ Test alert failed:', error);
+			return {
+				success: false,
+				message: 'Test email failed: ' + (error instanceof Error ? error.message : 'Unknown error'),
+				timestamp: new Date().toISOString()
+			};
 		}
+	}
 
-		return {
-			success: true,
-			message: 'Test alert sent successfully',
-			timestamp: new Date().toISOString()
-		};
+	/**
+	 * Test email with specific recipients
+	 */
+	static async testEmailWithRecipients(recipients: string[]): Promise<APIResponse> {
+		try {
+			// Import email service
+			const { emailService } = await import('../../services');
+			
+			if (!recipients || recipients.length === 0) {
+				return {
+					success: false,
+					message: 'No email recipients provided. Please add email addresses first.',
+					timestamp: new Date().toISOString()
+				};
+			}
+
+			// Send test email through email service
+			console.log('🔔 Sending test email to:', recipients.join(', '));
+			const success = await emailService.sendTestEmail(recipients);
+			
+			if (success) {
+				console.log('✅ Test email sent successfully');
+				return {
+					success: true,
+					message: `Test email sent successfully to ${recipients.length} recipient(s): ${recipients.join(', ')}`,
+					timestamp: new Date().toISOString()
+				};
+			} else {
+				console.log('❌ Test email failed to send');
+				return {
+					success: false,
+					message: 'Test email failed to send. Please check email configuration and recipient addresses.',
+					timestamp: new Date().toISOString()
+				};
+			}
+		} catch (error) {
+			console.error('❌ Test email failed:', error);
+			return {
+				success: false,
+				message: 'Test email failed: ' + (error instanceof Error ? error.message : 'Unknown error'),
+				timestamp: new Date().toISOString()
+			};
+		}
 	}
 
 	/**
 	 * Update alert frequency
 	 */
 	static async updateAlertFrequency(data: any): Promise<APIResponse> {
-		const { alertFrequency } = data;
+		const { alertFrequency, batchAlerts } = data;
 		const isValid = validateAlertFrequency(alertFrequency);
 		if (!isValid) {
 			return {
@@ -139,14 +215,22 @@ export class SettingsOperations {
 			};
 		}
 
+		const updateData: any = {};
+		if (alertFrequency !== undefined) {
+			updateData['notifications.alertFrequency'] = alertFrequency;
+		}
+		if (batchAlerts !== undefined) {
+			updateData['notifications.batchAlerts'] = batchAlerts;
+		}
+
 		await Settings.findOneAndUpdate(
-			{ /* TODO: Implement */ },
-			{ $set: { alertFrequency } },
+			{}, // Find any settings document (there should be only one)
+			{ $set: updateData },
 			{ upsert: true, new: true }
 		);
 		return {
 			success: true,
-			data: { alertFrequency },
+			data: { alertFrequency, batchAlerts },
 			message: 'Alert frequency updated successfully',
 			timestamp: new Date().toISOString()
 		};

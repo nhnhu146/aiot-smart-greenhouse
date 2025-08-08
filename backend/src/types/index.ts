@@ -42,6 +42,14 @@ export interface Settings {
 		min: number
 		max: number
 	}
+	soilMoistureThreshold: {
+		min: number
+		max: number
+	}
+	waterLevelThreshold: {
+		min: number
+		max: number
+	}
 	autoControl: {
 		light: boolean
 		pump: boolean
@@ -51,6 +59,8 @@ export interface Settings {
 		email: boolean
 		threshold: boolean
 		emailRecipients: string[]
+		alertFrequency?: number
+		batchAlerts?: boolean
 	}
 	emailAlerts: {
 		temperature: boolean
