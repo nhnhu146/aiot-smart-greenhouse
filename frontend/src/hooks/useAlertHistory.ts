@@ -8,7 +8,7 @@ export interface AlertHistoryItem {
 	level: 'low' | 'medium' | 'high' | 'critical';
 	message: string;
 	value?: number;
-	timestamp: string;
+	createdAt: string;
 	acknowledged: boolean;
 	acknowledgedAt?: string;
 }

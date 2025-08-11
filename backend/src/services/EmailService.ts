@@ -22,26 +22,26 @@ const safeValueToString = (value: any, defaultValue: string = 'N/A'): string => 
 	if (value === null || value === undefined) {
 		return defaultValue;
 	}
-	
+
 	if (typeof value === 'object') {
 		// Handle objects by extracting useful information
-		if (value.hasOwnProperty('value')) {
+		if (Object.prototype.hasOwnProperty.call(value, 'value')) {
 			return safeValueToString(value.value, defaultValue);
 		}
-		if (value.hasOwnProperty('threshold')) {
+		if (Object.prototype.hasOwnProperty.call(value, 'threshold')) {
 			return safeValueToString(value.threshold, defaultValue);
 		}
-		if (value.hasOwnProperty('min') && value.hasOwnProperty('max')) {
+		if (Object.prototype.hasOwnProperty.call(value, 'min') && Object.prototype.hasOwnProperty.call(value, 'max')) {
 			return `${value.min} - ${value.max}`;
 		}
 		// Convert object to JSON string as last resort
 		return JSON.stringify(value);
 	}
-	
+
 	if (typeof value === 'boolean') {
 		return value ? 'Yes' : 'No';
 	}
-	
+
 	return String(value);
 };
 export interface AlertEmailData {
@@ -142,7 +142,7 @@ export class EmailService {
 
 		try {
 			const template = await this.templateLoader.loadTemplate('batch-alert-email.html');
-			
+
 			// Count alerts by severity level
 			const alertCounts = alerts.reduce((counts, alert) => {
 				const level = alert.level || alert.severity || 'medium';
@@ -202,13 +202,13 @@ export class EmailService {
 			});
 
 			// Use provided recipients or fallback to environment variable
-			const emailRecipients = recipients || 
-				process.env.EMAIL_RECIPIENTS?.split(',').map(email => email.trim()) || 
+			const emailRecipients = recipients ||
+				process.env.EMAIL_RECIPIENTS?.split(',').map(email => email.trim()) ||
 				['admin@greenhouse.com'];
-			
+
 			console.log(`📧 Sending batch alert email to: ${emailRecipients.join(', ')}`);
 			console.log(`📧 Alert summary: ${alerts.length} alerts of types: ${alerts.map(a => a.type).join(', ')}`);
-			
+
 			return await this.emailSender.sendEmail({
 				to: emailRecipients,
 				subject: `🚨 Smart Greenhouse - ${alerts.length} Alert(s) Summary`,

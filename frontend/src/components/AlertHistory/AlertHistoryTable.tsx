@@ -55,7 +55,8 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 			hour: '2-digit',
 			minute: '2-digit',
 			second: '2-digit',
-			hour12: false
+			hour12: false,
+			timeZone: 'Asia/Ho_Chi_Minh'
 		});
 	};
 
@@ -83,7 +84,7 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 			<Table striped hover className="history-table">
 				<thead className="table-light sticky-top">
 					<tr>
-						<SortableHeader field="timestamp" tab="alerts" sortState={sortState} onSort={onSort}>
+						<SortableHeader field="createdAt" tab="alerts" sortState={sortState} onSort={onSort}>
 							Time
 						</SortableHeader>
 						<SortableHeader field="type" tab="alerts" sortState={sortState} onSort={onSort}>
@@ -104,7 +105,7 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 					{data.map((alert) => (
 						<tr key={alert._id} className={alert.acknowledged ? 'table-light' : ''}>
 							<td className="text-nowrap">
-								{formatTimestamp(alert.timestamp)}
+								{formatTimestamp(alert.createdAt)}
 							</td>
 							<td>
 								<span className="me-1">{getTypeIcon(alert.type)}</span>
