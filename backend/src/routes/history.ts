@@ -5,12 +5,14 @@ import { HistoryController } from './history/HistoryController';
 import { SensorHistoryController } from './history/SensorHistoryController';
 import { DeviceHistoryController } from './history/DeviceHistoryController';
 import { ExportController } from './history/ExportController';
+import { SensorExportController } from './history/SensorExportController';
 const router = Router();
 // Initialize controllers
 const historyController = new HistoryController();
 const sensorHistoryController = new SensorHistoryController();
 const deviceHistoryController = new DeviceHistoryController();
 const exportController = new ExportController();
+const sensorExportController = new SensorExportController();
 // General history routes
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(historyController.getGeneralHistory.bind(historyController)));
 // Sensor history routes
@@ -23,6 +25,7 @@ router.get('/device-controls', validateQuery(QueryParamsSchema), asyncHandler(de
 router.get('/device-controls/count', validateQuery(QueryParamsSchema), asyncHandler(deviceHistoryController.getDeviceControlCount.bind(deviceHistoryController)));
 // Export routes
 router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportAllData.bind(exportController)));
+router.get('/export/sensors', validateQuery(QueryParamsSchema), asyncHandler(sensorExportController.exportSensorData.bind(sensorExportController)));
 router.get('/export/device-controls', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportDeviceControls.bind(exportController)));
 router.get('/export/voice-commands', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportVoiceCommands.bind(exportController)));
 export default router;
