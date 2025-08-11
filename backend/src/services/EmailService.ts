@@ -1,12 +1,55 @@
 import { EmailTransporter } from './email/EmailTransporter';
 import { TemplateLoader } from './email/TemplateLoader';
 import { EmailSender } from './email/EmailSender';
+
+// Time zone utility for UTC+7 (Vietnam)
+const formatTimestamp = (timestamp: string | Date | number): string => {
+	const date = new Date(timestamp);
+	const vietnamTime = new Date(date.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+	return vietnamTime.toLocaleString('vi-VN', {
+		timeZone: 'Asia/Ho_Chi_Minh',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit'
+	});
+};
+
+// Safely convert values to string, handling null/undefined/objects
+const safeValueToString = (value: any, defaultValue: string = 'N/A'): string => {
+	if (value === null || value === undefined) {
+		return defaultValue;
+	}
+	
+	if (typeof value === 'object') {
+		// Handle objects by extracting useful information
+		if (value.hasOwnProperty('value')) {
+			return safeValueToString(value.value, defaultValue);
+		}
+		if (value.hasOwnProperty('threshold')) {
+			return safeValueToString(value.threshold, defaultValue);
+		}
+		if (value.hasOwnProperty('min') && value.hasOwnProperty('max')) {
+			return `${value.min} - ${value.max}`;
+		}
+		// Convert object to JSON string as last resort
+		return JSON.stringify(value);
+	}
+	
+	if (typeof value === 'boolean') {
+		return value ? 'Yes' : 'No';
+	}
+	
+	return String(value);
+};
 export interface AlertEmailData {
 	alertType: string
 	deviceType: string
-	currentValue: number
-	threshold: number
-	timestamp: string
+	currentValue: number | string | null | undefined
+	threshold: number | string | object | null | undefined
+	timestamp: string | Date | number
 	severity: 'low' | 'medium' | 'high' | 'critical'
 }
 
@@ -38,12 +81,13 @@ export class EmailService {
 			const template = await this.templateLoader.loadTemplate('test-email.html');
 			const recipients = Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail];
 			const currentTime = new Date();
+			const formattedTime = formatTimestamp(currentTime);
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
 				recipientEmail: recipients.join(', '),
 				currentTime: currentTime.toISOString(),
 				systemVersion: '2.1.0',
 				testMessage: 'This is a test email for the Smart Greenhouse system.',
-				timestamp: currentTime.toLocaleString(),
+				timestamp: formattedTime,
 				currentYear: currentTime.getFullYear().toString()
 			});
 			return await this.emailSender.sendEmail({
@@ -65,17 +109,18 @@ export class EmailService {
 
 		try {
 			const template = await this.templateLoader.loadTemplate('alert-email.html');
+			const formattedTimestamp = formatTimestamp(alertData.timestamp);
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
-				// Map AlertEmailData properties to template variables
-				sensorType: alertData.deviceType || alertData.alertType,
-				value: `${alertData.currentValue}`,
-				threshold: `${alertData.threshold}`,
-				timestamp: new Date(alertData.timestamp).toLocaleString(),
+				// Map AlertEmailData properties to template variables with safe conversion
+				sensorType: safeValueToString(alertData.deviceType || alertData.alertType, 'Unknown Sensor'),
+				value: safeValueToString(alertData.currentValue, 'N/A'),
+				threshold: safeValueToString(alertData.threshold, 'N/A'),
+				timestamp: formattedTimestamp,
 				currentYear: new Date().getFullYear().toString()
 			});
 			return await this.emailSender.sendEmail({
 				to: recipients,
-				subject: `🚨 Smart Greenhouse Alert - ${alertData.alertType}`,
+				subject: `🚨 Smart Greenhouse Alert - ${safeValueToString(alertData.alertType, 'System Alert')}`,
 				htmlContent: processedTemplate
 			});
 		} catch (error) {
@@ -105,14 +150,14 @@ export class EmailService {
 				return counts;
 			}, { critical: 0, high: 0, medium: 0, low: 0 });
 
-			// Prepare alert data for template
+			// Prepare alert data for template with safe value conversion
 			const alertSummary = alerts.map(alert => ({
-				sensorType: alert.deviceType || alert.type || alert.alertType || 'Unknown Sensor',
-				level: alert.level || alert.severity || 'medium',
-				message: alert.message || `${alert.alertType || 'Alert'} detected`,
-				currentValue: alert.currentValue || 'N/A',
-				threshold: alert.threshold || 'N/A',
-				timestamp: new Date(alert.timestamp || Date.now()).toLocaleString()
+				sensorType: safeValueToString(alert.deviceType || alert.type || alert.alertType, 'Unknown Sensor'),
+				level: safeValueToString(alert.level || alert.severity, 'medium'),
+				message: safeValueToString(alert.message, `${safeValueToString(alert.alertType, 'Alert')} detected`),
+				currentValue: safeValueToString(alert.currentValue, 'N/A'),
+				threshold: safeValueToString(alert.threshold, 'N/A'),
+				timestamp: formatTimestamp(alert.timestamp || Date.now())
 			}));
 
 			// Generate HTML for alert items
@@ -131,14 +176,15 @@ export class EmailService {
 				</div>
 			`).join('');
 
-			// Calculate time range
+			// Calculate time range with UTC+7 formatting
 			const timestamps = alerts.map(alert => new Date(alert.timestamp || Date.now()).getTime());
 			const earliestTime = new Date(Math.min(...timestamps));
 			const latestTime = new Date(Math.max(...timestamps));
-			const timeRange = `${earliestTime.toLocaleString()} - ${latestTime.toLocaleString()}`;
+			const timeRange = `${formatTimestamp(earliestTime)} - ${formatTimestamp(latestTime)}`;
 
-			// Generate template variables
+			// Generate template variables with proper formatting
 			const currentTime = new Date();
+			const formattedCurrentTime = formatTimestamp(currentTime);
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
 				alertItemsHtml: alertItemsHtml,
 				alertCount: alerts.length.toString(),
@@ -150,7 +196,7 @@ export class EmailService {
 				mediumCount: alertCounts.medium.toString(),
 				lowCount: alertCounts.low.toString(),
 				dashboardUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-				generatedAt: currentTime.toLocaleString(),
+				generatedAt: formattedCurrentTime,
 				nextSummaryTime: '60', // Default next summary time
 				timestamp: currentTime.toISOString()
 			});
@@ -183,11 +229,13 @@ export class EmailService {
 		try {
 			const template = await this.templateLoader.loadTemplate('password-reset-email.html');
 			const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+			const currentTime = new Date();
+			const formattedTime = formatTimestamp(currentTime);
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
 				resetUrl: resetUrl,
 				email: email,
 				expirationTime: '1 hour',
-				timestamp: new Date().toLocaleString()
+				timestamp: formattedTime
 			});
 			return await this.emailSender.sendEmail({
 				to: email,
