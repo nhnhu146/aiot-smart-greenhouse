@@ -3,10 +3,10 @@ import { SortState } from '@/types/history';
 
 interface SortableHeaderProps {
 	field: string;
-	tab: 'sensors' | 'controls' | 'voice';
+	tab: 'sensors' | 'controls' | 'voice' | 'alerts';
 	children: React.ReactNode;
 	sortState: SortState;
-	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice') => void;
+	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice' | 'alerts') => void;
 	className?: string;
 }
 

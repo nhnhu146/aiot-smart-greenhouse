@@ -1,12 +1,15 @@
 import React from 'react';
 import { Table, Badge, Button } from 'react-bootstrap';
 import { AlertHistoryItem } from '@/hooks/useAlertHistory';
+import { SortState } from '@/types/history';
+import SortableHeader from '../History/SortableHeader';
+import '@/styles/HistoryTable.css';
 
 interface AlertHistoryTableProps {
 	data: AlertHistoryItem[];
 	onAcknowledge: (alertId: string) => Promise<void>;
-	sortState: { field: string; direction: 'asc' | 'desc' };
-	onSort: (field: string) => void;
+	sortState: SortState;
+	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice' | 'alerts') => void;
 }
 
 const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
@@ -37,14 +40,21 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 		}
 	};
 
-	const formatTimestamp = (timestamp: string) => {
+	const formatTimestamp = (timestamp: string): string => {
+		if (!timestamp) return 'N/A';
+		
 		const date = new Date(timestamp);
-		return date.toLocaleString('en-GB', {
-			day: '2-digit',
-			month: '2-digit',
+		if (isNaN(date.getTime())) {
+			return timestamp; // Return original string if date is invalid
+		}
+		
+		return date.toLocaleString('en-US', {
 			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
 			hour: '2-digit',
 			minute: '2-digit',
+			second: '2-digit',
 			hour12: false
 		});
 	};
@@ -57,10 +67,7 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 		}
 	};
 
-	const getSortIcon = (field: string) => {
-		if (sortState.field !== field) return '↕️';
-		return sortState.direction === 'asc' ? '↑' : '↓';
-	};
+	// Remove getSortIcon as SortableHeader handles it
 
 	if (data.length === 0) {
 		return (
@@ -72,35 +79,23 @@ const AlertHistoryTable: React.FC<AlertHistoryTableProps> = ({
 	}
 
 	return (
-		<div className="table-responsive">
-			<Table striped hover className="mb-0">
-				<thead className="table-dark">
+		<div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+			<Table striped hover className="history-table">
+				<thead className="table-light sticky-top">
 					<tr>
-						<th
-							style={{ cursor: 'pointer' }}
-							onClick={() => onSort('timestamp')}
-						>
-							Time {getSortIcon('timestamp')}
-						</th>
-						<th
-							style={{ cursor: 'pointer' }}
-							onClick={() => onSort('type')}
-						>
-							Type {getSortIcon('type')}
-						</th>
-						<th
-							style={{ cursor: 'pointer' }}
-							onClick={() => onSort('level')}
-						>
-							Severity {getSortIcon('level')}
-						</th>
+						<SortableHeader field="timestamp" tab="alerts" sortState={sortState} onSort={onSort}>
+							Time
+						</SortableHeader>
+						<SortableHeader field="type" tab="alerts" sortState={sortState} onSort={onSort}>
+							Type
+						</SortableHeader>
+						<SortableHeader field="level" tab="alerts" sortState={sortState} onSort={onSort}>
+							Severity
+						</SortableHeader>
 						<th>Message</th>
-						<th
-							style={{ cursor: 'pointer' }}
-							onClick={() => onSort('value')}
-						>
-							Value {getSortIcon('value')}
-						</th>
+						<SortableHeader field="value" tab="alerts" sortState={sortState} onSort={onSort}>
+							Value
+						</SortableHeader>
 						<th>Status</th>
 						<th>Actions</th>
 					</tr>
