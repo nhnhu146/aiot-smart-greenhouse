@@ -76,32 +76,42 @@ export class CompleteExportController {
 			}
 			return String(value);
 		};
-		
+
 		let csvContent = '';
 		// Sensor data section
 		csvContent += 'SENSOR DATA\n';
-		csvContent += 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level\n';
+		csvContent += 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status,Data Quality\n';
 		csvContent += sensorData.map(data => {
 			const timestamp = formatVietnamTimestamp(data.createdAt);
 			const temperature = formatValue(data.temperature);
 			const humidity = formatValue(data.humidity);
 			const soilMoisture = formatValue(data.soilMoisture);
 			const waterLevel = formatValue(data.waterLevel);
-			return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel}`;
+			const plantHeight = formatValue(data.plantHeight);
+			const lightLevel = formatValue(data.lightLevel);
+			const rainStatus = formatValue(data.rainStatus);
+			const dataQuality = formatValue(data.dataQuality);
+			return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus},${dataQuality}`;
 		}).join('\n');
-		
+
 		csvContent += '\n\nDEVICE CONTROLS\n';
-		csvContent += 'Timestamp (UTC+7),Device ID,Device Type,Action,Control Type,User ID\n';
+		csvContent += 'Timestamp (UTC+7),Device ID,Device Type,Status,Action,Control Type,User ID,Triggered By,Success,Duration (s),Sensor Value,Error Message\n';
 		csvContent += deviceHistory.map(device => {
 			const timestamp = formatVietnamTimestamp(device.createdAt);
-			const deviceName = formatValue(device.deviceName);
+			const deviceId = formatValue(device.deviceId);
+			const deviceType = formatValue(device.deviceType);
 			const status = formatValue(device.status);
 			const action = formatValue(device.action);
 			const controlType = formatValue(device.controlType);
 			const userId = formatValue(device.userId);
-			return `'${timestamp}',"${deviceName.replace(/"/g, '""')}","${status}","${action}","${controlType}","${userId}"`;
+			const triggeredBy = formatValue(device.triggeredBy);
+			const success = formatValue(device.success);
+			const duration = formatValue(device.duration);
+			const sensorValue = formatValue(device.sensorValue);
+			const errorMessage = formatValue(device.errorMessage);
+			return `'${timestamp}',"${deviceId.replace(/"/g, '""')}","${deviceType.replace(/"/g, '""')}","${status.replace(/"/g, '""')}","${action.replace(/"/g, '""')}","${controlType.replace(/"/g, '""')}","${userId.replace(/"/g, '""')}","${triggeredBy.replace(/"/g, '""')}","${success.replace(/"/g, '""')}","${duration.replace(/"/g, '""')}","${sensorValue.replace(/"/g, '""')}","${errorMessage.replace(/"/g, '""')}"`;
 		}).join('\n');
-		
+
 		return csvContent;
 	}
 }

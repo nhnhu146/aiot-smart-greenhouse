@@ -76,14 +76,16 @@ router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> 
 // GET /api/history/alerts/export - Export alert history
 router.get('/export', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
-		const {
+				const {
 			format = 'json',
 			dateFrom,
 			dateTo,
 			severity,
 			type,
 			acknowledged,
-			limit = 10000
+			limit = 10000,
+			sortBy = 'createdAt',
+			sortOrder = 'desc'
 		} = req.query;
 		const filters: any = {};
 		// Apply same filters as main endpoint
@@ -99,8 +101,12 @@ router.get('/export', asyncHandler(async (req: Request, res: Response): Promise<
 			filters.acknowledged = acknowledged === 'true';
 		}
 
+				// Apply sort parameters  
+		const sortCriteria: any = {};
+		sortCriteria[sortBy as string] = sortOrder === 'asc' ? 1 : -1;
+		
 		const alerts = await Alert.find(filters)
-			.sort({ createdAt: -1 })
+			.sort(sortCriteria)
 			.limit(Number(limit))
 			.lean();
 		if (format === 'csv') {
@@ -116,7 +122,7 @@ router.get('/export', asyncHandler(async (req: Request, res: Response): Promise<
 				return String(value);
 			};
 
-			const csvHeader = 'Timestamp (UTC+7),Type,Level,Message,Value,Threshold,Acknowledged\n';
+						const csvHeader = 'Timestamp (UTC+7),Type,Level,Message,Value,Threshold,Acknowledged,Device Type,Resolved\n';
 			const csvRows = alerts.map(alert => {
 				const timestamp = formatVietnamTimestamp(alert.createdAt);
 				const type = formatValue(alert.type);
@@ -124,9 +130,11 @@ router.get('/export', asyncHandler(async (req: Request, res: Response): Promise<
 				const message = formatValue(alert.message);
 				const value = formatValue(alert.value);
 				const threshold = formatValue(alert.threshold);
-				const acknowledged = alert.acknowledged ? 'Yes' : 'No';
+								const acknowledged = alert.acknowledged ? 'Yes' : 'No';
+				const deviceType = formatValue(alert.deviceType);
+				const resolved = alert.resolved ? 'Yes' : 'No';
 				
-				return `"${timestamp}","${type.replace(/"/g, '""')}","${level.replace(/"/g, '""')}","${message.replace(/"/g, '""')}","${value.replace(/"/g, '""')}","${threshold.replace(/"/g, '""')}","${acknowledged}"`;
+				return `"${timestamp}","${type.replace(/"/g, '""')}","${level.replace(/"/g, '""')}","${message.replace(/"/g, '""')}","${value.replace(/"/g, '""')}","${threshold.replace(/"/g, '""')}","${acknowledged}","${deviceType.replace(/"/g, '""')}","${resolved}"`;
 			}).join('\n');
 			const csvContent = csvHeader + csvRows;
 			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
