@@ -6,11 +6,11 @@ import { DataMergerService } from '../../services/DataMergerService';
 export class SensorExportController {
 	async exportSensorData(req: Request, res: Response): Promise<void> {
 		const { from, to, format = 'json' } = req.query as any;
-		const query: any = { /* TODO: Implement */ };
+		const query: any = {};
 		if (from || to) {
-			query.createdAt = { /* TODO: Implement */ };
-			if (from) query.createdAt.$gte = from;
-			if (to) query.createdAt.$lte = to;
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = new Date(from);
+			if (to) query.createdAt.$lte = new Date(to);
 		}
 
 				// **CRITICAL: Ensure data merge before export**

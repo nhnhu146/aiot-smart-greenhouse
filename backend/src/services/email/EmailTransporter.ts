@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+
 export interface EmailConfig {
 	user: string
 	pass: string

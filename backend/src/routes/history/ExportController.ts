@@ -15,7 +15,7 @@ export class ExportController {
 	}
 
 	async exportVoiceCommands(req: Request, res: Response): Promise<void> {
-		return this.deviceVoiceExportController.exportDeviceControls(req, res);
+		return this.deviceVoiceExportController.exportVoiceCommands(req, res);
 	}
 
 	async exportAllData(req: Request, res: Response): Promise<void> {

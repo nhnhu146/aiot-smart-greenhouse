@@ -1,5 +1,5 @@
-import { notificationService } from '../NotificationService';
 import { emailService, AlertEmailData } from '../EmailService';
+import { notificationService } from '../notification';
 import { AlertConfig } from './AlertConfig';
 import { AlertCooldownManager } from './AlertCooldownManager';
 export class BinarySensorChecker {

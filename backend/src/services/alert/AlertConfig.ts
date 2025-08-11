@@ -1,7 +1,10 @@
 import { Settings } from '../../models';
+
 export interface ThresholdConfig {
 	temperatureThreshold: { min: number; max: number }
 	humidityThreshold: { min: number; max: number }
+	soilMoistureThreshold: { min: number; max: number }
+	waterLevelThreshold: { min: number; max: number }
 }
 
 export interface EmailAlertsConfig {
@@ -33,7 +36,9 @@ export class AlertConfig {
 			if (settings) {
 				this.currentThresholds = {
 					temperatureThreshold: settings.temperatureThreshold,
-					humidityThreshold: settings.humidityThreshold
+					humidityThreshold: settings.humidityThreshold,
+					soilMoistureThreshold: settings.soilMoistureThreshold,
+					waterLevelThreshold: settings.waterLevelThreshold
 				};
 				console.log('⚙️ Alert thresholds loaded:', this.currentThresholds);
 			} else {
@@ -49,7 +54,9 @@ export class AlertConfig {
 	private setDefaultThresholds(): void {
 		this.currentThresholds = {
 			temperatureThreshold: { min: 18, max: 30 },
-			humidityThreshold: { min: 40, max: 80 }
+			humidityThreshold: { min: 40, max: 80 },
+			soilMoistureThreshold: { min: 30, max: 70 },
+			waterLevelThreshold: { min: 20, max: 90 }
 		};
 		console.log('🔧 Using default thresholds:', this.currentThresholds);
 	}

@@ -5,15 +5,15 @@ import { formatVietnamTimestamp, formatVietnamTimestampISO } from '../../utils/t
 export class CompleteExportController {
 	async exportAllData(req: Request, res: Response): Promise<void> {
 		const { from, to, format = 'json' } = req.query as any;
-		const query: any = { /* TODO: Implement */ };
-		const dateQuery: any = { /* TODO: Implement */ };
+		const query: any = {};
+		const dateQuery: any = {};
 		if (from || to) {
-			dateQuery.createdAt = { /* TODO: Implement */ };
-			if (from) dateQuery.createdAt.$gte = from;
-			if (to) dateQuery.createdAt.$lte = to;
-			query.createdAt = { /* TODO: Implement */ };
-			if (from) query.createdAt.$gte = from;
-			if (to) query.createdAt.$lte = to;
+			dateQuery.createdAt = {};
+			if (from) dateQuery.createdAt.$gte = new Date(from);
+			if (to) dateQuery.createdAt.$lte = new Date(to);
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = new Date(from);
+			if (to) query.createdAt.$lte = new Date(to);
 		}
 
 		const [sensorData, deviceHistory, voiceCommands] = await Promise.all([

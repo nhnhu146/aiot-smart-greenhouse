@@ -91,29 +91,27 @@ const HistoryPage: React.FC = () => {
 			// Handle alert export using the same pattern as other exports
 			try {
 				const endpoint = '/api/alert-history/export';
-				const params = new URLSearchParams();
-				params.append('format', format);
+				const queryParams: Record<string, any> = { format };
 
 				// Apply filters
 				Object.entries(appliedFilters).forEach(([key, value]) => {
 					if (value && value.trim() !== '' && key !== 'pageSize') {
-						params.append(key, value);
+						queryParams[key] = value;
 					}
 				});
 
-				// Use apiClient to properly handle authentication and response
-				const response = await apiClient.get(`${endpoint}?${params.toString()}`);
+				// Use appropriate method based on response type
+				const response = format === 'csv' 
+					? await apiClient.getRaw(endpoint, { params: queryParams })
+					: await apiClient.get(endpoint, { params: queryParams });
 
 				// Generate filename
 				const filename = `alert-history-${new Date().toISOString().split('T')[0]}`;
 
 				// Handle response based on format
 				if (format === 'csv') {
-					// For CSV, the response should be the CSV content directly
-					const csvData = typeof response === 'string' ? response :
-						(response.data && typeof response.data === 'string') ? response.data :
-							(response.success && response.data) ? JSON.stringify(response.data, null, 2) :
-								JSON.stringify(response, null, 2);
+					// For CSV, response is raw text from getRaw method
+					const csvData = typeof response === 'string' ? response : String(response);
 
 					const blob = new Blob([csvData], { type: 'text/csv; charset=utf-8' });
 					const url = window.URL.createObjectURL(blob);

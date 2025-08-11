@@ -1,5 +1,5 @@
 import { mqttService, alertService, webSocketService, automationService } from '../services';
-import { SensorData } from '../models';
+import SensorData from '../models/SensorData';
 import { mqttAutoMergeMiddleware } from '../middleware';
 export class MQTTHandler {
 	static setup(): void {
@@ -184,14 +184,20 @@ export class MQTTHandler {
 
 	private static async checkSensorAlerts(sensorType: string, value: number): Promise<void> {
 		try {
-			// Create alert data structure expected by AlertService
-			const alertData: any = {
-				temperature: null,
-				humidity: null,
-				soilMoisture: null,
-				waterLevel: null
+			// Get the latest complete sensor data from database instead of null values
+			const latestSensorData = await SensorData.findOne()
+				.sort({ createdAt: -1 })
+				.lean();
+
+			// Create alert data structure with actual values from database
+			const alertData = {
+				temperature: latestSensorData?.temperature || 0,
+				humidity: latestSensorData?.humidity || 0,
+				soilMoisture: latestSensorData?.soilMoisture || 0,
+				waterLevel: latestSensorData?.waterLevel || 0
 			};
-			// Set the specific sensor value
+
+			// Update with the current sensor value
 			switch (sensorType) {
 				case 'temperature':
 					alertData.temperature = value;
@@ -207,10 +213,8 @@ export class MQTTHandler {
 					break;
 			}
 
-			// Only check alerts for supported sensor types
-			if (['temperature', 'humidity', 'soil', 'water'].includes(sensorType)) {
-				await alertService.checkSensorThresholds(alertData);
-			}
+			// Check alerts for all sensor types to ensure comprehensive monitoring
+			await alertService.checkSensorThresholds(alertData);
 
 		} catch (error) {
 			console.error('❌ Error checking sensor alerts:', error);

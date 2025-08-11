@@ -23,42 +23,42 @@ export class SensorExportController {
 			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
-		const query: any = { /* TODO: Implement */ };
+		const query: any = {};
 		// Apply same filters as main query
 		if (from || to) {
-			query.createdAt = { /* TODO: Implement */ };
-			if (from) query.createdAt.$gte = from;
-			if (to) query.createdAt.$lte = to;
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = new Date(from);
+			if (to) query.createdAt.$lte = new Date(to);
 		}
 
 		if (minTemperature !== undefined || maxTemperature !== undefined) {
-			query.temperature = { /* TODO: Implement */ };
-			if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
-			if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
+			query.temperature = {};
+			if (minTemperature !== undefined) query.temperature.$gte = Number(minTemperature);
+			if (maxTemperature !== undefined) query.temperature.$lte = Number(maxTemperature);
 		}
 
 		if (minHumidity !== undefined || maxHumidity !== undefined) {
-			query.humidity = { /* TODO: Implement */ };
-			if (minHumidity !== undefined) query.humidity.$gte = minHumidity;
-			if (maxHumidity !== undefined) query.humidity.$lte = maxHumidity;
+			query.humidity = {};
+			if (minHumidity !== undefined) query.humidity.$gte = Number(minHumidity);
+			if (maxHumidity !== undefined) query.humidity.$lte = Number(maxHumidity);
 		}
 
 		if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
-			query.soilMoisture = { /* TODO: Implement */ };
-			if (minSoilMoisture !== undefined) query.soilMoisture.$gte = minSoilMoisture;
-			if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = maxSoilMoisture;
+			query.soilMoisture = {};
+			if (minSoilMoisture !== undefined) query.soilMoisture.$gte = Number(minSoilMoisture);
+			if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = Number(maxSoilMoisture);
 		}
 
 		if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
-			query.waterLevel = { /* TODO: Implement */ };
-			if (minWaterLevel !== undefined) query.waterLevel.$gte = minWaterLevel;
-			if (maxWaterLevel !== undefined) query.waterLevel.$lte = maxWaterLevel;
+			query.waterLevel = {};
+			if (minWaterLevel !== undefined) query.waterLevel.$gte = Number(minWaterLevel);
+			if (maxWaterLevel !== undefined) query.waterLevel.$lte = Number(maxWaterLevel);
 		}
 
-		if (soilMoisture !== undefined) query.soilMoisture = soilMoisture;
-		if (waterLevel !== undefined) query.waterLevel = waterLevel;
+		if (soilMoisture !== undefined) query.soilMoisture = Number(soilMoisture);
+		if (waterLevel !== undefined) query.waterLevel = Number(waterLevel);
 		if (rainStatus !== undefined) query.rainStatus = rainStatus;
-		const sortCriteria: any = { /* TODO: Implement */ };
+		const sortCriteria: any = {};
 		sortCriteria[sortBy] = sortOrder === 'asc' ? 1 : -1;
 		// Get data for export (limit to reasonable size for CSV)
 				// **CRITICAL: Ensure data merge before export**
@@ -110,17 +110,17 @@ export class SensorExportController {
 
 	async getSensorCount(req: Request, res: Response): Promise<void> {
 		const { from, to, minTemperature, maxTemperature } = req.query as any;
-		const query: any = { /* TODO: Implement */ };
+		const query: any = {};
 		if (from || to) {
-			query.createdAt = { /* TODO: Implement */ };
-			if (from) query.createdAt.$gte = from;
-			if (to) query.createdAt.$lte = to;
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = new Date(from);
+			if (to) query.createdAt.$lte = new Date(to);
 		}
 
 		if (minTemperature !== undefined || maxTemperature !== undefined) {
-			query.temperature = { /* TODO: Implement */ };
-			if (minTemperature !== undefined) query.temperature.$gte = minTemperature;
-			if (maxTemperature !== undefined) query.temperature.$lte = maxTemperature;
+			query.temperature = {};
+			if (minTemperature !== undefined) query.temperature.$gte = Number(minTemperature);
+			if (maxTemperature !== undefined) query.temperature.$lte = Number(maxTemperature);
 		}
 
 		const count = await countService.countSensors({ from, to, minTemperature, maxTemperature });

@@ -19,12 +19,20 @@ This document describes all environment variables used in the AIoT Smart Greenho
   - Example: `mqtt://localhost:1883`
   - Required for IoT device communication
 
-### Email Configuration
-- `EMAIL_HOST` - SMTP server hostname
-- `EMAIL_PORT` - SMTP server port (usually 587 or 465)
-- `EMAIL_USER` - SMTP username
-- `EMAIL_PASS` - SMTP password
+### ⭐ Email Configuration (CRITICAL FOR ALERTS) ⭐
+- `EMAIL_ENABLED` - Enable/disable email functionality (true/false)
+- `EMAIL_HOST` - SMTP server hostname (default: smtp.gmail.com)
+- `EMAIL_PORT` - SMTP server port (default: 587)
+- `EMAIL_SECURE` - Use SSL/TLS (true/false, default: false for port 587)
+- `EMAIL_USER` - SMTP username (your email address)
+- `EMAIL_PASS` - SMTP password (use App Password for Gmail)
 - `EMAIL_FROM` - Default sender email address
+
+**Gmail Setup Instructions:**
+1. Enable 2-Factor Authentication on your Gmail account
+2. Generate an "App Password" for the greenhouse system
+3. Use the App Password (not your regular password) in EMAIL_PASS
+4. Set EMAIL_USER to your Gmail address
 
 ### Optional Environment Variables
 

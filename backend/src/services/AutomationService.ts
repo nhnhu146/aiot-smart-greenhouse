@@ -1,9 +1,9 @@
-import { SensorData } from '../models';
 import { webSocketService } from './index';
 import { AutomationConfig } from './automation/AutomationConfig';
 import { DeviceController } from './automation/DeviceController';
 import { AutomationHandlers } from './automation/AutomationHandlers';
 import { IAutomationSettings } from '../models/AutomationSettings';
+import { SensorData } from '../models';
 class AutomationService {
 	private config: AutomationConfig;
 	private deviceController: DeviceController;

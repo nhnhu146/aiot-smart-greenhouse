@@ -1,5 +1,5 @@
-import { IAutomationSettings } from '../../models/AutomationSettings';
-import { AutomationSettings } from '../../models';
+import { AutomationSettings, IAutomationSettings } from '../../models';
+
 export class AutomationConfig {
 	private config: IAutomationSettings | null = null;
 	async loadConfiguration(): Promise<void> {
