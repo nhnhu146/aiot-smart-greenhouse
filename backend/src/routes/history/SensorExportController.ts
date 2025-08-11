@@ -51,7 +51,7 @@ export class SensorExportController {
 		
 		if (format === 'csv') {
 			// Generate CSV with UTC+7 formatted timestamps
-			let csvContent = 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status,Data Quality\n';
+			let csvContent = 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status\n';
 			csvContent += sensorData.map(data => {
 				const timestamp = formatVietnamTimestamp(data.createdAt);
 				const temperature = formatValue(data.temperature);
@@ -61,8 +61,7 @@ export class SensorExportController {
 				const plantHeight = formatValue(data.plantHeight);
 				const lightLevel = formatValue(data.lightLevel);
 				const rainStatus = formatValue(data.rainStatus);
-				const dataQuality = formatValue(data.dataQuality);
-				return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus},${dataQuality}`;
+				return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus}`;
 			}).join('\n');
 			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
 			res.setHeader('Content-Disposition', 'attachment; filename=sensor-data.csv');

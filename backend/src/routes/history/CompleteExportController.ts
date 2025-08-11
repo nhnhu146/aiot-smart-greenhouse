@@ -80,7 +80,7 @@ export class CompleteExportController {
 		let csvContent = '';
 		// Sensor data section
 		csvContent += 'SENSOR DATA\n';
-		csvContent += 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status,Data Quality\n';
+		csvContent += 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status\n';
 		csvContent += sensorData.map(data => {
 			const timestamp = formatVietnamTimestamp(data.createdAt);
 			const temperature = formatValue(data.temperature);
@@ -90,8 +90,7 @@ export class CompleteExportController {
 			const plantHeight = formatValue(data.plantHeight);
 			const lightLevel = formatValue(data.lightLevel);
 			const rainStatus = formatValue(data.rainStatus);
-			const dataQuality = formatValue(data.dataQuality);
-			return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus},${dataQuality}`;
+			return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus}`;
 		}).join('\n');
 
 		csvContent += '\n\nDEVICE CONTROLS\n';
