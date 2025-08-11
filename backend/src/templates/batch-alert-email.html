@@ -295,20 +295,9 @@
 
 			<h3>Alert Details:</h3>
 
-			{{#each alerts}}
-			<div class="alert-item {{level}}">
-				<div class="alert-header">
-					<div class="alert-type">{{sensorType}}</div>
-					<div class="alert-level {{level}}">{{level}}</div>
-				</div>
-				<div class="alert-details">
-					<strong>Current Value:</strong> {{currentValue}}<br>
-					<strong>Threshold:</strong> {{threshold}}<br>
-					<strong>Message:</strong> {{message}}
-				</div>
-				<div class="alert-time">{{timestamp}}</div>
+			<div id="alert-items-container">
+				{{alertItemsHtml}}
 			</div>
-			{{/each}}
 
 			<div class="recommendations">
 				<h4>💡 Recommended Actions:</h4>

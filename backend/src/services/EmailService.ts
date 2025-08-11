@@ -37,12 +37,14 @@ export class EmailService {
 		try {
 			const template = await this.templateLoader.loadTemplate('test-email.html');
 			const recipients = Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail];
+			const currentTime = new Date();
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
 				recipientEmail: recipients.join(', '),
-				currentTime: new Date().toISOString(),
+				currentTime: currentTime.toISOString(),
 				systemVersion: '2.1.0',
 				testMessage: 'This is a test email for the Smart Greenhouse system.',
-				timestamp: new Date().toISOString()
+				timestamp: currentTime.toLocaleString(),
+				currentYear: currentTime.getFullYear().toString()
 			});
 			return await this.emailSender.sendEmail({
 				to: recipients,
@@ -66,11 +68,10 @@ export class EmailService {
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
 				// Map AlertEmailData properties to template variables
 				sensorType: alertData.deviceType || alertData.alertType,
-				value: alertData.currentValue,
-				threshold: alertData.threshold,
-				timestamp: alertData.timestamp,
-				currentYear: new Date().getFullYear().toString(),
-				recipientEmails: recipients.join(', ')
+				value: `${alertData.currentValue}`,
+				threshold: `${alertData.threshold}`,
+				timestamp: new Date(alertData.timestamp).toLocaleString(),
+				currentYear: new Date().getFullYear().toString()
 			});
 			return await this.emailSender.sendEmail({
 				to: recipients,
@@ -96,19 +97,62 @@ export class EmailService {
 
 		try {
 			const template = await this.templateLoader.loadTemplate('batch-alert-email.html');
+			
+			// Count alerts by severity level
+			const alertCounts = alerts.reduce((counts, alert) => {
+				const level = alert.level || alert.severity || 'medium';
+				counts[level] = (counts[level] || 0) + 1;
+				return counts;
+			}, { critical: 0, high: 0, medium: 0, low: 0 });
+
+			// Prepare alert data for template
 			const alertSummary = alerts.map(alert => ({
-				type: alert.type,
-				level: alert.level,
-				message: alert.message,
-				currentValue: alert.currentValue,
-				threshold: alert.threshold,
-				timestamp: alert.timestamp
+				sensorType: alert.deviceType || alert.type || alert.alertType || 'Unknown Sensor',
+				level: alert.level || alert.severity || 'medium',
+				message: alert.message || `${alert.alertType || 'Alert'} detected`,
+				currentValue: alert.currentValue || 'N/A',
+				threshold: alert.threshold || 'N/A',
+				timestamp: new Date(alert.timestamp || Date.now()).toLocaleString()
 			}));
 
+			// Generate HTML for alert items
+			const alertItemsHtml = alertSummary.map(alert => `
+				<div class="alert-item ${alert.level}">
+					<div class="alert-header">
+						<div class="alert-type">${alert.sensorType}</div>
+						<div class="alert-level ${alert.level}">${alert.level}</div>
+					</div>
+					<div class="alert-details">
+						<strong>Current Value:</strong> ${alert.currentValue}<br>
+						<strong>Threshold:</strong> ${alert.threshold}<br>
+						<strong>Message:</strong> ${alert.message}
+					</div>
+					<div class="alert-time">${alert.timestamp}</div>
+				</div>
+			`).join('');
+
+			// Calculate time range
+			const timestamps = alerts.map(alert => new Date(alert.timestamp || Date.now()).getTime());
+			const earliestTime = new Date(Math.min(...timestamps));
+			const latestTime = new Date(Math.max(...timestamps));
+			const timeRange = `${earliestTime.toLocaleString()} - ${latestTime.toLocaleString()}`;
+
+			// Generate template variables
+			const currentTime = new Date();
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
-				alerts: alertSummary,
+				alertItemsHtml: alertItemsHtml,
+				alertCount: alerts.length.toString(),
+				frequencyMinutes: '60', // Default frequency
+				timeRange: timeRange,
 				totalAlerts: alerts.length,
-				timestamp: new Date().toISOString()
+				criticalCount: alertCounts.critical.toString(),
+				highCount: alertCounts.high.toString(),
+				mediumCount: alertCounts.medium.toString(),
+				lowCount: alertCounts.low.toString(),
+				dashboardUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+				generatedAt: currentTime.toLocaleString(),
+				nextSummaryTime: '60', // Default next summary time
+				timestamp: currentTime.toISOString()
 			});
 
 			// Use provided recipients or fallback to environment variable
@@ -140,9 +184,10 @@ export class EmailService {
 			const template = await this.templateLoader.loadTemplate('password-reset-email.html');
 			const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
-				resetUrl,
-				email,
-				expirationTime: '1 hour'
+				resetUrl: resetUrl,
+				email: email,
+				expirationTime: '1 hour',
+				timestamp: new Date().toLocaleString()
 			});
 			return await this.emailSender.sendEmail({
 				to: email,
