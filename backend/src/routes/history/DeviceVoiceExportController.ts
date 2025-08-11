@@ -38,12 +38,32 @@ export class DeviceVoiceExportController {
 			.sort({ timestamp: -1 })
 			.lean();
 
+		// Helper function to format values for CSV
+		const formatValue = (value: any): string => {
+			if (value === null || value === undefined || value === '') {
+				return 'N/A';
+			}
+			if (value === 0) {
+				return '0';
+			}
+			return String(value);
+		};
+
 		if (format === 'csv') {
 			// Generate CSV with UTC+7 formatted timestamps
-			const csvHeader = 'Timestamp (UTC+7),Device Type,Status\n';
+			const csvHeader = 'Timestamp (UTC+7),Device Type,Device ID,Status,Action,Control Type,User ID,Triggered By,Success\n';
 			const csvRows = deviceHistory.map(device => {
 				const timestamp = formatVietnamTimestamp(device.createdAt);
-				return `"${timestamp}","${(device.deviceType || '').replace(/"/g, '""')}","${device.status || ''}"`;
+				const deviceType = formatValue(device.deviceType);
+				const deviceId = formatValue(device.deviceId);
+				const status = formatValue(device.status);
+				const action = formatValue(device.action);
+				const controlType = formatValue(device.controlType);
+				const userId = formatValue(device.userId);
+				const triggeredBy = formatValue(device.triggeredBy);
+				const success = formatValue(device.success);
+				
+				return `"${timestamp}","${deviceType.replace(/"/g, '""')}","${deviceId.replace(/"/g, '""')}","${status.replace(/"/g, '""')}","${action.replace(/"/g, '""')}","${controlType.replace(/"/g, '""')}","${userId.replace(/"/g, '""')}","${triggeredBy.replace(/"/g, '""')}","${success.replace(/"/g, '""')}"`;
 			}).join('\n');
 
 			const csvContent = csvHeader + csvRows;
@@ -108,15 +128,35 @@ export class DeviceVoiceExportController {
 			.sort({ createdAt: -1 })
 			.lean();
 
+		// Helper function to format values for CSV
+		const formatValue = (value: any): string => {
+			if (value === null || value === undefined || value === '') {
+				return 'N/A';
+			}
+			if (value === 0) {
+				return '0';
+			}
+			return String(value);
+		};
+
 		if (format === 'csv') {
 			// Generate CSV with UTC+7 formatted timestamps
 			const csvHeader = 'Timestamp (UTC+7),Command,Confidence,Processed,Error Message\n';
 			const csvRows = voiceCommands.map(voice => {
 				const timestamp = formatVietnamTimestamp(voice.createdAt);
-				const confidence = voice.confidence !== null ? (voice.confidence * 100).toFixed(1) + '%' : 'N/A';
+				const command = formatValue(voice.command);
+				let confidence = 'N/A';
+				if (voice.confidence !== null && voice.confidence !== undefined) {
+					if (voice.confidence === 0) {
+						confidence = '0%';
+					} else {
+						confidence = (voice.confidence * 100).toFixed(1) + '%';
+					}
+				}
 				const processed = voice.processed ? 'Yes' : 'No';
-				const errorMsg = voice.errorMessage || '';
-				return `"${timestamp}","${(voice.command || '').replace(/"/g, '""')}","${confidence}","${processed}","${errorMsg.replace(/"/g, '""')}"`;
+				const errorMsg = formatValue(voice.errorMessage);
+				
+				return `"${timestamp}","${command.replace(/"/g, '""')}","${confidence}","${processed}","${errorMsg.replace(/"/g, '""')}"`;
 			}).join('\n');
 
 			const csvContent = csvHeader + csvRows;

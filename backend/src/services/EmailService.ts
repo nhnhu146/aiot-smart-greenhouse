@@ -62,7 +62,12 @@ export class EmailService {
 		try {
 			const template = await this.templateLoader.loadTemplate('alert-email.html');
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
-				...alertData,
+				// Map AlertEmailData properties to template variables
+				sensorType: alertData.deviceType || alertData.alertType,
+				value: alertData.currentValue,
+				threshold: alertData.threshold,
+				timestamp: alertData.timestamp,
+				currentYear: new Date().getFullYear().toString(),
 				recipientEmails: recipients.join(', ')
 			});
 			return await this.emailSender.sendEmail({

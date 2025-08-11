@@ -1,7 +1,7 @@
 import { Settings } from '../../models';
 import { APIResponse } from '../../types';
 import { ThresholdSchema } from './SettingsValidation';
-import { webSocketService } from '../../services';
+import { webSocketService, alertService } from '../../services';
 /**
  * Settings Controller - Core settings operations only
  */
@@ -68,6 +68,14 @@ export class SettingsController {
 			type: 'thresholds',
 			data: validatedData
 		});
+
+		// Trigger AlertService to reload thresholds immediately
+		try {
+			await alertService.reloadThresholds();
+			console.log('✅ AlertService thresholds reloaded after settings update');
+		} catch (error) {
+			console.error('❌ Failed to reload AlertService thresholds:', error);
+		}
 		return {
 			success: true,
 			data: validatedData,
@@ -110,6 +118,16 @@ export class SettingsController {
 				type: 'complete_settings',
 				data: updatedSettings
 			});
+		}
+
+		// Trigger AlertService to reload configuration if thresholds or email settings changed
+		if (data.thresholds || data.emailAlerts || data.emailRecipients !== undefined) {
+			try {
+				await alertService.reloadThresholds();
+				console.log('✅ AlertService configuration reloaded after complete settings update');
+			} catch (error) {
+				console.error('❌ Failed to reload AlertService configuration:', error);
+			}
 		}
 
 		return {

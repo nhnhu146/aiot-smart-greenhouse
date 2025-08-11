@@ -2,11 +2,11 @@
 import { Settings } from '../../models';
 import { APIResponse } from '../../types';
 import {
-	
 	EmailRecipientsSchema,
 	EmailAlertsSchema,
 	validateAlertFrequency
 } from './SettingsValidation';
+import { alertService } from '../../services';
 /**
  * Additional settings operations split from main controller
  */
@@ -21,6 +21,15 @@ export class SettingsOperations {
 			{ $set: { 'notifications.emailRecipients': validatedData.recipients } },
 			{ upsert: true, new: true }
 		);
+
+		// Trigger AlertService to reload configuration
+		try {
+			await alertService.reloadThresholds();
+			console.log('✅ AlertService configuration reloaded after email recipients update');
+		} catch (error) {
+			console.error('❌ Failed to reload AlertService configuration:', error);
+		}
+
 		return {
 			success: true,
 			data: validatedData,
@@ -39,6 +48,15 @@ export class SettingsOperations {
 			{ $set: { emailAlerts: validatedData } },
 			{ upsert: true, new: true }
 		);
+
+		// Trigger AlertService to reload configuration
+		try {
+			await alertService.reloadThresholds();
+			console.log('✅ AlertService configuration reloaded after email alerts update');
+		} catch (error) {
+			console.error('❌ Failed to reload AlertService configuration:', error);
+		}
+
 		return {
 			success: true,
 			data: validatedData,

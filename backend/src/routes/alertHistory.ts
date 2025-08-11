@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Alert } from '../models/Alert';
 import { asyncHandler } from '../middleware';
+import { formatVietnamTimestamp } from '../utils/timezone';
 
 const router = Router();
 // GET /api/history/alerts - Get alert history with filters
@@ -104,13 +105,33 @@ router.get('/export', asyncHandler(async (req: Request, res: Response): Promise<
 			.lean();
 		if (format === 'csv') {
 			// Generate CSV
-			const csvHeader = 'Timestamp,Type,Level,Message,Value,Acknowledged\n';
-			const csvRows = alerts.map(alert =>
-				`'${alert.createdAt}','${alert.type}','${alert.level}','${alert.message}',"${alert.value || ''}','${alert.acknowledged || false}"`
-			).join('\n');
-			res.setHeader('Content-Type', 'text/csv');
+			// Helper function to format values for CSV
+			const formatValue = (value: any): string => {
+				if (value === null || value === undefined || value === '') {
+					return 'N/A';
+				}
+				if (value === 0) {
+					return '0';
+				}
+				return String(value);
+			};
+
+			const csvHeader = 'Timestamp (UTC+7),Type,Level,Message,Value,Threshold,Acknowledged\n';
+			const csvRows = alerts.map(alert => {
+				const timestamp = formatVietnamTimestamp(alert.createdAt);
+				const type = formatValue(alert.type);
+				const level = formatValue(alert.level);
+				const message = formatValue(alert.message);
+				const value = formatValue(alert.value);
+				const threshold = formatValue(alert.threshold);
+				const acknowledged = alert.acknowledged ? 'Yes' : 'No';
+				
+				return `"${timestamp}","${type.replace(/"/g, '""')}","${level.replace(/"/g, '""')}","${message.replace(/"/g, '""')}","${value.replace(/"/g, '""')}","${threshold.replace(/"/g, '""')}","${acknowledged}"`;
+			}).join('\n');
+			const csvContent = csvHeader + csvRows;
+			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
 			res.setHeader('Content-Disposition', 'attachment; filename=alert-history.csv');
-			res.send(csvHeader + csvRows);
+			res.send(csvContent);
 		} else {
 			// JSON format with proper download headers
 			res.setHeader('Content-Type', 'application/json; charset=utf-8');

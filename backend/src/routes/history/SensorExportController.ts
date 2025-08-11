@@ -13,7 +13,7 @@ export class SensorExportController {
 			if (to) query.createdAt.$lte = new Date(to);
 		}
 
-				// **CRITICAL: Ensure data merge before export**
+			// **CRITICAL: Ensure data merge before export**
 		try {
 			console.log('🔄 Ensuring data merge before sensor export...');
 			const mergerService = DataMergerService.getInstance();
@@ -37,12 +37,28 @@ export class SensorExportController {
 		const sensorData = await SensorData.find(query)
 			.sort({ createdAt: -1 })
 			.lean();
+		
+		// Helper function to format values for CSV
+		const formatValue = (value: any): string => {
+			if (value === null || value === undefined || value === '') {
+				return 'N/A';
+			}
+			if (value === 0) {
+				return '0';
+			}
+			return String(value);
+		};
+		
 		if (format === 'csv') {
 			// Generate CSV with UTC+7 formatted timestamps
 			const csvHeader = 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level\n';
 			const csvRows = sensorData.map(data => {
 				const timestamp = formatVietnamTimestamp(data.createdAt);
-				return `'${timestamp}',${data.temperature || ''},${data.humidity || ''},${data.soilMoisture || ''},${data.waterLevel || ''}`;
+				const temperature = formatValue(data.temperature);
+				const humidity = formatValue(data.humidity);
+				const soilMoisture = formatValue(data.soilMoisture);
+				const waterLevel = formatValue(data.waterLevel);
+				return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel}`;
 			}).join('\n');
 			const csvContent = csvHeader + csvRows;
 			res.setHeader('Content-Type', 'text/csv; charset=utf-8');

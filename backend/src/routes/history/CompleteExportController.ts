@@ -66,20 +66,42 @@ export class CompleteExportController {
 	}
 
 	private generateCompleteCSV(sensorData: any[], deviceHistory: any[]): string {
+		// Helper function to format values for CSV
+		const formatValue = (value: any): string => {
+			if (value === null || value === undefined || value === '') {
+				return 'N/A';
+			}
+			if (value === 0) {
+				return '0';
+			}
+			return String(value);
+		};
+		
 		let csvContent = '';
 		// Sensor data section
 		csvContent += 'SENSOR DATA\n';
 		csvContent += 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level\n';
 		csvContent += sensorData.map(data => {
 			const timestamp = formatVietnamTimestamp(data.createdAt);
-			return `'${timestamp}',${data.temperature || ''},${data.humidity || ''},${data.soilMoisture || ''},${data.waterLevel || ''}`;
+			const temperature = formatValue(data.temperature);
+			const humidity = formatValue(data.humidity);
+			const soilMoisture = formatValue(data.soilMoisture);
+			const waterLevel = formatValue(data.waterLevel);
+			return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel}`;
 		}).join('\n');
+		
 		csvContent += '\n\nDEVICE CONTROLS\n';
 		csvContent += 'Timestamp (UTC+7),Device ID,Device Type,Action,Control Type,User ID\n';
 		csvContent += deviceHistory.map(device => {
 			const timestamp = formatVietnamTimestamp(device.createdAt);
-			return `'${timestamp}',"${(device.deviceName || '').replace(/"/g, '""')}","${device.status || ''}"`;
+			const deviceName = formatValue(device.deviceName);
+			const status = formatValue(device.status);
+			const action = formatValue(device.action);
+			const controlType = formatValue(device.controlType);
+			const userId = formatValue(device.userId);
+			return `'${timestamp}',"${deviceName.replace(/"/g, '""')}","${status}","${action}","${controlType}","${userId}"`;
 		}).join('\n');
+		
 		return csvContent;
 	}
 }
