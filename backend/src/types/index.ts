@@ -42,13 +42,16 @@ export interface Settings {
 		min: number
 		max: number
 	}
+	// Support both old min/max structure and new trigger structure for binary sensors
 	soilMoistureThreshold: {
-		min: number
-		max: number
+		min?: number
+		max?: number
+		trigger?: number // Binary sensor: 0 or 1
 	}
 	waterLevelThreshold: {
-		min: number
-		max: number
+		min?: number
+		max?: number
+		trigger?: number // Binary sensor: 0 or 1
 	}
 	autoControl: {
 		light: boolean

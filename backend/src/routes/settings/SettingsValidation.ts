@@ -13,14 +13,25 @@ export const ThresholdSchema = z.object({
 		min: z.number().min(0).max(100),
 		max: z.number().min(0).max(100)
 	}),
-	soilMoistureThreshold: z.object({
-		min: z.number().min(0).max(100),
-		max: z.number().min(0).max(100)
-	}),
-	waterLevelThreshold: z.object({
-		min: z.number().min(0).max(100),
-		max: z.number().min(0).max(100)
-	})
+	// Support both old min/max structure and new trigger structure for binary sensors
+	soilMoistureThreshold: z.union([
+		z.object({
+			min: z.number().min(0).max(100),
+			max: z.number().min(0).max(100)
+		}),
+		z.object({
+			trigger: z.number().min(0).max(1) // Binary sensor: 0 or 1
+		})
+	]),
+	waterLevelThreshold: z.union([
+		z.object({
+			min: z.number().min(0).max(100),
+			max: z.number().min(0).max(100)
+		}),
+		z.object({
+			trigger: z.number().min(0).max(1) // Binary sensor: 0 or 1
+		})
+	])
 });
 export const EmailRecipientsSchema = z.object({
 	recipients: z.array(z.string().email()).min(1, 'At least one recipient is required')

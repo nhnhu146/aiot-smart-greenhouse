@@ -104,13 +104,23 @@ class ApiClient {
 
 			if (!response.ok) {
 				// Handle HTTP errors - try to parse JSON if possible, fallback to text
+				let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+				
 				try {
-					const errorData = await response.json();
-					throw new Error(errorData.message || `Request failed with status ${response.status}`);
+					// Check content-type before trying to parse
+					const contentType = response.headers.get('content-type');
+					if (contentType && contentType.includes('application/json')) {
+						const errorData = await response.json();
+						errorMessage = errorData.message || errorMessage;
+					} else {
+						const errorText = await response.text();
+						errorMessage = errorText || errorMessage;
+					}
 				} catch {
-					const errorText = await response.text();
-					throw new Error(errorText || `HTTP ${response.status}: ${response.statusText}`);
+					// If parsing fails, use default error message
 				}
+				
+				throw new Error(errorMessage);
 			}
 
 			// Return raw text for CSV and other non-JSON responses

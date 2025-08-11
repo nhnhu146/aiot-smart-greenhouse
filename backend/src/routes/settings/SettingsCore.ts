@@ -14,8 +14,8 @@ export class SettingsController {
 		const defaultSettings = {
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 30, max: 70 },
-			waterLevelThreshold: { min: 20, max: 90 },
+			soilMoistureThreshold: { trigger: 0 }, // Binary sensor: 0 = alert when dry
+			waterLevelThreshold: { trigger: 0 }, // Binary sensor: 0 = alert when empty
 			autoControl: { light: true, pump: true, door: true },
 			notifications: { email: true, threshold: true, emailRecipients: [], alertFrequency: 5, batchAlerts: true },
 			emailAlerts: { temperature: true, humidity: true, soilMoisture: true, waterLevel: true }
@@ -36,8 +36,16 @@ export class SettingsController {
 		}
 
 		// Map the nested structure to flat structure for frontend compatibility
+		// Handle migration from old min/max structure to new trigger structure for binary sensors
 		const mappedSettings = {
 			...settings,
+			// Migrate binary sensor thresholds to new structure
+			soilMoistureThreshold: settings.soilMoistureThreshold?.trigger !== undefined 
+				? { trigger: settings.soilMoistureThreshold.trigger }
+				: { trigger: (settings.soilMoistureThreshold as any)?.min ?? 0 },
+			waterLevelThreshold: settings.waterLevelThreshold?.trigger !== undefined
+				? { trigger: settings.waterLevelThreshold.trigger }
+				: { trigger: (settings.waterLevelThreshold as any)?.min ?? 0 },
 			emailRecipients: settings.notifications?.emailRecipients || [],
 			alertFrequency: settings.notifications?.alertFrequency || 5,
 			batchAlerts: settings.notifications?.batchAlerts !== undefined ? settings.notifications.batchAlerts : true

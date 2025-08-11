@@ -5,13 +5,13 @@ import UnsavedChangesWarning from '@/components/Common/UnsavedChangesWarning';
 interface ThresholdSettings {
 	temperatureThreshold: { min: number; max: number };
 	humidityThreshold: { min: number; max: number };
-	soilMoistureThreshold: { min: number; max: number };
-	waterLevelThreshold: { min: number; max: number };
+	soilMoistureThreshold: { trigger: number }; // Binary sensor: 0 = alert when dry, 1 = alert when wet
+	waterLevelThreshold: { trigger: number }; // Binary sensor: 0 = alert when empty, 1 = alert when full
 }
 
 interface ThresholdSettingsCardProps {
 	thresholds: ThresholdSettings;
-	onThresholdChange: (key: keyof ThresholdSettings, field: 'min' | 'max', value: number) => void;
+	onThresholdChange: (key: keyof ThresholdSettings, field: 'min' | 'max' | 'trigger', value: number) => void;
 	hasUnsavedChanges?: boolean;
 }
 
@@ -85,62 +85,36 @@ const ThresholdSettingsCard: React.FC<ThresholdSettingsCardProps> = ({
 				<Row>
 					<Col md={6}>
 						<h6>🌱 Soil Moisture (Binary)</h6>
-						<Row>
-							<Col>
-								<Form.Group className="mb-3">
-									<Form.Label>Min (Dry Threshold):</Form.Label>
-									<Form.Select
-										value={thresholds.soilMoistureThreshold.min}
-										onChange={(e) => onThresholdChange('soilMoistureThreshold', 'min', parseFloat(e.target.value))}
-									>
-										<option value={0}>0 - Dry</option>
-										<option value={1}>1 - Wet</option>
-									</Form.Select>
-								</Form.Group>
-							</Col>
-							<Col>
-								<Form.Group className="mb-3">
-									<Form.Label>Max (Wet Threshold):</Form.Label>
-									<Form.Select
-										value={thresholds.soilMoistureThreshold.max}
-										onChange={(e) => onThresholdChange('soilMoistureThreshold', 'max', parseFloat(e.target.value))}
-									>
-										<option value={0}>0 - Dry</option>
-										<option value={1}>1 - Wet</option>
-									</Form.Select>
-								</Form.Group>
-							</Col>
-						</Row>
+						<Form.Group className="mb-3">
+							<Form.Label>Alert Trigger Value:</Form.Label>
+							<Form.Select
+								value={thresholds.soilMoistureThreshold.trigger}
+								onChange={(e) => onThresholdChange('soilMoistureThreshold', 'trigger', parseFloat(e.target.value))}
+							>
+								<option value={0}>0 - Alert when Dry (Default)</option>
+								<option value={1}>1 - Alert when Wet</option>
+							</Form.Select>
+							<Form.Text className="text-muted">
+								Binary sensor: Choose when to trigger alerts (0 = dry soil, 1 = wet soil)
+							</Form.Text>
+						</Form.Group>
 					</Col>
 
 					<Col md={6}>
 						<h6>🚰 Water Level (Binary)</h6>
-						<Row>
-							<Col>
-								<Form.Group className="mb-3">
-									<Form.Label>Min (Low Threshold):</Form.Label>
-									<Form.Select
-										value={thresholds.waterLevelThreshold.min}
-										onChange={(e) => onThresholdChange('waterLevelThreshold', 'min', parseFloat(e.target.value))}
-									>
-										<option value={0}>0 - Low/Empty</option>
-										<option value={1}>1 - Full</option>
-									</Form.Select>
-								</Form.Group>
-							</Col>
-							<Col>
-								<Form.Group className="mb-3">
-									<Form.Label>Max (Full Threshold):</Form.Label>
-									<Form.Select
-										value={thresholds.waterLevelThreshold.max}
-										onChange={(e) => onThresholdChange('waterLevelThreshold', 'max', parseFloat(e.target.value))}
-									>
-										<option value={0}>0 - Low/Empty</option>
-										<option value={1}>1 - Full</option>
-									</Form.Select>
-								</Form.Group>
-							</Col>
-						</Row>
+						<Form.Group className="mb-3">
+							<Form.Label>Alert Trigger Value:</Form.Label>
+							<Form.Select
+								value={thresholds.waterLevelThreshold.trigger}
+								onChange={(e) => onThresholdChange('waterLevelThreshold', 'trigger', parseFloat(e.target.value))}
+							>
+								<option value={0}>0 - Alert when Empty (Default)</option>
+								<option value={1}>1 - Alert when Full</option>
+							</Form.Select>
+							<Form.Text className="text-muted">
+								Binary sensor: Choose when to trigger alerts (0 = empty tank, 1 = full tank)
+							</Form.Text>
+						</Form.Group>
 					</Col>
 				</Row>
 			</Card.Body>

@@ -1,7 +1,6 @@
 import { EmailTransporter } from './email/EmailTransporter';
 import { TemplateLoader } from './email/TemplateLoader';
 import { EmailSender } from './email/EmailSender';
-import { timeStamp } from 'console';
 export interface AlertEmailData {
 	alertType: string
 	deviceType: string
@@ -84,9 +83,46 @@ export class EmailService {
 		}
 	}
 
-	async sendBatchAlertEmail(): Promise<boolean> {
-		// Implementation for batch alert email
-		return true;
+	async sendBatchAlertEmail(alerts?: any[]): Promise<boolean> {
+		if (!this.emailSender) {
+			console.log('📧 Email service not configured - simulating batch alert email');
+			return true;
+		}
+
+		if (!alerts || alerts.length === 0) {
+			console.log('📧 No alerts to send in batch email');
+			return true;
+		}
+
+		try {
+			const template = await this.templateLoader.loadTemplate('batch-alert-email.html');
+			const alertSummary = alerts.map(alert => ({
+				type: alert.type,
+				level: alert.level,
+				message: alert.message,
+				currentValue: alert.currentValue,
+				threshold: alert.threshold,
+				timestamp: alert.timestamp
+			}));
+
+			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
+				alerts: alertSummary,
+				totalAlerts: alerts.length,
+				timestamp: new Date().toISOString()
+			});
+
+			// Get recipients from first alert or use a global recipient list
+			const recipients = process.env.EMAIL_RECIPIENTS?.split(',') || ['admin@greenhouse.com'];
+			
+			return await this.emailSender.sendEmail({
+				to: recipients,
+				subject: `🚨 Smart Greenhouse - ${alerts.length} Alert(s) Summary`,
+				htmlContent: processedTemplate
+			});
+		} catch (error) {
+			console.error('❌ Failed to send batch alert email:', error);
+			return false;
+		}
 	}
 
 	async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {

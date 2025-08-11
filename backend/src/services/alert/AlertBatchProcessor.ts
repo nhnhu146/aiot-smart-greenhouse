@@ -42,10 +42,10 @@ export class AlertBatchProcessor {
 
 		try {
 			console.log(`📧 Processing ${this.pendingAlerts.length} batched alerts`);
-			// Send batch email to all recipients
 			const emailRecipients = this.config.getEmailRecipients();
-			// Send batch alert email (method doesn't take parameters yet)
-			await emailService.sendBatchAlertEmail();
+			
+			// Send batch alert email with the actual alert data
+			await emailService.sendBatchAlertEmail(this.pendingAlerts);
 
 			console.log(`📧 Batch alert email sent to ${emailRecipients.length} recipients`);
 			// Clear pending alerts after sending

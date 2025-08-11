@@ -3,8 +3,8 @@ import { Settings } from '../../models';
 export interface ThresholdConfig {
 	temperatureThreshold: { min: number; max: number }
 	humidityThreshold: { min: number; max: number }
-	soilMoistureThreshold: { min: number; max: number }
-	waterLevelThreshold: { min: number; max: number }
+	soilMoistureThreshold: { trigger: number } // Binary sensor: 0 = alert when dry, 1 = alert when wet
+	waterLevelThreshold: { trigger: number } // Binary sensor: 0 = alert when empty, 1 = alert when full
 }
 
 export interface EmailAlertsConfig {
@@ -37,8 +37,15 @@ export class AlertConfig {
 				this.currentThresholds = {
 					temperatureThreshold: settings.temperatureThreshold,
 					humidityThreshold: settings.humidityThreshold,
-					soilMoistureThreshold: settings.soilMoistureThreshold,
-					waterLevelThreshold: settings.waterLevelThreshold
+					// Handle migration from old min/max structure to new trigger structure
+					soilMoistureThreshold: { 
+						trigger: settings.soilMoistureThreshold?.trigger ?? 
+								(settings.soilMoistureThreshold as any)?.min ?? 0 
+					},
+					waterLevelThreshold: { 
+						trigger: settings.waterLevelThreshold?.trigger ?? 
+								(settings.waterLevelThreshold as any)?.min ?? 0 
+					}
 				};
 				console.log('⚙️ Alert thresholds loaded:', this.currentThresholds);
 			} else {
@@ -55,8 +62,8 @@ export class AlertConfig {
 		this.currentThresholds = {
 			temperatureThreshold: { min: 18, max: 30 },
 			humidityThreshold: { min: 40, max: 80 },
-			soilMoistureThreshold: { min: 30, max: 70 },
-			waterLevelThreshold: { min: 20, max: 90 }
+			soilMoistureThreshold: { trigger: 0 }, // Alert when dry (0)
+			waterLevelThreshold: { trigger: 0 } // Alert when empty (0)
 		};
 		console.log('🔧 Using default thresholds:', this.currentThresholds);
 	}

@@ -10,8 +10,8 @@ import withAuth from '@/components/withAuth/withAuth';
 interface ThresholdSettings {
 	temperatureThreshold: { min: number; max: number };
 	humidityThreshold: { min: number; max: number };
-	soilMoistureThreshold: { min: number; max: number };
-	waterLevelThreshold: { min: number; max: number };
+	soilMoistureThreshold: { trigger: number }; // Binary sensor: 0 = alert when dry, 1 = alert when wet
+	waterLevelThreshold: { trigger: number }; // Binary sensor: 0 = alert when empty, 1 = alert when full
 }
 
 interface EmailAlertsConfig {
@@ -31,8 +31,8 @@ const SettingsPage = () => {
 	const [thresholds, setThresholds] = useState<ThresholdSettings>({
 		temperatureThreshold: { min: 18, max: 30 },
 		humidityThreshold: { min: 40, max: 80 },
-		soilMoistureThreshold: { min: 0, max: 1 }, // Binary: 0=dry, 1=wet
-		waterLevelThreshold: { min: 0, max: 1 }    // Binary: 0=none, 1=full
+		soilMoistureThreshold: { trigger: 0 }, // Binary: 0 = alert when dry (default)
+		waterLevelThreshold: { trigger: 0 }    // Binary: 0 = alert when empty (default)
 	});
 
 	const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
@@ -132,7 +132,7 @@ const SettingsPage = () => {
 		}
 	};
 
-	const handleThresholdChange = useCallback((key: keyof ThresholdSettings, field: 'min' | 'max', value: number) => {
+	const handleThresholdChange = useCallback((key: keyof ThresholdSettings, field: 'min' | 'max' | 'trigger', value: number) => {
 		setThresholds(prev => ({
 			...prev,
 			[key]: { ...prev[key], [field]: value }

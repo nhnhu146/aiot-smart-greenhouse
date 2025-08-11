@@ -74,9 +74,16 @@ export const useAlertHistory = (
 
 			const response = await apiClient.get(`/api/alert-history?${params.toString()}`);
 
-			if (response.data.success) {
-				setData(response.data.data);
-				setPagination(response.data.pagination);
+			if (response.success) {
+				setData(response.data || []);
+				setPagination(response.pagination || {
+					page: 1,
+					limit: 20,
+					total: 0,
+					totalPages: 0,
+					hasNext: false,
+					hasPrev: false
+				});
 			} else {
 				setError('Failed to fetch alert history');
 			}

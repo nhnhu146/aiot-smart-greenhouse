@@ -28,27 +28,39 @@ const SettingsSchema: Schema = new Schema({
 		}
 	},
 	soilMoistureThreshold: {
+		// Support both old min/max structure and new trigger structure for backward compatibility
 		min: {
 			type: Number,
-			required: true,
+			required: false,
 			default: 30
 		},
 		max: {
 			type: Number,
-			required: true,
+			required: false,
 			default: 70
+		},
+		trigger: {
+			type: Number,
+			required: false,
+			default: 0 // Binary sensor: 0 = alert when dry, 1 = alert when wet
 		}
 	},
 	waterLevelThreshold: {
+		// Support both old min/max structure and new trigger structure for backward compatibility
 		min: {
 			type: Number,
-			required: true,
+			required: false,
 			default: 20
 		},
 		max: {
 			type: Number,
-			required: true,
+			required: false,
 			default: 90
+		},
+		trigger: {
+			type: Number,
+			required: false,
+			default: 0 // Binary sensor: 0 = alert when empty, 1 = alert when full
 		}
 	},
 	autoControl: {
