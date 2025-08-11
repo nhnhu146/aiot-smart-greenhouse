@@ -16,29 +16,28 @@
 #define I2S_SAMPLE_RATE   (16000)
 #define CONFIDENCE_THRESHOLD 0.97f
 
-
 /** Audio buffers, pointers and selectors */
 typedef struct {
-    signed short *buffers[2];
-    unsigned char buf_select;
-    unsigned char buf_ready;
-    unsigned int buf_count;
-    unsigned int n_samples;
+    signed short *buffers[2]; // Two buffers for double buffering, one can be filled while the other is processed
+    unsigned char buf_select; // Selects which buffer is currently being filled
+    unsigned char buf_ready; // Flag to indicate if the buffer is ready for processing
+    unsigned int buf_count; // Number of samples currently in the buffer
+    unsigned int n_samples; // Number of samples per buffer
 } inference_t;
 
 static inference_t inference;
-static const uint32_t sample_buffer_size = 2048;
+static const uint32_t sample_buffer_size = 2048; 
 static signed short sampleBuffer[sample_buffer_size];
 static bool debug_nn = false; // Set this to true to see e.g. features generated from the raw signal
-static int print_results = -(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
+static int print_results = -(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW); 
 static bool record_status = true;
 bool setup_mic = true;
 
 // ==============================
 // Wi-Fi Configuration
 // ==============================
-const char* ssid = "HCMUS-Phonghoc";
-const char* password = "khtn@phonghoc";
+const char* ssid = "47/52/11";
+const char* password = "12345789";
 
 // ==============================
 // MQTT Broker Configuration
@@ -66,8 +65,9 @@ const char* soil_moisture_topic= "greenhouse/sensors/soil";
 const char* light_level_topic  = "greenhouse/sensors/light";
 const char* water_level_topic  = "greenhouse/sensors/water";
 
-const char* mode_topic = "greenhouse/system/mode";
-
+// ==============================
+// MQTT Topics - Voice Commands
+// ==============================
 const char* voice_command = "greenhouse/command";
 
 // LCD setup for 16x2 I2C display at address 0x27
@@ -116,7 +116,7 @@ unsigned long lastSendTime2 = 0;
 unsigned long lastSendTime3 = 0;
 unsigned long lastMotionCheck = 0;
 unsigned long lastWaterCheck = 0;
-int i = 0; // Biến đếm
+int i = 0;
 int lastPIRState = LOW; // Track PIR state changes
 
 // Error counting for system recovery
@@ -146,14 +146,13 @@ int rainvalue = 0;
  */
 void setup() {
   Serial.begin(115200);
-  Serial.println(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
-  delay(2000);
   setup_wifi();
+
   // summary of inferencing settings (from model_metadata.h)
   Serial.println("Booting in MIC MODE");
   ei_printf("Inferencing settings:\n");
   ei_printf("\tInterval: ");
-  ei_printf_float((float)EI_CLASSIFIER_INTERVAL_MS);
+  ei_printf_float((float)EI_CLASSIFIER_INTERVAL_MS); // Time between inferences
   ei_printf(" ms.\n");
   ei_printf("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
   ei_printf("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
@@ -169,7 +168,8 @@ void setup() {
   }
 
   ei_printf("Recording...\n");
-    
+  
+  // Initialize DHT sensor, attach servos, and set up MQTT client
   dht.begin();
   windowServo.attach(window_pin);
   windowServo.write(180);
@@ -180,7 +180,7 @@ void setup() {
   client.setServer(mqttServer, mqttPort);
   client.setCallback(mqttCallback);
 
-  // pins
+  // Set pins
   pinMode(Led, OUTPUT);
   pinMode(Photonresistor, INPUT);
   pinMode(trig_pin, OUTPUT);
@@ -192,6 +192,8 @@ void setup() {
   pinMode(pump_pin, OUTPUT);
 
   lcd.init();
+  lcd.backlight();
+  lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Hello World");
 }
@@ -199,21 +201,23 @@ void setup() {
 /**
  * @brief Main loop function for the ESP32.
  *
- * This function handles MQTT connection, sensor readings, and data publishing.
+ * This function handles MQTT connection, sensor readings, data publishing,
+ * inferencing voice buffer and process voice command.
  * It also updates the LCD display with humidity and temperature values.
  *
  * @return void
  */
 void loop() {
+  // Check Wi-Fi connection and MQTT client status
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
 
-  lcd.backlight();
-  int Photon_value = digitalRead(Photonresistor) ^ 1;
-  rainvalue = digitalRead(rain_pin) ^ 1;
-  int moisture = digitalRead(moisture_pin) ^ 1;
+  // Read sensors and update values
+  int Photon_value = digitalRead(Photonresistor) ^ 1; // Invert the state as the sensors are active low
+  rainvalue = digitalRead(rain_pin) ^ 1; // Invert the state as the sensors are active low
+  int moisture = digitalRead(moisture_pin) ^ 1; // Invert the state as the sensors are active low
 
   long distanceCm = getDistance();
   float h = dht.readHumidity();
@@ -222,19 +226,19 @@ void loop() {
   int PIRValue = digitalRead(PIR_in_pin);
   FloatSwitchValue = digitalRead(float_switch);
 
+  // Update servo positions
   updateDoorServoMovement();
   updateWindowServoMovement();
-  //controlPump(moisture == HIGH ? "0" : "1");
 
-
-  if (millis() - lastMotionCheck > 1000) {
+  // Publish sensor data to MQTT broker
+  if (millis() - lastMotionCheck > 1000) { // Check door PIR motion every second for responsiveness
     lastMotionCheck = millis();
 
-    controlDoor(PIRValue == HIGH ? "1" : "0");
-    if (rainvalue == HIGH)
+    controlDoor(PIRValue == HIGH ? "1" : "0"); // Open door if motion detected
+    if (rainvalue == HIGH) // Close window if rain is detected
       controlWindow("0");
   }
-  if (millis() - lastSendTime2 > 5000) {
+  if (millis() - lastSendTime2 > 5000) { // Publish sensor data every 5 seconds
     lastSendTime2 = millis();
     lcd.clear();
 
@@ -263,18 +267,21 @@ void loop() {
     lcd.print(line2);
   }
 
+  // Check MQTT and Wi-Fi connection status
   if (!client.connected() && WiFi.status() != WL_CONNECTED) {
     Serial.println("System unhealthy, attempting recovery...");
     setup_wifi();
     reconnect();
   }
   
+  // Check if the microphone is ready
   bool m = microphone_inference_record();
   if (!m) {
     ei_printf("ERR: Failed to record audio...\n");
     return;
   }
 
+  // Process the audio buffer, signal and run inference
   signed short *current_buffer = inference.buffers[inference.buf_select ^ 1];
 
   signal_t signal;
@@ -288,19 +295,10 @@ void loop() {
     return;
   }
 
-  // if (++print_results >= (EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW)) {
-  //   ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.):\n",
-  //       result.timing.dsp, result.timing.classification, result.timing.anomaly);
-  //   for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-  //     ei_printf("    %s: ", result.classification[ix].label);
-  //     ei_printf_float(result.classification[ix].value);
-  //     ei_printf("\n");
-  //   }
-  //   print_results = 0;
-  // }
 
+  // Find the best classification result with confidence threshold
   float max_score = 0.0f;
-  best_idx = 10;
+  best_idx = 10; // Default to an invalid index
 
   for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT - 1; ix++) {
       if (result.classification[ix].value > max_score) {
@@ -309,8 +307,8 @@ void loop() {
       }
   }
 
+  // Send the best classification result if it exceeds the confidence threshold and process the command
   if (max_score > CONFIDENCE_THRESHOLD){
-    
     const char* best_label = result.classification[best_idx].label;
     ei_printf("Voice command detected: %s (%.2f)\n", best_label, max_score);
     sendVoiceCommand(best_label, max_score);
@@ -456,7 +454,7 @@ long getDistance() {
 
   long duration = pulseIn(echo_pin, HIGH);
 
-  long distanceCm = 8 - duration * 0.034/2;
+  long distanceCm = 9 - duration * 0.034/2;
 
   return distanceCm;
 }
@@ -605,16 +603,21 @@ void sendPlantHeightValue(long height) {
   Serial.println("Sent plant height: " + payload + " cm");
 }
 
+/**
+ * @brief Sends a voice command to the MQTT broker.
+ *
+ * Formats the command label and score into a string and publishes it to the
+ * voice_command topic.
+ *
+ * @param[in] label The label of the voice command.
+ * @param[in] score The confidence score of the command.
+ *
+ * @return void
+ */
 void sendVoiceCommand(const char* label, float score) {
     char payload[32];
-
-    // Format payload: ví dụ "fan_on:0.92"
     snprintf(payload, sizeof(payload), "%s; %.2f", label, score);
-
-    // Gửi MQTT (giả sử bạn đã có biến client kiểu PubSubClient)
     client.publish("greenhouse/command", payload);
-
-    // In ra UART để debug (tùy)
     ei_printf("Sent voice command: %s\n", payload);
 }
 
@@ -640,10 +643,10 @@ void controlLights(char* value) {
 }
 
 /**
- * @brief Controls the window servo motor.
+ * @brief Controls the window servo motor angle.
  *
- * Opens or closes the window based on the command received from MQTT.
- * The servo angle is smoothly adjusted to simulate realistic motion.
+ * Updates the current and target angle for the servo based on the MQTT command received.
+ * Also updates the time and current working state of the servo when the last command was sent.
  *
  * @param[in] value A string representing the desired window state ("HIGH" or "LOW").
  *
@@ -669,6 +672,14 @@ void controlWindow(const char* value) {
   }
 }
 
+/**
+ * @brief Updates the window servo motor position.
+ *
+ * This function moves the window servo to its target position smoothly.
+ * It checks if the servo is currently moving and updates its position accordingly.
+ *
+ * @return void
+ */
 void updateWindowServoMovement() {
   while (currentWindowServoPos != targetWindowServoPos) {
     if (isWindowServoMoving && millis() - lastWindowServoMoveTime >= 15) {
@@ -687,15 +698,15 @@ void updateWindowServoMovement() {
 }
 
 /**
- * @brief Controls the door servo motor.
+ * @brief Controls the door servo motor angle.
  *
- * Opens or closes the door smoothly based on the MQTT command received.
+ * Update the current and target angle for the servo.
+ * Update the time and current working state of the servo when the last command was sent.
  *
  * @param[in] value A string representing the desired door state ("HIGH" or "LOW").
  *
  * @return void
  */
-
 void controlDoor(const char* value) {
   if (strcmp(value, "0") == 0 && lastDoorCommand == 1 && millis() - lastDoorOpenTime > DOOR_TIMEOUT ) {
     lastDoorCommand = 0;
@@ -712,6 +723,14 @@ void controlDoor(const char* value) {
   }
 }
 
+/**
+ * @brief Updates the door servo motor position.
+ *
+ * This function moves the door servo to its target position smoothly.
+ * It checks if the servo is currently moving and updates its position accordingly.
+ *
+ * @return void
+ */
 void updateDoorServoMovement() {
   while (currentDoorServoPos != targetDoorServoPos) {
     if (isDoorServoMoving && millis() - lastDoorServoMoveTime >= 15) {
@@ -796,7 +815,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-
+/**
+ * @brief      Callback function for audio inference
+ *
+ * This function is called when new audio data is available. It processes the audio samples
+ * and stores them in the inference buffers for further analysis.
+ *
+ * @param[in]  n_bytes  The number of bytes of audio data received
+ */
 static void audio_inference_callback(uint32_t n_bytes)
 {
     for(int i = 0; i < n_bytes>>1; i++) {
@@ -810,6 +836,14 @@ static void audio_inference_callback(uint32_t n_bytes)
     }
 }
 
+/**
+ * @brief      Capture audio samples from I2S and process them
+ *
+ * This function reads audio data from the I2S interface, scales it, and calls the inference callback.
+ * It runs in a FreeRTOS task to continuously capture audio samples.
+ *
+ * @param[in]  arg  The number of bytes to read from I2S
+ */
 static void capture_samples(void* arg) {
 
   const int32_t i2s_bytes_to_read = (uint32_t)arg;
@@ -929,6 +963,13 @@ static void microphone_inference_end(void)
     ei_free(inference.buffers[1]);
 }
 
+/**
+ * @brief      Initialize I2S for audio input
+ *
+ * @param[in]  sampling_rate  The sampling rate, default is 16000 Hz
+ *
+ * @return     0 on success, negative value on error
+ */
 static int i2s_init(uint32_t sampling_rate) {
   // Start listening for audio: MONO @ 8/16KHz
   i2s_config_t i2s_config = {
@@ -970,6 +1011,11 @@ static int i2s_init(uint32_t sampling_rate) {
   return int(ret);
 }
 
+/**
+ * @brief      Deinitialize I2S and free resources
+ *
+ * @return     0 on success, negative value on error
+ */
 static int i2s_deinit(void) {
     i2s_driver_uninstall(I2S_NUM_0); //stop & destroy i2s driver
     return 0;
