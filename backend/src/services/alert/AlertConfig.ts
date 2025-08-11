@@ -38,13 +38,13 @@ export class AlertConfig {
 					temperatureThreshold: settings.temperatureThreshold,
 					humidityThreshold: settings.humidityThreshold,
 					// Handle migration from old min/max structure to new trigger structure
-					soilMoistureThreshold: { 
-						trigger: settings.soilMoistureThreshold?.trigger ?? 
-								(settings.soilMoistureThreshold as any)?.min ?? 0 
+					soilMoistureThreshold: {
+						trigger: settings.soilMoistureThreshold?.trigger ??
+							(settings.soilMoistureThreshold as any)?.min ?? 0
 					},
-					waterLevelThreshold: { 
-						trigger: settings.waterLevelThreshold?.trigger ?? 
-								(settings.waterLevelThreshold as any)?.min ?? 0 
+					waterLevelThreshold: {
+						trigger: settings.waterLevelThreshold?.trigger ??
+							(settings.waterLevelThreshold as any)?.min ?? 0
 					}
 				};
 				console.log('⚙️ Alert thresholds loaded:', this.currentThresholds);
@@ -87,7 +87,7 @@ export class AlertConfig {
 			}
 
 			if (settings && settings.notifications) {
-				this.alertFrequency = (settings.notifications as any).alertFrequency || 5;
+				this.alertFrequency = (settings.notifications as any).alertFrequency || 0.5;
 				this.batchAlerts = (settings.notifications as any).batchAlerts !== false;
 				console.log(`⏰ Alert frequency: ${this.alertFrequency} minutes, Batch: ${this.batchAlerts}`);
 			}
