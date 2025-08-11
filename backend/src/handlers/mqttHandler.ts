@@ -1,6 +1,7 @@
 import { mqttService, alertService, webSocketService, automationService } from '../services';
 import SensorData from '../models/SensorData';
 import { mqttAutoMergeMiddleware } from '../middleware';
+import { AlertSystemMonitor } from '../services/alert/AlertSystemMonitor';
 export class MQTTHandler {
 	static setup(): void {
 		// Inject AlertService into MQTTService to avoid circular dependency
@@ -64,10 +65,10 @@ export class MQTTHandler {
 		// Broadcast sensor data to WebSocket clients with merged data
 		await webSocketService.broadcastSensorData(topic, processedData);
 		console.log(`📡 Broadcasted ${sensorType} sensor data: ${sensorValue}`);
-		// Check alerts
-		if (alertService) {
-			await this.checkSensorAlerts(sensorType, sensorValue);
-		}
+
+		// CRITICAL: Always check alerts for every sensor data received
+		console.log(`🔔 Triggering alert check for ${sensorType}=${sensorValue}`);
+		await this.checkSensorAlerts(sensorType, sensorValue);
 
 		// Send debug feedback for successful processing
 		mqttService.publishDebugFeedback(topic, messageString, 'success');
@@ -183,11 +184,24 @@ export class MQTTHandler {
 	}
 
 	private static async checkSensorAlerts(sensorType: string, value: number): Promise<void> {
+		const alertTraceId = `alert-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+		console.log(`🔔 [${alertTraceId}] Starting alert check for ${sensorType}=${value}`);
+
 		try {
-			// Get the latest complete sensor data from database instead of null values
+			// Validate alert service availability
+			if (!alertService) {
+				console.error(`❌ [${alertTraceId}] AlertService not available for ${sensorType} alert check`);
+				return;
+			}
+
+			// Get the latest complete sensor data from database
 			const latestSensorData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
 				.lean();
+
+			if (!latestSensorData) {
+				console.warn(`⚠️ [${alertTraceId}] No previous sensor data found, using current value only`);
+			}
 
 			// Create alert data structure with actual values from database
 			const alertData = {
@@ -201,23 +215,60 @@ export class MQTTHandler {
 			switch (sensorType) {
 				case 'temperature':
 					alertData.temperature = value;
+					console.log(`🌡️ [${alertTraceId}] Updated temperature to ${value}°C`);
 					break;
 				case 'humidity':
 					alertData.humidity = value;
+					console.log(`💧 [${alertTraceId}] Updated humidity to ${value}%`);
 					break;
 				case 'soil':
 					alertData.soilMoisture = value;
+					console.log(`🌱 [${alertTraceId}] Updated soil moisture to ${value}`);
 					break;
 				case 'water':
 					alertData.waterLevel = value;
+					console.log(`💦 [${alertTraceId}] Updated water level to ${value}`);
 					break;
+				case 'light':
+					// Light sensor doesn't have alert thresholds but log for monitoring
+					console.log(`💡 [${alertTraceId}] Light level updated to ${value} (no alerts configured)`);
+					return;
+				case 'height':
+					// Plant height doesn't have alert thresholds but log for monitoring
+					console.log(`📏 [${alertTraceId}] Plant height updated to ${value}cm (no alerts configured)`);
+					return;
+				case 'rain':
+					// Rain status doesn't have alert thresholds but log for monitoring
+					console.log(`🌧️ [${alertTraceId}] Rain status updated to ${value} (no alerts configured)`);
+					return;
+				default:
+					console.warn(`⚠️ [${alertTraceId}] Unknown sensor type: ${sensorType}, skipping alert check`);
+					return;
 			}
+
+			console.log(`🔍 [${alertTraceId}] Checking thresholds with data:`, alertData);
 
 			// Check alerts for all sensor types to ensure comprehensive monitoring
 			await alertService.checkSensorThresholds(alertData);
 
+			console.log(`✅ [${alertTraceId}] Alert check completed for ${sensorType}`);
+
+			// Mark successful alert check for monitoring
+			AlertSystemMonitor.markAlertCheckPerformed();
+
 		} catch (error) {
-			console.error('❌ Error checking sensor alerts:', error);
+			console.error(`❌ [${alertTraceId}] Error checking sensor alerts for ${sensorType}:`, error);
+
+			// Send system error notification for critical alert system failures
+			try {
+				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+				await alertService.handleSystemError(
+					`Alert check failed for ${sensorType}: ${errorMessage}`,
+					'MQTTHandler.checkSensorAlerts'
+				);
+			} catch (systemErrorHandlingError) {
+				console.error(`❌ [${alertTraceId}] Failed to handle system error:`, systemErrorHandlingError);
+			}
 		}
 	}
 }

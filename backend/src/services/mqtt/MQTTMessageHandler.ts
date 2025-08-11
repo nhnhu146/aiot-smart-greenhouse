@@ -180,19 +180,8 @@ export class MQTTMessageHandler {
 				await automationService.processSensorData(automationSensorType, value);
 			}
 
-			// Trigger alert checking for threshold monitoring
-			if (alertService) {
-				// Get the latest sensor data for complete threshold checking
-				const latestSensorData = await SensorData.findOne().sort({ createdAt: -1 }).lean();
-				if (latestSensorData) {
-					await alertService.checkSensorThresholds({
-						temperature: latestSensorData.temperature || 0,
-						humidity: latestSensorData.humidity || 0,
-						soilMoisture: latestSensorData.soilMoisture || 0,
-						waterLevel: latestSensorData.waterLevel || 0
-					});
-				}
-			}
+			// Note: Alert checking is handled centrally by MQTTHandler to avoid duplicates
+			console.log(`✅ Sensor data processing completed for ${sensorType}=${value}`);
 
 		} catch (error) {
 			console.error('Error saving sensor data:', error);

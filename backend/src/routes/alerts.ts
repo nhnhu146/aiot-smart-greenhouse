@@ -3,6 +3,7 @@ import { validateQuery, validateBody, asyncHandler } from '../middleware';
 import { QueryParamsSchema, AlertCreateSchema } from '../schemas';
 import { AlertController } from './alerts/AlertController';
 import { AlertHandlers } from './alerts/AlertHandlers';
+import monitoringRoutes from './alerts/monitoring';
 const router = Router();
 // GET /api/alerts - Get alerts list
 router.get('/', validateQuery(QueryParamsSchema), asyncHandler(AlertController.getAlerts));
@@ -50,4 +51,8 @@ router.post('/reload', asyncHandler(AlertHandlers.reloadSettings));
  * @access Private
  */
 router.post('/system-error', asyncHandler(AlertHandlers.triggerSystemError));
+
+// Alert monitoring routes
+router.use('/monitoring', monitoringRoutes);
+
 export default router;

@@ -36,19 +36,37 @@ class AlertService {
 		waterLevel: number
 	}): Promise<void> {
 		const traceId = Math.random().toString(36).substr(2, 9);
-		console.log(`[${traceId}] 👀 Checking thresholds for data:`, sensorData);
+		console.log(`🔍 [${traceId}] === ALERT THRESHOLD CHECK START ===`);
+		console.log(`🔍 [${traceId}] Sensor data:`, {
+			temperature: `${sensorData.temperature}°C`,
+			humidity: `${sensorData.humidity}%`,
+			soilMoisture: `${sensorData.soilMoisture} (${sensorData.soilMoisture === 0 ? 'DRY' : 'WET'})`,
+			waterLevel: `${sensorData.waterLevel} (${sensorData.waterLevel === 0 ? 'NORMAL' : 'FLOOD'})`
+		});
+
 		const thresholds = this.config.getCurrentThresholds();
 		if (!thresholds) {
+			console.warn(`⚠️ [${traceId}] No thresholds configured, loading from database...`);
 			await this.config.loadConfiguration();
 		}
 
 		if (!this.config.getCurrentThresholds()) {
-			console.error(`[${traceId}] ❌ No thresholds available for checking`);
+			console.error(`❌ [${traceId}] No thresholds available after reload attempt`);
 			return;
 		}
 
-		console.log(`[${traceId}] 📊 Current thresholds:`, this.config.getCurrentThresholds());
+		console.log(`📊 [${traceId}] Active thresholds:`, {
+			temperature: this.config.getCurrentThresholds()?.temperatureThreshold,
+			humidity: this.config.getCurrentThresholds()?.humidityThreshold,
+			emailRecipients: this.config.getEmailRecipients().length,
+			batchAlertsEnabled: this.config.isBatchAlertsEnabled()
+		});
 		const pendingAlerts = this.batchProcessor.getPendingAlerts();
+		const initialPendingCount = pendingAlerts.length;
+
+		console.log(`🔄 [${traceId}] Starting sequential threshold checks...`);
+		console.log(`📧 [${traceId}] Current pending alerts: ${initialPendingCount}`);
+
 		// Sequential execution to avoid duplicate alerts
 		await this.temperatureChecker.checkTemperature(
 			sensorData.temperature,
@@ -57,6 +75,8 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
+		console.log(`🌡️ [${traceId}] Temperature check completed (pending: ${pendingAlerts.length})`);
+
 		await this.humidityChecker.checkHumidity(
 			sensorData.humidity,
 			traceId,
@@ -64,6 +84,8 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
+		console.log(`💧 [${traceId}] Humidity check completed (pending: ${pendingAlerts.length})`);
+
 		await this.binarySensorChecker.checkSoilMoisture(
 			sensorData.soilMoisture,
 			traceId,
@@ -71,6 +93,8 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
+		console.log(`🌱 [${traceId}] Soil moisture check completed (pending: ${pendingAlerts.length})`);
+
 		await this.binarySensorChecker.checkWaterLevel(
 			sensorData.waterLevel,
 			traceId,
@@ -78,6 +102,18 @@ class AlertService {
 			this.cooldownManager,
 			pendingAlerts
 		);
+		console.log(`💦 [${traceId}] Water level check completed (pending: ${pendingAlerts.length})`);
+
+		const finalPendingCount = pendingAlerts.length;
+		const newAlertsCount = finalPendingCount - initialPendingCount;
+
+		if (newAlertsCount > 0) {
+			console.log(`🚨 [${traceId}] ${newAlertsCount} new alert(s) generated and queued for processing`);
+		} else {
+			console.log(`✅ [${traceId}] No threshold violations detected - all values within normal ranges`);
+		}
+
+		console.log(`🔍 [${traceId}] === ALERT THRESHOLD CHECK END ===`);
 	}
 
 	async updateThresholds(newThresholds: Partial<ThresholdConfig>): Promise<void> {
