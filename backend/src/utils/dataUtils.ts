@@ -1,12 +1,10 @@
 import SensorDataModel from '../models/SensorData';
-
 /**
  * Remove duplicate sensor data with merging logic
  */
 export async function removeDuplicateData() {
 	try {
 		console.log('🔄 Starting sensor data deduplication process...');
-
 		// Find all sensor data grouped by timestamp and deviceId
 		const duplicates = await SensorDataModel.aggregate([
 			{
@@ -31,19 +29,15 @@ export async function removeDuplicateData() {
 				}
 			}
 		]);
-
 		let totalProcessed = 0;
 		let totalMerged = 0;
-
 		for (const duplicate of duplicates) {
 			const docs = duplicate.docs;
-
 			if (docs.length > 1) {
 				// Merge all data objects from duplicates
-				const mergedData: any = {};
+				const mergedData: any = { /* TODO: Implement */ };
 				const idsToRemove: any[] = [];
 				let keepId = docs[0].id;
-
 				// Combine all sensor readings
 				for (const doc of docs) {
 					if (doc.data && typeof doc.data === 'object') {
@@ -86,10 +80,8 @@ export async function removeDuplicateData() {
 			totalDocumentsMerged: totalMerged,
 			timestamp: new Date().toISOString()
 		};
-
 		console.log('✅ Sensor data deduplication completed:', stats);
 		return stats;
-
 	} catch (error) {
 		console.error('❌ Error during sensor data deduplication:', error);
 		throw error;

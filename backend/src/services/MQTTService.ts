@@ -2,7 +2,7 @@ import * as mqtt from 'mqtt';
 import { MqttClient } from 'mqtt';
 import { AlertService } from './AlertService';
 import { webSocketService } from './WebSocketService';
-
+import { Config, AppConstants } from '../config/AppConfig';
 class MQTTService {
 	private client: MqttClient | null = null;
 	private isConnected: boolean = false;
@@ -11,7 +11,6 @@ class MQTTService {
 	private reconnectAttempts: number = 0;
 	private maxReconnectAttempts: number = 5;
 	private onConnectedCallback: (() => void) | null = null;
-
 	constructor(alertService: AlertService, wsService: typeof webSocketService) {
 		this.alertService = alertService;
 		this.webSocketService = wsService;
@@ -20,23 +19,21 @@ class MQTTService {
 	public setOnConnectedCallback(callback: () => void): void {
 		this.onConnectedCallback = callback;
 	}
+
 	public connect(): Promise<void> {
-		return new Promise((resolve, reject) => {
-			const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://mqtt.noboroto.id.vn:1883';
-			const username = process.env.MQTT_USERNAME || 'vision';
-			const password = process.env.MQTT_PASSWORD || 'vision';
-
+		return new Promise((resolve) => {
+			const brokerUrl = Config.mqtt.brokerUrl;
+			const username = Config.mqtt.username || 'vision';
+			const password = Config.mqtt.password || 'vision';
 			console.log('[MQTT] Attempting to connect to broker:', brokerUrl);
-
 			this.client = mqtt.connect(brokerUrl, {
 				username,
 				password,
-				clientId: `greenhouse-server-${Math.random().toString(16).substr(2, 8)}`,
+				clientId: Config.mqtt.clientId,
 				clean: true,
-				reconnectPeriod: 5000,
-				connectTimeout: 30000,
+				reconnectPeriod: AppConstants.CONNECTION_TIMEOUT / 2,
+				connectTimeout: AppConstants.CONNECTION_TIMEOUT * 3,
 			});
-
 			this.client.on('connect', () => {
 				console.log('[MQTT] Successfully connected to broker');
 				this.isConnected = true;
@@ -44,7 +41,6 @@ class MQTTService {
 				this.subscribeToTopics();
 				resolve(); // Resolve promise when connected
 			});
-
 			this.client.on('error', (error) => {
 				console.error('[MQTT] Connection error:', error);
 				this.isConnected = false;
@@ -52,16 +48,13 @@ class MQTTService {
 				console.warn('[MQTT] ⚠️ MQTT unavailable, continuing without real-time sensor data');
 				resolve(); // Resolve anyway to prevent server crash
 			});
-
 			this.client.on('close', () => {
 				console.log('[MQTT] Connection closed');
 				this.isConnected = false;
 			});
-
 			this.client.on('reconnect', () => {
 				this.reconnectAttempts++;
 				console.log(`[MQTT] Reconnecting... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-
 				if (this.reconnectAttempts >= this.maxReconnectAttempts) {
 					console.error('[MQTT] Max reconnection attempts reached. Stopping reconnection.');
 					this.client?.end();
@@ -89,7 +82,6 @@ class MQTTService {
 			'greenhouse/system/mode',
 			'greenhouse/command'
 		];
-
 		topics.forEach(topic => {
 			this.client!.subscribe(topic, (err) => {
 				if (err) {
@@ -160,12 +152,11 @@ class MQTTService {
 			originalMessage,
 			status,
 			timestamp: new Date().toISOString(),
-			serverId: process.env.NODE_ENV || 'development'
+			serverId: Config.app.env
 		});
-
 		this.client.publish(debugTopic, feedbackMessage, { qos: 0 }, (err) => {
 			if (err) {
-				console.error(`[MQTT] Failed to publish debug feedback:`, err);
+				console.error('[MQTT] Failed to publish debug feedback:', err);
 			} else {
 				console.log(`[MQTT] 🔍 Debug feedback sent: ${debugTopic} -> ${feedbackMessage}`);
 			}

@@ -1,29 +1,64 @@
 import { Request, Response } from 'express';
-import { DeviceHistory, VoiceCommand } from '../../models';
 import { APIResponse } from '../../types';
-import { countService } from '../../services';
-
+import { DeviceHistory } from '../../models';
 export class DeviceHistoryController {
 	async getDeviceHistory(req: Request, res: Response): Promise<void> {
-		const { page = 1, limit = 50, from, to } = req.query as any;
-
+		const { 
+			page = 1, 
+			limit = 50, 
+			from, 
+			to, 
+			dateFrom, 
+			dateTo, 
+			deviceType, 
+			action, 
+			source 
+		} = req.query as any;
+		// Build query object for device history
 		const query: any = {};
+		
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+		
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+		
+		// Filter by device type if specified
+		if (deviceType && deviceType !== 'all') {
+			query.deviceType = deviceType;
+		}
+		
+		// Filter by action if specified
+		if (action) {
+			query.action = action;
+		}
+		
+		// Filter by source (manual, automation, etc.)
+		if (source) {
+			query.source = source;
+		}
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
 
 		const skip = (page - 1) * limit;
-
 		const deviceHistory = await DeviceHistory.find(query)
 			.sort({ timestamp: -1 })
 			.skip(skip)
 			.limit(limit)
 			.lean();
-
 		const total = await DeviceHistory.countDocuments(query);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Device history retrieved successfully',
@@ -40,7 +75,6 @@ export class DeviceHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -56,28 +90,55 @@ export class DeviceHistoryController {
 			deviceId,
 			controlType,
 			action,
+			source,
 			userId,
 			triggeredBy,
 			success,
 			sortBy = 'createdAt',
 			sortOrder = 'desc'
 		} = req.query as any;
-
 		// Validate sortBy parameter - include all possible sort fields
 		const validSortFields = ['createdAt', 'deviceType', 'action', 'status', 'controlType', 'triggeredBy', 'userId', 'deviceId', 'success'];
 		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-
 		// Log sort parameters for debugging
 		console.log(`🔍 DeviceHistory sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
-
+		// Build query object for device history
 		const query: any = {};
-
+		
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+		
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+		
+		// Filter by device type if specified
+		if (deviceType && deviceType !== 'all') {
+			query.deviceType = deviceType;
+		}
+		
+		// Filter by action if specified
+		if (action) {
+			query.action = action;
+		}
+		
+		// Filter by source (manual, automation, etc.)
+		if (source) {
+			query.source = source;
+		}
 		// Handle date filters - support both from/to and dateFrom/dateTo
 		const fromDate = dateFrom || from;
 		const toDate = dateTo || to;
-
 		if (fromDate || toDate) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (fromDate) query.createdAt.$gte = new Date(fromDate);
 			if (toDate) query.createdAt.$lte = new Date(toDate);
 		}
@@ -117,25 +178,20 @@ export class DeviceHistoryController {
 		}
 
 		const skip = (page - 1) * limit;
-
 		// Build sort object
-		const sortObj: any = {};
+		const sortObj: any = { /* TODO: Implement */ };
 		sortObj[actualSortBy] = sortOrder === 'asc' ? 1 : -1;
-
 		const deviceControls = await DeviceHistory.find(query)
 			.sort(sortObj)
 			.skip(skip)
 			.limit(limit)
 			.lean();
-
 		const total = await DeviceHistory.countDocuments(query);
-
 		// Format timestamps for consistent display
 		const formattedDeviceControls = deviceControls.map(control => ({
 			...control,
 			timestamp: control.createdAt ? control.createdAt.toISOString() : new Date().toISOString()
 		}));
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Device control history retrieved successfully',
@@ -165,23 +221,51 @@ export class DeviceHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
 	async getDeviceControlCount(req: Request, res: Response): Promise<void> {
-		const { from, to } = req.query as any;
-
+		const { from, to, dateFrom, dateTo, deviceType, action, source } = req.query as any;
 		try {
-			const query: any = {};
+			// Build query object for device history
+		const query: any = {};
+		
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+		
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+		
+		// Filter by device type if specified
+		if (deviceType && deviceType !== 'all') {
+			query.deviceType = deviceType;
+		}
+		
+		// Filter by action if specified
+		if (action) {
+			query.action = action;
+		}
+		
+		// Filter by source (manual, automation, etc.)
+		if (source) {
+			query.source = source;
+		}
 			if (from || to) {
-				query.createdAt = {};
+				query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 			}
 
 			const count = await DeviceHistory.countDocuments(query);
-
 			const response: APIResponse = {
 				success: true,
 				message: 'Device control count retrieved successfully',
@@ -191,7 +275,6 @@ export class DeviceHistoryController {
 				},
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('Error getting device control count:', error);

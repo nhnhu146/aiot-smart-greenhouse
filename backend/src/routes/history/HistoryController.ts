@@ -2,22 +2,18 @@ import { Request, Response } from 'express';
 import { SensorData, DeviceStatus, DeviceHistory, Alert } from '../../models';
 import { APIResponse } from '../../types';
 import { DataMergerService } from '../../services/DataMergerService';
-
 export class HistoryController {
 	async getGeneralHistory(req: Request, res: Response): Promise<void> {
 		const { page = 1, limit = 50, from, to } = req.query as any;
-
-		const query: any = {};
-
+		const query: any = { /* TODO: Implement */ };
 		// Filter by date range if provided
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
 
 		const skip = (page - 1) * limit;
-
 		// Smart merge: only merge if duplicates detected
 		const mergerService = DataMergerService.getInstance();
 		try {
@@ -33,7 +29,6 @@ export class HistoryController {
 				{ $match: { count: { $gt: 1 } } },
 				{ $limit: 1 }
 			]);
-
 			if (quickDuplicateCheck.length > 0) {
 				await mergerService.mergeSameTimestampData();
 				console.log('✅ Data merged before history fetch (duplicates found)');
@@ -54,22 +49,20 @@ export class HistoryController {
 			DeviceStatus.find()
 				.sort({ updatedAt: -1 })
 				.lean(),
-			DeviceHistory.find(query.createdAt ? { timestamp: query.createdAt } : {})
+			DeviceHistory.find(query.createdAt ? { timestamp: query.createdAt } : { /* TODO: Implement */ })
 				.sort({ timestamp: -1 })
 				.skip(skip)
 				.limit(limit)
 				.lean(),
-			Alert.find(query.createdAt ? { createdAt: query.createdAt } : {})
+			Alert.find(query.createdAt ? { createdAt: query.createdAt } : { /* TODO: Implement */ })
 				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit)
 				.lean()
 		]);
-
 		const totalSensors = await SensorData.countDocuments(query);
-		const totalDeviceControls = await DeviceHistory.countDocuments(query.createdAt ? { timestamp: query.createdAt } : {});
-		const totalAlerts = await Alert.countDocuments(query.createdAt ? { createdAt: query.createdAt } : {});
-
+		const totalDeviceControls = await DeviceHistory.countDocuments(query.createdAt ? { timestamp: query.createdAt } : { /* TODO: Implement */ });
+		const totalAlerts = await Alert.countDocuments(query.createdAt ? { createdAt: query.createdAt } : { /* TODO: Implement */ });
 		const response: APIResponse = {
 			success: true,
 			message: 'History data retrieved successfully',
@@ -111,7 +104,6 @@ export class HistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

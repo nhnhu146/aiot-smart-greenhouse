@@ -1,20 +1,19 @@
 import mongoose, { Document } from 'mongoose';
-
 export interface IAlert extends Document {
-	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'system';
-	level: 'low' | 'medium' | 'high' | 'critical';
-	message: string;
-	value?: number;
+	type: 'temperature' | 'humidity' | 'soilMoisture' | 'waterLevel' | 'device' | 'system'
+	level: 'low' | 'medium' | 'high' | 'critical'
+	message: string
+	value?: number
 	threshold?: {
-		min?: number;
-		max?: number;
-	};
-	deviceType?: string;
-	resolved: boolean;
-	acknowledged?: boolean;
-	acknowledgedAt?: Date;
-	createdAt?: Date;
-	updatedAt?: Date;
+		min?: number
+		max?: number
+	}
+	deviceType?: string
+	resolved: boolean
+	acknowledged?: boolean
+	acknowledgedAt?: Date
+	createdAt?: Date
+	updatedAt?: Date
 }
 
 const AlertSchema = new mongoose.Schema({
@@ -53,10 +52,8 @@ const AlertSchema = new mongoose.Schema({
 	}
 }, {
 	timestamps: true // Use MongoDB's createdAt/updatedAt instead of custom timestamp
-});;
-
+});
 const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
-
 // Thêm export default để khớp với cách import trong index.ts
 export default Alert;
 // Vẫn giữ named export cho các file đang sử dụng

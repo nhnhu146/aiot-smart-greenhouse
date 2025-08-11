@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { AutomationSettings, AutomationMessage } from '@/types/automation';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { Config, AppConstants } from '../config/AppConfig';
+
+const API_BASE_URL = Config.api.baseUrl;
 
 export const useAutomationSettings = () => {
 	const [settings, setSettings] = useState<AutomationSettings>({
@@ -38,7 +40,7 @@ export const useAutomationSettings = () => {
 
 	const showMessage = (type: 'success' | 'danger', text: string) => {
 		setMessage({ type, text });
-		setTimeout(() => setMessage(null), 5000);
+		setTimeout(() => setMessage(null), AppConstants.UI.TOAST_DURATION_INFO);
 	};
 
 	const loadSettings = useCallback(async (showSuccessMessage = true) => {
@@ -60,6 +62,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to load automation settings');
 			}
 		} catch (error) {
+      console.error('Error:', error);
 			showMessage('danger', 'Failed to load automation settings');
 		} finally {
 			isLoading(false);
@@ -88,6 +91,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to save settings');
 			}
 		} catch (error) {
+      console.error('Error:', error);
 			showMessage('danger', 'Failed to save settings');
 		} finally {
 			setSaving(false);
@@ -112,6 +116,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to reset settings');
 			}
 		} catch (error) {
+      console.error('Error:', error);
 			showMessage('danger', 'Failed to reset settings');
 		} finally {
 			setResetting(false);
@@ -133,6 +138,7 @@ export const useAutomationSettings = () => {
 				showMessage('danger', data.message || 'Failed to run automation check');
 			}
 		} catch (error) {
+      console.error('Error:', error);
 			showMessage('danger', 'Failed to run automation check');
 		} finally {
 			setRunningCheck(false);

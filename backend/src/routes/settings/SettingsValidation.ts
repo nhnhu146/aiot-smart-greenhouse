@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 /**
  * Validation schemas for settings endpoints
  * Centralized validation logic for all settings-related operations
@@ -23,23 +22,19 @@ export const ThresholdSchema = z.object({
 		max: z.number().min(0).max(100)
 	})
 });
-
 export const EmailRecipientsSchema = z.object({
 	recipients: z.array(z.string().email()).min(1, 'At least one recipient is required')
 });
-
 export const EmailAlertsSchema = z.object({
 	temperature: z.boolean(),
 	humidity: z.boolean(),
 	soilMoisture: z.boolean(),
 	waterLevel: z.boolean()
 });
-
 export const AlertFrequencySchema = z.object({
 	alertFrequency: z.number().min(1).max(60),
 	batchAlerts: z.boolean()
 });
-
 /**
  * Validate alert frequency input
  */

@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { Settings } from '../types';
-
-export interface ISettings extends Omit<Settings, '_id'>, Document { }
+export interface ISettings extends Omit<Settings, '_id'>, Document {}
 
 const SettingsSchema: Schema = new Schema({
 	temperatureThreshold: {
@@ -165,5 +164,4 @@ const SettingsSchema: Schema = new Schema({
 	timestamps: true,
 	versionKey: false
 });
-
 export default mongoose.model<ISettings>('Settings', SettingsSchema);

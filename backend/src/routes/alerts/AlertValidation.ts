@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 // Alert query parameters schema
 export const AlertQuerySchema = z.object({
 	page: z.string().transform(val => parseInt(val)).pipe(z.number().min(1)).optional(),
@@ -8,12 +7,10 @@ export const AlertQuerySchema = z.object({
 	to: z.string().transform(val => new Date(val)).optional(),
 	resolved: z.string().transform(val => val === 'true').pipe(z.boolean()).optional()
 });
-
 // Test email schema
 export const TestEmailSchema = z.object({
 	recipients: z.array(z.string().email()).min(1, 'At least one recipient is required')
 });
-
 // System error schema
 export const SystemErrorSchema = z.object({
 	error: z.string().optional(),

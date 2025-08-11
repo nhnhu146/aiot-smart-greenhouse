@@ -8,9 +8,8 @@ import {
 	SystemStatus,
 	AutomationStatus
 } from './WebSocketTypes';
-
 export class WebSocketBroadcaster {
-	constructor(private io: Server) { }
+	constructor(private io: Server) {}
 
 	// Broadcast sensor data to all connected clients
 	broadcastSensorData(topic: string, data: SensorData, mergedValue?: number) {
@@ -30,9 +29,7 @@ export class WebSocketBroadcaster {
 			},
 			timestamp: data.timestamp
 		};
-
 		console.log(`📡 Broadcasting sensor data: ${data.type} = ${mergedValue ?? data.value}`);
-
 		// Emit to standardized sensor data channels only
 		this.io.emit('sensor:data', sensorUpdate);
 		this.io.emit(`sensor:${data.type}`, sensorUpdate);
@@ -51,7 +48,6 @@ export class WebSocketBroadcaster {
 			status: status.status,
 			timestamp: status.timestamp
 		};
-
 		console.log(`📡 Broadcasting device status: ${status.device} = ${status.status}`);
 		this.io.emit('device-status', deviceUpdate);
 		this.io.emit(`device-${status.device}`, deviceUpdate);
@@ -66,7 +62,6 @@ export class WebSocketBroadcaster {
 
 		console.log(`🚨 Broadcasting alert: ${alert.type} - ${alert.level}`);
 		this.io.emit('alert', alert);
-
 		// Send high priority alerts to specific channel
 		if (alert.level === 'critical' || alert.level === 'high') {
 			this.io.emit('priority-alert', alert);
@@ -81,11 +76,9 @@ export class WebSocketBroadcaster {
 		}
 
 		console.log(`🎮 Broadcasting device control: ${controlData.deviceType} -> ${controlData.action}`);
-
 		// Emit to all clients
 		this.io.emit('device-control-confirmation', controlData);
 		this.io.emit(`device-control-${controlData.deviceType}`, controlData);
-
 		// Broadcast device status update
 		this.broadcastDeviceStatus(`greenhouse/devices/${controlData.deviceType}/status`, {
 			device: controlData.deviceType,
@@ -101,8 +94,7 @@ export class WebSocketBroadcaster {
 			return;
 		}
 
-		console.log(`🎤 Broadcasting voice command: "${voiceCommandData.command}" (${voiceCommandData.confidence !== null ? voiceCommandData.confidence : 'N/A'})`);
-
+		console.log(`🎤 Broadcasting voice command: '${voiceCommandData.command}' (${voiceCommandData.confidence !== null ? voiceCommandData.confidence : 'N/A'})`);
 		this.io.emit('voice-command', voiceCommandData);
 		this.io.emit('voice-command-history', voiceCommandData);
 	}
@@ -110,7 +102,6 @@ export class WebSocketBroadcaster {
 	// Send system status updates
 	broadcastSystemStatus(status: SystemStatus) {
 		if (!this.io) return;
-
 		this.io.emit('system-status', status);
 		console.log('📊 System status broadcast:', status);
 	}
@@ -118,7 +109,6 @@ export class WebSocketBroadcaster {
 	// Send configuration updates
 	broadcastConfigUpdate(config: any) {
 		if (!this.io) return;
-
 		this.io.emit('config-update', {
 			...config,
 			timestamp: new Date().toISOString()
@@ -134,7 +124,6 @@ export class WebSocketBroadcaster {
 		}
 
 		console.log(`⚙️ Broadcasting automation status: ${automationStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
-
 		this.io.emit('automation-status', automationStatus);
 		this.io.emit('automation-status-update', automationStatus);
 	}
@@ -159,7 +148,6 @@ export class WebSocketBroadcaster {
 	// Send heartbeat to maintain connections
 	sendHeartbeat(connectedClients: number) {
 		if (!this.io) return;
-
 		this.io.emit('heartbeat', {
 			timestamp: new Date().toISOString(),
 			connectedClients
@@ -169,7 +157,6 @@ export class WebSocketBroadcaster {
 	// Server shutdown notification
 	notifyShutdown() {
 		if (!this.io) return;
-
 		console.log('🔄 Notifying clients of server shutdown...');
 		this.io.emit('server-shutdown', {
 			message: 'Server is shutting down',

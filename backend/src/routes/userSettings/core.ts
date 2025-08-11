@@ -1,14 +1,12 @@
 import express, { Request, Response } from 'express';
 import { UserSettings } from '../../models';
-
+import { asyncHandler } from '../../middleware';
 const router = express.Router();
-
 // GET /api/user-settings - Get current user settings
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const userId = (req as any).user?.id;
 		const userEmail = (req as any).user?.email;
-
 		if (!userId) {
 			res.status(401).json({
 				success: false,
@@ -18,7 +16,6 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 		}
 
 		let settings = await UserSettings.findOne({ userId });
-
 		// Create default settings if not exists
 		if (!settings) {
 			settings = await UserSettings.create({
@@ -39,14 +36,12 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 			message: 'Internal server error'
 		});
 	}
-});
-
+}));
 // POST /api/user-settings/reset - Reset to default settings
-router.post('/reset', async (req: Request, res: Response): Promise<void> => {
+router.post('/reset', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const userId = (req as any).user?.id;
 		const userEmail = (req as any).user?.email;
-
 		if (!userId) {
 			res.status(401).json({
 				success: false,
@@ -62,7 +57,6 @@ router.post('/reset', async (req: Request, res: Response): Promise<void> => {
 			email: userEmail,
 			alertRecipients: [userEmail]
 		});
-
 		res.json({
 			success: true,
 			message: 'Settings reset to defaults successfully',
@@ -75,6 +69,5 @@ router.post('/reset', async (req: Request, res: Response): Promise<void> => {
 			message: 'Internal server error'
 		});
 	}
-});
-
+}));
 export default router;

@@ -1,19 +1,18 @@
 import nodemailer from 'nodemailer';
 
 export interface EmailConfig {
-	user: string;
-	pass: string;
-	service?: string;
-	pooling?: boolean;
-	maxConnections?: number;
-	maxMessages?: number;
-	rateLimit?: number;
+	user: string
+	pass: string
+	service?: string
+	pooling?: boolean
+	maxConnections?: number
+	maxMessages?: number
+	rateLimit?: number
 }
 
 export class EmailTransporter {
 	private transporter: nodemailer.Transporter | null = null;
 	private isConfigured = false;
-
 	constructor() {
 		this.setupTransporter();
 	}
@@ -21,7 +20,6 @@ export class EmailTransporter {
 	private setupTransporter(): void {
 		const emailUser = process.env.EMAIL_USER;
 		const emailPass = process.env.EMAIL_PASS;
-
 		if (!emailUser || !emailPass) {
 			console.log('⚠️  Email credentials not configured. Running in demo mode.');
 			this.isConfigured = false;
@@ -41,7 +39,6 @@ export class EmailTransporter {
 					pass: emailPass
 				}
 			});
-
 			this.isConfigured = true;
 			console.log('📧 Email service configured with connection pooling');
 		} catch (error) {

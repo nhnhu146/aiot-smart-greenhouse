@@ -4,10 +4,10 @@
  * All WebSocket events should follow this consistent structure
  */
 export interface WebSocketEvent {
-	event: string;
-	data: any;
-	timestamp: string;
-	source?: string;
+	event: string
+	data: any
+	timestamp: string
+	source?: string
 }
 
 /**
@@ -15,14 +15,14 @@ export interface WebSocketEvent {
  * All API responses should follow this consistent structure
  */
 export interface StandardAPIResponse<T = any> {
-	success: boolean;
-	message: string;
-	data?: T;
-	timestamp: string;
+	success: boolean
+	message: string
+	data?: T
+	timestamp: string
 	error?: {
-		code?: string;
-		details?: string;
-	};
+		code?: string
+		details?: string
+	}
 }
 
 /**
@@ -48,6 +48,7 @@ export const WebSocketEvents = {
 
 	// Voice Command Events
 	VOICE_COMMAND: 'voice:command',
+	VOICE_COMMAND_HISTORY: 'voice:history',
 
 	// System Events
 	SYSTEM_STATUS: 'system:status',
@@ -56,7 +57,6 @@ export const WebSocketEvents = {
 	// Automation Events
 	AUTOMATION_STATUS: 'automation:status'
 } as const;
-
 /**
  * Standard Device Types
  */
@@ -66,7 +66,6 @@ export const DeviceTypes = {
 	DOOR: 'door',
 	WINDOW: 'window'
 } as const;
-
 /**
  * Standard Sensor Types
  */

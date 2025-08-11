@@ -2,29 +2,24 @@ import { Request, Response } from 'express';
 import { Alert } from '../../../models';
 import { APIResponse } from '../../../types';
 import { AppError } from '../../../middleware';
-
 export class AlertManagementController {
 	/**
 	 * Create new alert
 	 */
 	static async createAlert(req: Request, res: Response) {
 		const alertData = req.body;
-
 		const alert = new Alert({
 			...alertData,
 			timestamp: new Date(),
 			resolved: false
 		});
-
 		await alert.save();
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Alert created successfully',
 			data: alert,
 			timestamp: new Date().toISOString()
 		};
-
 		res.status(201).json(response);
 	}
 
@@ -33,13 +28,11 @@ export class AlertManagementController {
 	 */
 	static async resolveAlert(req: Request, res: Response) {
 		const { id } = req.params;
-
 		const alert = await Alert.findByIdAndUpdate(
 			id,
 			{ resolved: true },
 			{ new: true }
 		);
-
 		if (!alert) {
 			throw new AppError('Alert not found', 404);
 		}
@@ -50,7 +43,6 @@ export class AlertManagementController {
 			data: alert,
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -59,13 +51,11 @@ export class AlertManagementController {
 	 */
 	static async unresolveAlert(req: Request, res: Response) {
 		const { id } = req.params;
-
 		const alert = await Alert.findByIdAndUpdate(
 			id,
 			{ resolved: false },
 			{ new: true }
 		);
-
 		if (!alert) {
 			throw new AppError('Alert not found', 404);
 		}
@@ -76,7 +66,6 @@ export class AlertManagementController {
 			data: alert,
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -85,9 +74,7 @@ export class AlertManagementController {
 	 */
 	static async deleteAlert(req: Request, res: Response) {
 		const { id } = req.params;
-
 		const alert = await Alert.findByIdAndDelete(id);
-
 		if (!alert) {
 			throw new AppError('Alert not found', 404);
 		}
@@ -98,7 +85,6 @@ export class AlertManagementController {
 			data: alert,
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
@@ -110,7 +96,6 @@ export class AlertManagementController {
 			{ resolved: false },
 			{ resolved: true }
 		);
-
 		const response: APIResponse = {
 			success: true,
 			message: `${result.modifiedCount} alerts resolved successfully`,
@@ -120,7 +105,6 @@ export class AlertManagementController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

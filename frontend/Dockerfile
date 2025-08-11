@@ -3,21 +3,16 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Configure npm with reliable settings
-RUN npm config set registry https://registry.npmjs.org/ && \
-	npm config set fetch-retry-mintimeout 20000 && \
-	npm config set fetch-retry-maxtimeout 120000 && \
-	npm config set fetch-retries 3
-
 # Copy package files
 COPY package.json yarn.lock* ./
 
 # Install dependencies with retry and timeout
 RUN if [ -f yarn.lock ]; then \
 	yarn config set registry https://registry.npmjs.org/ && \
-	yarn install --frozen-lockfile --network-timeout 300000 --network-concurrency 1; \
+	yarn install --network-timeout 300000 --network-concurrency 1; \
 	else \
-	npm install --registry https://registry.npmjs.org/; \
+	echo "Using yarn as default..." && \
+	yarn install --network-timeout 300000 --network-concurrency 1 --registry https://registry.npmjs.org/; \
 	fi
 
 # Copy source code
@@ -31,11 +26,12 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN if [ -f yarn.lock ]; then \
 	yarn build; \
 	else \
-	npm run build; \
+	echo "Using yarn for build..." && \
+	yarn build; \
 	fi
 
 # Install serve to serve the static files
-RUN npm install -g serve@latest --registry https://registry.npmjs.org/
+RUN yarn global add serve@latest --registry https://registry.npmjs.org/
 
 # Create log directory for error logging
 RUN mkdir -p /app/logs

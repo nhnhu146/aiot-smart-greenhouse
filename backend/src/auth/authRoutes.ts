@@ -2,14 +2,13 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { users, passwordResetTokens, generateToken, User, PasswordResetToken } from './authService';
-
+import { asyncHandler } from '../middleware';
+import { AppConstants } from '../config/AppConfig';
 const router = Router();
-
 // Sign in route
-router.post('/signin', async (req: Request, res: Response): Promise<void> => {
+router.post('/signin', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email, password } = req.body;
-
 		if (!email || !password) {
 			res.status(400).json({
 				success: false,
@@ -20,7 +19,6 @@ router.post('/signin', async (req: Request, res: Response): Promise<void> => {
 
 		// Trim email to handle whitespace issues
 		const trimmedEmail = email.trim();
-
 		const user = users.get(trimmedEmail);
 		if (!user) {
 			res.status(401).json({
@@ -42,9 +40,7 @@ router.post('/signin', async (req: Request, res: Response): Promise<void> => {
 
 		// Update last login
 		user.lastLogin = new Date();
-
 		const token = generateToken({ id: user.id, email: user.email });
-
 		res.json({
 			success: true,
 			user: { id: user.id, email: user.email },
@@ -55,13 +51,11 @@ router.post('/signin', async (req: Request, res: Response): Promise<void> => {
 		console.error('Sign in error:', error);
 		res.status(500).json({ success: false, message: 'Internal server error' });
 	}
-});
-
+}));
 // Sign up route
-router.post('/signup', async (req: Request, res: Response): Promise<void> => {
+router.post('/signup', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email, password } = req.body;
-
 		if (!email || !password) {
 			res.status(400).json({
 				success: false,
@@ -72,7 +66,6 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
 
 		// Trim email to handle whitespace issues
 		const trimmedEmail = email.trim();
-
 		if (users.has(trimmedEmail)) {
 			res.status(409).json({
 				success: false,
@@ -83,18 +76,14 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
 
 		// Hash password before saving
 		const hashedPassword = await bcrypt.hash(password, 10);
-
 		const user: User = {
 			id: Date.now().toString(),
 			email: trimmedEmail,
 			password: hashedPassword,
 			createdAt: new Date()
 		};
-
 		users.set(trimmedEmail, user);
-
 		const token = generateToken({ id: user.id, email: user.email });
-
 		res.json({
 			success: true,
 			user: { id: user.id, email: user.email },
@@ -105,13 +94,11 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
 		console.error('Sign up error:', error);
 		res.status(500).json({ success: false, message: 'Internal server error' });
 	}
-});
-
+}));
 // Password reset request
-router.post('/password-reset', async (req: Request, res: Response): Promise<void> => {
+router.post('/password-reset', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email } = req.body;
-
 		if (!email) {
 			res.status(400).json({
 				success: false,
@@ -122,7 +109,6 @@ router.post('/password-reset', async (req: Request, res: Response): Promise<void
 
 		// Trim email to handle whitespace issues
 		const trimmedEmail = email.trim();
-
 		const user = users.get(trimmedEmail);
 		if (!user) {
 			res.status(404).json({
@@ -134,7 +120,7 @@ router.post('/password-reset', async (req: Request, res: Response): Promise<void
 
 		// Generate password reset token
 		const resetToken = crypto.randomBytes(32).toString('hex');
-		const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+		const expiresAt = new Date(Date.now() + AppConstants.PASSWORD_RESET_EXPIRY); // 1 hour from now
 
 		const passwordResetData: PasswordResetToken = {
 			email: trimmedEmail,
@@ -142,12 +128,9 @@ router.post('/password-reset', async (req: Request, res: Response): Promise<void
 			expiresAt,
 			createdAt: new Date()
 		};
-
 		passwordResetTokens.set(resetToken, passwordResetData);
-
 		// In a real application, send email here
 		console.log(`Password reset token for ${trimmedEmail}: ${resetToken}`);
-
 		res.json({
 			success: true,
 			message: 'Password reset token generated',
@@ -157,13 +140,11 @@ router.post('/password-reset', async (req: Request, res: Response): Promise<void
 		console.error('Password reset error:', error);
 		res.status(500).json({ success: false, message: 'Internal server error' });
 	}
-});
-
+}));
 // Password reset confirmation
-router.post('/password-reset/confirm', async (req: Request, res: Response): Promise<void> => {
+router.post('/password-reset/confirm', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { token, newPassword } = req.body;
-
 		if (!token || !newPassword) {
 			res.status(400).json({
 				success: false,
@@ -203,10 +184,8 @@ router.post('/password-reset/confirm', async (req: Request, res: Response): Prom
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
 		user.password = hashedPassword;
 		user.lastPasswordReset = new Date();
-
 		// Remove the reset token
 		passwordResetTokens.delete(token);
-
 		res.json({
 			success: true,
 			message: 'Password reset successful'
@@ -215,6 +194,5 @@ router.post('/password-reset/confirm', async (req: Request, res: Response): Prom
 		console.error('Password reset confirmation error:', error);
 		res.status(500).json({ success: false, message: 'Internal server error' });
 	}
-});
-
+}));
 export default router;

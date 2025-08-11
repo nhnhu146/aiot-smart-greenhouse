@@ -7,7 +7,6 @@ export { default as PasswordReset } from './PasswordReset';
 export { UserSettings } from './UserSettings';
 export { default as AutomationSettings } from './AutomationSettings';
 export { default as VoiceCommand } from './VoiceCommand';
-
 export type { ISensorData } from './SensorData';
 export type { IDeviceStatus } from './DeviceStatus';
 export type { IDeviceHistory } from './DeviceHistory';

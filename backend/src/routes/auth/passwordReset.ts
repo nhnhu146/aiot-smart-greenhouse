@@ -4,11 +4,11 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { PasswordReset } from '../../models';
 import { emailService } from '../../services';
-
+import { Config } from '../../config/AppConfig';
 // Rate limiting for password reset requests
 const resetRequestLimit = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 3000, // Maximum 3000 requests per IP per window
+	max: 5, // Maximum 5 requests per IP per window (reasonable for password reset)
 	message: {
 		success: false,
 		message: 'Too many password reset requests. Please try again later.'
@@ -16,10 +16,9 @@ const resetRequestLimit = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false
 });
-
 const resetPasswordLimit = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 3000, // Maximum 3000 reset attempts per IP per window
+	max: 10, // Maximum 10 reset attempts per IP per window (reasonable for password reset)
 	message: {
 		success: false,
 		message: 'Too many password reset attempts. Please try again later.'
@@ -27,9 +26,7 @@ const resetPasswordLimit = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false
 });
-
 const router = express.Router();
-
 /**
  * Request password reset
  * POST /api/auth/forgot-password
@@ -37,7 +34,6 @@ const router = express.Router();
 router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { email } = req.body;
-
 		if (!email) {
 			res.status(400).json({
 				success: false,
@@ -47,20 +43,16 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 		}
 
 		const trimmedEmail = email.trim().toLowerCase();
-
 		// Check if user exists
 		const user = global.users?.get(trimmedEmail);
-
 		// Always return success to prevent email enumeration
 		// But only send email if user actually exists
 		if (user) {
 			try {
 				// Generate secure random token
 				const resetToken = crypto.randomBytes(32).toString('hex');
-
 				// Set expiration time (1 hour from now)
 				const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
 				// Save reset token to database
 				const passwordReset = new PasswordReset({
 					email: trimmedEmail,
@@ -68,15 +60,11 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 					expiresAt,
 					used: false
 				});
-
 				await passwordReset.save();
-
 				// Generate reset URL
-				const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-
+ `${Config.app.frontendUrl}/reset-password?token=${resetToken}`;
 				// Send password reset email
-				const emailSent = await emailService.sendPasswordResetEmail(trimmedEmail, resetToken);
-
+ await emailService.sendPasswordResetEmail(trimmedEmail, resetToken);
 				console.log(`🔐 Password reset requested for: ${trimmedEmail}`);
 			} catch (error) {
 				console.error('Error processing password reset:', error);
@@ -89,7 +77,6 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 			success: true,
 			message: 'If your email is registered, you will receive a password reset link.'
 		});
-
 	} catch (error) {
 		console.error('Forgot password error:', error);
 		res.status(500).json({
@@ -98,7 +85,6 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 		});
 	}
 });
-
 /**
  * Verify reset token
  * GET /api/auth/verify-reset-token/:token
@@ -106,7 +92,6 @@ router.post('/forgot-password', resetRequestLimit, async (req: Request, res: Res
 router.get('/verify-reset-token/:token', async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { token } = req.params;
-
 		if (!token) {
 			res.status(400).json({
 				success: false,
@@ -121,7 +106,6 @@ router.get('/verify-reset-token/:token', async (req: Request, res: Response): Pr
 			used: false,
 			expiresAt: { $gt: new Date() }
 		});
-
 		if (!passwordReset) {
 			res.status(400).json({
 				success: false,
@@ -137,7 +121,6 @@ router.get('/verify-reset-token/:token', async (req: Request, res: Response): Pr
 				email: passwordReset.email
 			}
 		});
-
 	} catch (error) {
 		console.error('Verify reset token error:', error);
 		res.status(500).json({
@@ -146,7 +129,6 @@ router.get('/verify-reset-token/:token', async (req: Request, res: Response): Pr
 		});
 	}
 });
-
 /**
  * Reset password
  * POST /api/auth/reset-password
@@ -154,7 +136,6 @@ router.get('/verify-reset-token/:token', async (req: Request, res: Response): Pr
 router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { token, newPassword } = req.body;
-
 		if (!token || !newPassword) {
 			res.status(400).json({
 				success: false,
@@ -178,7 +159,6 @@ router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Res
 			used: false,
 			expiresAt: { $gt: new Date() }
 		});
-
 		if (!passwordReset) {
 			res.status(400).json({
 				success: false,
@@ -189,7 +169,6 @@ router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Res
 
 		// Get user from in-memory store
 		const user = global.users?.get(passwordReset.email);
-
 		if (!user) {
 			res.status(400).json({
 				success: false,
@@ -200,16 +179,13 @@ router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Res
 
 		// Hash new password
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
-
 		// Update user password
 		user.password = hashedPassword;
 		user.lastPasswordReset = new Date();
 		global.users?.set(passwordReset.email, user);
-
 		// Mark reset token as used
 		passwordReset.used = true;
 		await passwordReset.save();
-
 		// Send confirmation email
 		try {
 			await emailService.sendPasswordResetEmail(passwordReset.email, passwordReset.token);
@@ -219,12 +195,10 @@ router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Res
 		}
 
 		console.log(`✅ Password reset successful for: ${passwordReset.email}`);
-
 		res.status(200).json({
 			success: true,
 			message: 'Password reset successful. You can now login with your new password.'
 		});
-
 	} catch (error) {
 		console.error('Reset password error:', error);
 		res.status(500).json({
@@ -233,5 +207,4 @@ router.post('/reset-password', resetPasswordLimit, async (req: Request, res: Res
 		});
 	}
 });
-
 export default router;

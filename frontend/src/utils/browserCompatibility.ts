@@ -1,50 +1,47 @@
-// Browser compatibility and error suppression utilities
-
 /**
- * Suppress common browser extension errors that don't affect our application
+ * Browser Compatibility Utilities
+ * Handles browser-specific issues and compatibility concerns
  */
+
 export const suppressBrowserExtensionErrors = () => {
-	// Suppress the common Chrome extension error
-	const originalErrorHandler = window.onerror;
-
-	window.onerror = (message, source, lineno, colno, error) => {
-		// Ignore Chrome extension runtime errors
-		if (typeof message === 'string' && (
-			message.includes('Unchecked runtime.lastError') ||
-			message.includes('Could not establish connection') ||
-			message.includes('Receiving end does not exist') ||
-			source?.includes('extension')
-		)) {
-			return true; // Suppress the error
-		}
-
-		// Call original error handler for real errors
-		if (originalErrorHandler) {
-			return originalErrorHandler(message, source, lineno, colno, error);
-		}
-
-		return false;
-	};
+  // Prevent browser extension errors from appearing in the console
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    const errorMessage = args.join(' ').toLowerCase();
+    
+    // Filter out common browser extension errors
+    const extensionErrorPatterns = [
+      'extension context invalidated',
+      'could not establish connection',
+      'message port closed',
+      'chrome-extension://',
+      'moz-extension://',
+      'safari-extension://',
+      'ms-browser-extension://',
+      'non-error promise rejection captured',
+      'script error',
+      'network error when attempting to fetch resource'
+    ];
+    
+    const shouldSuppress = extensionErrorPatterns.some(pattern => 
+      errorMessage.includes(pattern)
+    );
+    
+    if (!shouldSuppress) {
+      originalError.apply(console, args);
+    }
+  };
 };
 
 /**
  * Initialize browser compatibility features
+ * This function should be called once when the app starts
  */
 export const initBrowserCompatibility = () => {
-	suppressBrowserExtensionErrors();
-
-	// Add console warning suppression for development
-	if (import.meta.env.MODE === 'development') {
-		const originalConsoleWarn = console.warn;
-		console.warn = (...args) => {
-			const message = args.join(' ');
-			// Suppress Chrome extension warnings
-			if (message.includes('runtime.lastError') ||
-				message.includes('extension') ||
-				message.includes('Could not establish connection')) {
-				return;
-			}
-			originalConsoleWarn.apply(console, args);
-		};
-	}
+  suppressBrowserExtensionErrors();
+  
+  // Only log in development mode
+  if (import.meta.env.DEV) {
+    console.log('🛡️ Browser compatibility features initialized');
+  }
 };

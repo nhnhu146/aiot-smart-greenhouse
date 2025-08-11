@@ -3,7 +3,6 @@ import { DeviceStatus } from '../../models';
 import { APIResponse } from '../../types';
 import { AppError } from '../../middleware';
 import { webSocketService } from '../../services';
-
 export class DeviceStateController {
 	/**
 	 * GET /api/devices/states - Get all device states
@@ -11,7 +10,6 @@ export class DeviceStateController {
 	static async getAllStates(req: Request, res: Response): Promise<void> {
 		try {
 			const devices = await DeviceStatus.find().lean();
-
 			const deviceStates = devices.reduce((acc: any, device) => {
 				acc[device.deviceType] = {
 					status: device.status,
@@ -20,15 +18,13 @@ export class DeviceStateController {
 					updatedAt: device.updatedAt
 				};
 				return acc;
-			}, {});
-
+			}, { /* TODO: Implement */ });
 			const response: APIResponse = {
 				success: true,
 				message: 'Device states retrieved successfully',
 				data: deviceStates,
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('Error retrieving device states:', error);
@@ -46,13 +42,11 @@ export class DeviceStateController {
 	static async getDeviceState(req: Request, res: Response): Promise<void> {
 		try {
 			const { deviceType } = req.params;
-
 			if (!['light', 'pump', 'door', 'window'].includes(deviceType)) {
 				throw new AppError('Invalid device type', 400);
 			}
 
 			const device = await DeviceStatus.findOne({ deviceType }).lean();
-
 			if (!device) {
 				// Create default state if not exists
 				const defaultDevice = await DeviceStatus.create({
@@ -63,7 +57,6 @@ export class DeviceStateController {
 					errorCount: 0,
 					lastCommand: null
 				});
-
 				const response: APIResponse = {
 					success: true,
 					message: `${deviceType} state retrieved successfully`,
@@ -75,7 +68,6 @@ export class DeviceStateController {
 					},
 					timestamp: new Date().toISOString()
 				};
-
 				res.json(response);
 				return;
 			}
@@ -91,7 +83,6 @@ export class DeviceStateController {
 				},
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error(`Error retrieving ${req.params.deviceType} state:`, error);
@@ -110,7 +101,6 @@ export class DeviceStateController {
 		try {
 			const { deviceType } = req.params;
 			const { status, lastCommand } = req.body;
-
 			if (!['light', 'pump', 'door', 'window'].includes(deviceType)) {
 				throw new AppError('Invalid device type', 400);
 			}
@@ -126,20 +116,17 @@ export class DeviceStateController {
 				isOnline: true,
 				lastCommand: lastCommand || (status ? 'on' : 'off')
 			};
-
 			const device = await DeviceStatus.findOneAndUpdate(
 				{ deviceType },
 				updateData,
 				{ upsert: true, new: true }
 			);
-
 			// Broadcast state change via WebSocket
 			webSocketService.broadcastDeviceStatus(deviceType, {
 				device: deviceType,
 				status: status ? 'on' : 'off',
 				timestamp: new Date().toISOString()
 			});
-
 			const response: APIResponse = {
 				success: true,
 				message: `${deviceType} state updated successfully`,
@@ -151,7 +138,6 @@ export class DeviceStateController {
 				},
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error(`Error updating ${req.params.deviceType} state:`, error);
@@ -169,7 +155,6 @@ export class DeviceStateController {
 	static async syncAllStates(req: Request, res: Response): Promise<void> {
 		try {
 			const devices = await DeviceStatus.find().lean();
-
 			// Create device states map
 			const deviceStates = devices.reduce((acc: any, device) => {
 				acc[device.deviceType] = {
@@ -179,18 +164,15 @@ export class DeviceStateController {
 					updatedAt: device.updatedAt
 				};
 				return acc;
-			}, {});
-
+			}, { /* TODO: Implement */ });
 			// Broadcast sync event with all states
 			webSocketService.broadcastDeviceStateSync(deviceStates);
-
 			const response: APIResponse = {
 				success: true,
 				message: 'Device states synchronized successfully',
 				data: { synced: devices.length, states: deviceStates },
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('Error syncing device states:', error);

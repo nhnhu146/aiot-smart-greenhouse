@@ -1,27 +1,22 @@
 import { webSocketService } from '../WebSocketService';
 import { deviceStateService } from '../DeviceStateService';
-import DeviceStatus from '../../models/DeviceStatus';
 import VoiceCommand from '../../models/VoiceCommand';
-
 export class VoiceCommandOptimizer {
 
 	static async processCommandOptimized(command: string, confidence: number | null): Promise<void> {
 		const startTime = process.hrtime.bigint();
-
 		try {
 			// Step 1: Parse and validate command (< 1ms)
-			const deviceAction = this.parseCommand(command);
+			let deviceAction = this.parseCommand(command);
 			if (!deviceAction) {
 				console.warn(`❓ Unrecognized voice command: ${command}`);
-				return;
+				deviceAction = { device: 'unknown', action: 'unknown' };
 			}
 
 			const { device, action } = deviceAction;
 			const status = (action === 'on' || action === 'open');
-
 			// Step 2: Update device state using DeviceStateService (< 10ms)
 			await deviceStateService.updateDeviceState(device, status, action);
-
 			// Step 3: Background database operations (non-blocking)
 			setImmediate(async () => {
 				try {
@@ -29,11 +24,9 @@ export class VoiceCommandOptimizer {
 					const voiceCommand = new VoiceCommand({
 						command: command.toLowerCase().trim(),
 						confidence,
-						timestamp: new Date(),
 						processed: true
 					});
 					await voiceCommand.save();
-
 					// Broadcast voice command history
 					webSocketService.broadcastVoiceCommand({
 						id: (voiceCommand as any)._id.toString(),
@@ -42,16 +35,13 @@ export class VoiceCommandOptimizer {
 						timestamp: voiceCommand.createdAt?.toISOString() || new Date().toISOString(),
 						processed: true
 					});
-
 				} catch (error) {
 					console.error('Error saving voice command:', error);
 				}
 			});
-
 			const endTime = process.hrtime.bigint();
 			const executionTime = Number(endTime - startTime) / 1000000; // Convert to milliseconds
-			console.log(`🎤 Voice command processed in ${executionTime.toFixed(2)}ms: "${command}" -> ${device} ${action}`);
-
+			console.log(`🎤 Voice command processed in ${executionTime.toFixed(2)}ms: '${command}' -> ${device} ${action}`);
 		} catch (error) {
 			console.error(`❌ Error processing voice command: ${command}`, error);
 		}
@@ -59,19 +49,17 @@ export class VoiceCommandOptimizer {
 
 	private static parseCommand(command: string): { device: string, action: string } | null {
 		const cmd = command.toLowerCase().trim();
-
 		// Optimized command mapping with exact matches first
 		const commandMap = new Map([
-			['open door', { device: 'door', action: 'open' }],
-			['close door', { device: 'door', action: 'close' }],
-			['open window', { device: 'window', action: 'open' }],
-			['close window', { device: 'window', action: 'close' }],
-			['turn on light', { device: 'light', action: 'on' }],
-			['turn off light', { device: 'light', action: 'off' }],
-			['turn on pump', { device: 'pump', action: 'on' }],
-			['turn off pump', { device: 'pump', action: 'off' }]
+			['MoCua', { device: 'door', action: 'open' }],
+			['DongCua', { device: 'door', action: 'close' }],
+			['MoCuaSap', { device: 'window', action: 'open' }],
+			['DongCuaSap', { device: 'window', action: 'close' }],
+			['MoDen', { device: 'light', action: 'on' }],
+			['TatDen', { device: 'light', action: 'off' }],
+			['MoBom', { device: 'pump', action: 'on' }],
+			['TatBom', { device: 'pump', action: 'off' }]
 		]);
-
 		// Try exact match first (fastest)
 		if (commandMap.has(cmd)) {
 			return commandMap.get(cmd)!;

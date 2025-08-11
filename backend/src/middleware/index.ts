@@ -1,3 +1,5 @@
 export { validateBody, validateQuery } from './validation';
 export { errorHandler, notFoundHandler, asyncHandler, AppError, CustomError } from './errorHandler';
 export { authenticateToken } from './auth';
+export { autoMergeResponseMiddleware, addMergeableRoute, shouldAutoMerge } from './autoMergeResponse';
+export { MQTTAutoMergeMiddleware, mqttAutoMergeMiddleware } from './mqttAutoMerge';

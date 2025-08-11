@@ -33,6 +33,7 @@ export class DeviceStateService {
 			const stored = localStorage.getItem(this.STORAGE_KEY);
 			return stored ? JSON.parse(stored) : {};
 		} catch (error) {
+      console.error('Device service error:', error);
 						return {};
 		}
 	}
@@ -43,8 +44,9 @@ export class DeviceStateService {
 	private saveToStorage(states: DeviceStates): void {
 		try {
 			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(states));
-		} catch (error) {
-					}
+		} catch {
+			// Silently ignore localStorage errors
+		}
 	}
 
 	/**
@@ -90,8 +92,9 @@ export class DeviceStateService {
 		this.syncCallbacks.forEach(callback => {
 			try {
 				callback(states);
-			} catch (error) {
-							}
+			} catch {
+			// Silently ignore localStorage errors
+		}
 		});
 	}
 
@@ -112,8 +115,9 @@ export class DeviceStateService {
 		this.updateCallbacks.forEach(callback => {
 			try {
 				callback(update);
-			} catch (error) {
-							}
+			} catch {
+			// Silently ignore localStorage errors
+		}
 		});
 	}
 
@@ -142,6 +146,7 @@ export class DeviceStateService {
 
 			return mergedStates;
 		} catch (error) {
+      console.error('Device service error:', error);
 						// Return cached data on API failure
 			const cached = this.loadFromStorage();
 			if (Object.keys(cached).length > 0) {
@@ -166,7 +171,8 @@ export class DeviceStateService {
 			const response = await apiClient.get(`/api/devices/states/${deviceType}`);
 			return response.data.data || null;
 		} catch (error) {
-			console.error(`❌ Error fetching ${deviceType} state:`, error);
+      console.error('Device service error:', error);
+
 			return null;
 		}
 	}
@@ -212,7 +218,7 @@ export class DeviceStateService {
 
 			return actualState || null;
 		} catch (error) {
-			console.error(`❌ Error updating ${deviceType} state:`, error);
+      console.error('Device service error:', error);
 
 			// Rollback optimistic update by fetching current state
 			const currentState = await this.getDeviceState(deviceType);
@@ -240,6 +246,7 @@ export class DeviceStateService {
 
 			return true;
 		} catch (error) {
+      console.error('Device service error:', error);
 						return false;
 		}
 	}
@@ -280,8 +287,9 @@ export class DeviceStateService {
 	clearCache(): void {
 		try {
 			localStorage.removeItem(this.STORAGE_KEY);
-		} catch (error) {
-					}
+		} catch {
+			// Silently ignore localStorage errors
+		}
 	}
 }
 

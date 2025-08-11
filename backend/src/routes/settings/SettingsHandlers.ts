@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { SettingsController } from './SettingsCore';
 import { SettingsOperations } from './SettingsOperations';
 import { EmailRecipientsSchema } from './SettingsValidation';
-
 /**
  * Settings Route Handlers - HTTP request/response handling
  * Focused on handling HTTP layer concerns and delegation to controller
@@ -82,7 +81,7 @@ export class SettingsHandlers {
 	 */
 	static async saveCompleteSettings(req: Request, res: Response): Promise<void> {
 		try {
-			const response = await SettingsOperations.resetSettings();
+			const response = await SettingsController.saveCompleteSettings(req.body);
 			res.json(response);
 		} catch (error) {
 			console.error('Error saving settings:', error);
@@ -99,8 +98,11 @@ export class SettingsHandlers {
 	 */
 	static async testEmail(req: Request, res: Response): Promise<void> {
 		try {
-			const { recipients } = EmailRecipientsSchema.parse(req.body);
-			const response = await SettingsOperations.testAlert();
+			EmailRecipientsSchema.parse(req.body);
+			const { recipients } = req.body;
+			
+			// Use recipients from request if provided, otherwise get from settings
+			const response = await SettingsOperations.testEmailWithRecipients(recipients);
 			res.json(response);
 		} catch (error) {
 			console.error('Error sending test email:', error);

@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { Config } from '../config/AppConfig';
+import { errorHandlingService } from '../services/ErrorHandlingService';
+
+const API_BASE_URL = Config.api.baseUrl;
 
 export interface SensorData {
 	_id?: string;
@@ -16,6 +19,22 @@ export interface DeviceStatus {
 	timestamp?: string;
 }
 
+export interface APIError {
+	success: false;
+	message: string;
+	error?: any;
+	timestamp?: string;
+}
+
+export interface APISuccess<T = any> {
+	success: true;
+	data?: T;
+	message?: string;
+	timestamp?: string;
+}
+
+export type APIResponse<T = any> = APISuccess<T> | APIError;
+
 class ApiClient {
 	private async request(endpoint: string, options: any = {}) {
 		try {
@@ -32,17 +51,83 @@ class ApiClient {
 			});
 
 			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+				// Handle HTTP errors consistently
+				const errorData = await response.json().catch(() => ({
+					success: false,
+					message: `HTTP ${response.status}: ${response.statusText}`,
+					timestamp: new Date().toISOString()
+				}));
+
+				throw new Error(errorData.message || `Request failed with status ${response.status}`);
 			}
 
-			return await response.json();
+			const data = await response.json();
+
+			// Handle API-level errors
+			if (data.success === false) {
+				throw new Error(data.message || 'API request failed');
+			}
+
+			return data;
 		} catch (error) {
 			// Filter out browser extension errors
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			if (!errorMessage.includes('extension') &&
 				!errorMessage.includes('runtime.lastError') &&
 				!errorMessage.includes('Could not establish connection')) {
-				console.error(`API request failed: ${endpoint}`, error);
+				
+				// Use error handling service for user notifications
+				errorHandlingService.handleError(error, {
+					source: 'api',
+					endpoint,
+					timestamp: new Date().toISOString()
+				});
+			}
+			throw error;
+		}
+	}
+
+	// Method for handling raw text responses (CSV, etc.)
+	private async requestRaw(endpoint: string, options: any = {}) {
+		try {
+			const token = localStorage.getItem('token');
+			// Ensure endpoint starts with /api if not already present
+			const fullEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+			const response = await fetch(`${API_BASE_URL}${fullEndpoint}`, {
+				headers: {
+					// Don't set Content-Type for requests expecting raw responses
+					...(token && { 'Authorization': `Bearer ${token}` }),
+					...options.headers,
+				},
+				...options,
+			});
+
+			if (!response.ok) {
+				// Handle HTTP errors - try to parse JSON if possible, fallback to text
+				try {
+					const errorData = await response.json();
+					throw new Error(errorData.message || `Request failed with status ${response.status}`);
+				} catch {
+					const errorText = await response.text();
+					throw new Error(errorText || `HTTP ${response.status}: ${response.statusText}`);
+				}
+			}
+
+			// Return raw text for CSV and other non-JSON responses
+			return await response.text();
+		} catch (error) {
+			// Filter out browser extension errors
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			if (!errorMessage.includes('extension') &&
+				!errorMessage.includes('runtime.lastError') &&
+				!errorMessage.includes('Could not establish connection')) {
+				
+				// Use error handling service for user notifications
+				errorHandlingService.handleError(error, {
+					source: 'api',
+					endpoint,
+					timestamp: new Date().toISOString()
+				});
 			}
 			throw error;
 		}
@@ -67,6 +152,27 @@ class ApiClient {
 		}
 
 		return this.request(url);
+	}
+
+	// Method for CSV/raw text exports
+	async getRaw(endpoint: string, options: { params?: Record<string, any> } = {}) {
+		let url = endpoint;
+
+		if (options.params) {
+			const searchParams = new URLSearchParams();
+			Object.entries(options.params).forEach(([key, value]) => {
+				// More strict filtering: exclude undefined, null, empty strings, and whitespace-only strings
+				if (value !== undefined && value !== null && value !== '' && String(value).trim() !== '') {
+					searchParams.append(key, String(value));
+				}
+			});
+			const queryString = searchParams.toString();
+			if (queryString) {
+				url += (url.includes('?') ? '&' : '?') + queryString;
+			}
+		}
+
+		return this.requestRaw(url);
 	}
 
 	// Generic POST method

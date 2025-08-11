@@ -3,20 +3,16 @@ import { DeviceStatus } from '../../models';
 import { validateQuery, asyncHandler } from '../../middleware';
 import { QueryParamsSchema } from '../../schemas';
 import { APIResponse } from '../../types';
-
 const router = Router();
-
 // GET /api/devices/history - Lấy lịch sử hoạt động thiết bị
 router.get('/history', validateQuery(QueryParamsSchema), asyncHandler(async (req: Request, res: Response) => {
 	const { page = 1, limit = 20, deviceType } = req.query as any;
-
-	const query: any = {};
+	const query: any = { /* TODO: Implement */ };
 	if (deviceType) {
 		query.deviceType = deviceType;
 	}
 
 	const skip = (page - 1) * limit;
-
 	const [history, total] = await Promise.all([
 		DeviceStatus.find(query)
 			.sort({ updatedAt: -1 })
@@ -25,7 +21,6 @@ router.get('/history', validateQuery(QueryParamsSchema), asyncHandler(async (req
 			.lean(),
 		DeviceStatus.countDocuments(query)
 	]);
-
 	const response: APIResponse = {
 		success: true,
 		message: 'Device history retrieved successfully',
@@ -42,8 +37,6 @@ router.get('/history', validateQuery(QueryParamsSchema), asyncHandler(async (req
 		},
 		timestamp: new Date().toISOString()
 	};
-
 	res.json(response);
 }));
-
 export default router;

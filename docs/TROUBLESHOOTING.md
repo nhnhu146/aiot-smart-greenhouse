@@ -1,641 +1,1593 @@
-# 🛠️ Troubleshooting Guide
+# Troubleshooting Guide
 
-## 🚨 Common Issues & Solutions
+## Quick Diagnostics
 
-### 🗃️ Database Issues
-
-#### MongoDB Connection Failed
-**Symptoms**: 
-- Application fails to start
-- Error: "MongoError: Authentication failed"
-- Error: "Connection timeout"
-
-**Solutions**:
+### System Health Check
 ```bash
-# 1. Check MongoDB service status
-docker ps | grep mongo
-# or
-systemctl status mongod
-
-# 2. Verify connection string
-echo $MONGODB_URI
-
-# 3. Test connection manually
-mongosh $MONGODB_URI
-
-# 4. Reset MongoDB container
-docker compose down
-docker volume rm aiot-smart-greenhouse_mongodb_data
-docker compose up -d mongodb
-```
-
-#### Redis Connection Issues
-**Symptoms**:
-- Caching not working
-- Session data lost
-- WebSocket scaling issues
-
-**Solutions**:
-```bash
-# 1. Test Redis connection
-docker exec -it aiot_greenhouse_redis redis-cli ping
-
-# 2. Check Redis logs
-docker logs aiot_greenhouse_redis
-
-# 3. Restart Redis
-docker compose restart redis
-```
-
----
-
-### 🌐 Network & Connectivity
-
-#### MQTT Connection Timeout
-**Symptoms**:
-- IoT devices not sending data
-- Voice commands not working
-- Error: "MQTT connection timeout"
-
-**Solutions**:
-```bash
-# 1. Test MQTT broker connectivity
-telnet mqtt.noboroto.id.vn 1883
-
-# 2. Check MQTT credentials
-mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -t "test/topic" -m "test"
-
-# 3. Verify firewall settings
-# Allow outbound port 1883
-
-# 4. Check backend MQTT configuration
-grep MQTT backend/.env
-```
-
-#### WebSocket Connection Drops
-**Symptoms**:
-- Real-time data stops updating
-- Connection indicator shows disconnected
-- Frequent reconnection attempts
-
-**Solutions**:
-```bash
-# 1. Check WebSocket endpoint accessibility
-curl -I http://localhost:5000/socket.io/
-
-# 2. Verify CORS configuration
-# Check FRONTEND_URL in backend/.env
-
-# 3. Monitor WebSocket events in browser DevTools
-# Network tab -> WS/WSS connections
-
-# 4. Adjust connection timeout settings
-# In backend: WEBSOCKET_PING_TIMEOUT=60000
-```
-
-#### API Requests Failing
-**Symptoms**:
-- Frontend shows "Network error"
-- HTTP 500/502/503 errors
-- API endpoints not responding
-
-**Solutions**:
-```bash
-# 1. Test API health endpoint
-curl http://localhost:5000/api/health
-
-# 2. Check backend service status
-docker compose ps backend
-
-# 3. View backend logs
-docker compose logs -f backend
-
-# 4. Verify API URL configuration
-echo $VITE_API_URL  # Frontend
-echo $API_PREFIX    # Backend
-```
-
----
-
-### 🔐 Authentication Issues
-
-#### JWT Token Expired
-**Symptoms**:
-- User logged out unexpectedly
-- API returns 401 Unauthorized
-- "Token expired" messages
-
-**Solutions**:
-```bash
-# 1. Check JWT configuration
-grep JWT backend/.env
-
-# 2. Clear browser localStorage
-localStorage.clear()  # In browser console
-
-# 3. Verify JWT secret is set
-echo $JWT_SECRET
-
-# 4. Check token expiration settings
-# JWT_EXPIRES_IN=24h in .env
-```
-
-#### Login Fails with Correct Credentials
-**Symptoms**:
-- "Invalid email or password" with correct info
-- User exists but cannot login
-- Authentication service errors
-
-**Solutions**:
-```bash
-# 1. Check user in database
-mongosh $MONGODB_URI
-use greenhouse
-db.users.find({email: "user@example.com"})
-
-# 2. Create admin user if needed
-cd backend && node create-admin.js
-
-# 3. Reset password
-# Use forgot password feature
-
-# 4. Check bcrypt configuration
-grep BCRYPT backend/.env
-```
-
----
-
-### 📧 Email Service Issues
-
-#### Email Notifications Not Sending
-**Symptoms**:
-- No alert emails received
-- SMTP authentication errors
-- Email test fails
-
-**Solutions**:
-```bash
-# 1. Test email configuration
-curl -X POST http://localhost:5000/api/settings/test-email \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com"}'
-
-# 2. Verify SMTP settings
-grep EMAIL backend/.env
-
-# 3. Check Gmail app password (if using Gmail)
-# Enable 2FA and generate app password
-
-# 4. Test SMTP connectivity
-telnet smtp.gmail.com 587
-```
-
-#### Email Templates Not Loading
-**Symptoms**:
-- Plain text emails instead of HTML
-- Template not found errors
-- Formatting issues
-
-**Solutions**:
-```bash
-# 1. Check template files exist
-ls -la backend/src/templates/
-
-# 2. Copy templates if missing
-cd backend && node copy-templates.js
-
-# 3. Verify template loader path
-# Check TemplateLoader.ts configuration
-```
-
----
-
-### 🎛️ Device Control Issues
-
-#### Devices Not Responding
-**Symptoms**:
-- Device control buttons don't work
-- No status feedback from devices
-- MQTT commands not reaching devices
-
-**Solutions**:
-```bash
-# 1. Check MQTT topic publishing
-mosquitto_sub -h mqtt.noboroto.id.vn -p 1883 -t "greenhouse/controls/+"
-
-# 2. Verify device MQTT configuration
-# Check ESP32 code for topic subscriptions
-
-# 3. Test manual MQTT command
-mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 \
-  -t "greenhouse/controls/light" -m "ON"
-
-# 4. Check device power and WiFi connection
-```
-
-#### Automation Not Working
-**Symptoms**:
-- Automation rules don't trigger
-- Sensor data not triggering actions
-- Manual automation check fails
-
-**Solutions**:
-```bash
-# 1. Check automation status
-curl http://localhost:5000/api/automation/status
-
-# 2. Verify threshold settings
-curl http://localhost:5000/api/automation/settings
-
-# 3. Test manual automation trigger
-curl -X POST http://localhost:5000/api/automation/trigger
-
-# 4. Check automation logs
-docker compose logs -f backend | grep automation
-```
-
----
-
-### 📊 Data & Visualization Issues
-
-#### Charts Not Loading
-**Symptoms**:
-- Empty chart areas
-- "No data available" messages
-- Chart.js errors in console
-
-**Solutions**:
-```bash
-# 1. Check sensor data in database
-mongosh $MONGODB_URI
-use greenhouse
-db.sensordatas.find().sort({createdAt: -1}).limit(5)
-
-# 2. Test chart data API
-curl http://localhost:5000/api/sensors/chart-data?range=24h
-
-# 3. Clear browser cache
-# Hard refresh (Ctrl+Shift+R)
-
-# 4. Check Chart.js version compatibility
-# npm list chart.js react-chartjs-2
-```
-
-#### Historical Data Missing
-**Symptoms**:
-- History page shows empty results
-- Export functions return no data
-- Database queries timeout
-
-**Solutions**:
-```bash
-# 1. Check database indexes
-mongosh $MONGODB_URI
-use greenhouse
-db.sensordatas.getIndexes()
-
-# 2. Verify data retention settings
-# Check if old data was cleaned up
-
-# 3. Re-seed database if needed
-node scripts/init-mongo.js
-
-# 4. Check query filters
-# Verify date ranges and filters
-```
-
----
-
-### 🖥️ Frontend Issues
-
-#### White Screen / Application Won't Load
-**Symptoms**:
-- Blank page after loading
-- JavaScript errors in console
-- Bundle loading failures
-
-**Solutions**:
-```bash
-# 1. Check browser console for errors
-# F12 -> Console tab
-
-# 2. Clear browser cache and cookies
-# Ctrl+Shift+Delete
-
-# 3. Verify build configuration
-cd frontend && yarn build
-
-# 4. Check environment variables
-cat frontend/.env.local
-```
-
-#### WebSocket Connection Failed
-**Symptoms**:
-- Real-time updates not working
-- Connection status shows offline
-- Frequent reconnection attempts
-
-**Solutions**:
-```bash
-# 1. Check WebSocket URL configuration
-echo $VITE_API_URL
-
-# 2. Test WebSocket endpoint
-# Browser DevTools -> Network -> WS
-
-# 3. Verify backend WebSocket service
-curl http://localhost:5000/socket.io/
-
-# 4. Check firewall/proxy settings
-# Ensure WebSocket upgrade headers allowed
-```
-
----
-
-### 🐳 Docker Issues
-
-#### Container Won't Start
-**Symptoms**:
-- "docker compose up" fails
-- Container exits immediately
-- Port binding errors
-
-**Solutions**:
-```bash
-# 1. Check container logs
-docker compose logs [service-name]
-
-# 2. Verify port availability
-netstat -tlnp | grep :5000
-lsof -i :5000
-
-# 3. Check Docker daemon status
-systemctl status docker
-
-# 4. Clean up Docker resources
-docker system prune -a
-docker volume prune
-```
-
-#### Build Failures
-**Symptoms**:
-- Docker build errors
-- Missing dependencies
-- Out of disk space
-
-**Solutions**:
-```bash
-# 1. Clean Docker cache
-docker builder prune
-
-# 2. Check available disk space
-df -h
-
-# 3. Force rebuild without cache
-docker compose build --no-cache
-
-# 4. Check Dockerfile syntax
-docker compose config
-```
-
----
-
-### ⚡ Performance Issues
-
-#### Slow API Response Times
-**Symptoms**:
-- Pages load slowly
-- API calls take >5 seconds
-- Database query timeouts
-
-**Solutions**:
-```bash
-# 1. Check system resources
-top
-htop
-docker stats
-
-# 2. Monitor database performance
-mongosh $MONGODB_URI
-use greenhouse
-db.runCommand({collStats: "sensordatas"})
-
-# 3. Optimize database queries
-# Add indexes for frequently queried fields
-
-# 4. Check network latency
-ping localhost
-ping api-server
-```
-
-#### High Memory Usage
-**Symptoms**:
-- System running out of memory
-- Docker containers being killed
-- Slow response times
-
-**Solutions**:
-```bash
-# 1. Check memory usage by container
-docker stats --no-stream
-
-# 2. Monitor Node.js memory
-# Add --max-old-space-size=4096 to node command
-
-# 3. Check for memory leaks
-# Use Node.js profiling tools
-
-# 4. Optimize database connection pool
-# Reduce maxPoolSize in MongoDB connection
-```
-
----
-
-## 🔧 Development Troubleshooting
-
-### Hot Reload Not Working
-**Symptoms**:
-- Changes don't reflect immediately
-- Need to manually refresh browser
-- File watcher not detecting changes
-
-**Solutions**:
-```bash
-# 1. Check file system limits (Linux)
-echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-
-# 2. Restart development server
-yarn dev
-
-# 3. Clear node_modules and reinstall
-rm -rf node_modules yarn.lock
-yarn install
-
-# 4. Check file permissions
-chmod -R 755 src/
-```
-
-### TypeScript Compilation Errors
-**Symptoms**:
-- Build fails with TS errors
-- Type checking issues
-- Module resolution problems
-
-**Solutions**:
-```bash
-# 1. Check TypeScript configuration
-cat tsconfig.json
-
-# 2. Clear TypeScript cache
-rm -rf .tsc-cache
-npx tsc --build --clean
-
-# 3. Update type definitions
-yarn add -D @types/node @types/react
-
-# 4. Fix path mapping issues
-# Check baseUrl and paths in tsconfig.json
-```
-
----
-
-## 📋 Diagnostic Commands
-
-### Health Check Script
-```bash
-#!/bin/bash
-echo "=== AIoT Greenhouse Health Check ==="
-
-# Check services
-echo "Checking Docker services..."
+# Check all services status
 docker compose ps
 
-# Check database connectivity
-echo "Testing MongoDB connection..."
-mongosh $MONGODB_URI --eval "db.runCommand('ping')"
+# View service logs
+docker compose logs backend
+docker compose logs frontend
+docker compose logs mongodb
+docker compose logs redis
 
-# Check Redis
-echo "Testing Redis connection..."
-docker exec -it aiot_greenhouse_redis redis-cli ping
-
-# Check API health
-echo "Testing API health..."
-curl -f http://localhost:5000/api/health || echo "API health check failed"
-
-# Check MQTT connectivity
-echo "Testing MQTT connection..."
-timeout 5 mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -t "test" -m "test" && echo "MQTT OK" || echo "MQTT failed"
-
-echo "Health check completed!"
+# API health check
+curl http://localhost:5000/api/health
 ```
 
-### Log Analysis
+### Common Issues Quick Reference
+| Issue | Symptom | Quick Fix |
+|-------|---------|-----------|
+| Frontend won't load | Blank page, console errors | Check API_URL in .env |
+| API errors | 500 responses | Check MongoDB connection |
+| WebSocket disconnected | No real-time updates | Check CORS_ORIGIN setting |
+| Mock data not working | Toggle doesn't work | Check browser local storage |
+| Device control fails | Commands not executing | Check MQTT broker connection |
+
+## Frontend Issues
+
+### 1. Application Won't Start
+
+**Symptoms**:
+- `yarn dev` fails
+- Build errors during startup
+- Blank page in browser
+
+**Diagnostic Steps**:
 ```bash
-# View all service logs
-docker compose logs -f --tail=100
+# Check Node.js version
+node --version  # Should be 18+
 
-# Filter specific service logs
-docker compose logs -f backend | grep ERROR
-docker compose logs -f frontend | grep console
+# Check package dependencies
+cd frontend
+yarn list --depth=0
 
-# Search for specific patterns
-docker compose logs | grep -i authentication
-docker compose logs | grep -i mqtt
-docker compose logs | grep -i websocket
+# Clear cache and reinstall
+rm -rf node_modules
+yarn install
+
+# Check environment configuration
+cat .env
 ```
 
-### Database Diagnostics
+**Common Solutions**:
+
+**Missing Environment Variables**:
 ```bash
-# MongoDB status
-mongosh $MONGODB_URI --eval "
-  db.adminCommand('serverStatus');
-  db.stats();
-  db.sensordatas.stats();
-"
-
-# Check recent data
-mongosh $MONGODB_URI --eval "
-  use greenhouse;
-  db.sensordatas.find().sort({createdAt: -1}).limit(5);
-  db.devicehistories.find().sort({timestamp: -1}).limit(5);
-"
-
-# Index analysis
-mongosh $MONGODB_URI --eval "
-  use greenhouse;
-  db.sensordatas.getIndexes();
-  db.sensordatas.explain().find({createdAt: {\$gte: new Date(Date.now() - 24*60*60*1000)}});
-"
+# Create .env file with required variables
+VITE_API_URL=http://localhost:5000
+VITE_WS_URL=ws://localhost:5000
+VITE_APP_TITLE=Smart Greenhouse
+VITE_ENABLE_MOCK_DATA=true
 ```
 
----
-
-## 🆘 Emergency Procedures
-
-### Complete System Reset
+**Node.js Version Issues**:
 ```bash
-# 1. Stop all services
-docker compose down -v
+# Update to Node.js 18+
+nvm install 18
+nvm use 18
+yarn install
+```
 
-# 2. Remove all data (CAUTION!)
-docker volume rm aiot-smart-greenhouse_mongodb_data
-docker volume rm aiot-smart-greenhouse_redis_data
+**Build Configuration Errors**:
+```bash
+# Check TypeScript configuration
+yarn type-check
 
-# 3. Rebuild all containers
+# Check Vite configuration
+yarn build --dry-run
+```
+
+### 2. API Connection Issues
+
+**Symptoms**:
+- "Network Error" messages
+- API calls timing out
+- Authentication failures
+
+**Diagnostic Steps**:
+```bash
+# Test API connectivity
+curl http://localhost:5000/api/health
+
+# Check frontend API configuration
+grep -r "API_URL" frontend/src/
+
+# Test WebSocket connection
+curl -i -N -H "Connection: Upgrade" \
+     -H "Upgrade: websocket" \
+     -H "Sec-WebSocket-Key: test" \
+     -H "Sec-WebSocket-Version: 13" \
+     http://localhost:5000/socket.io/
+```
+
+**Solutions**:
+
+**CORS Issues**:
+```typescript
+// backend/src/config/AppConfig.ts - Check CORS configuration
+cors: {
+  origin: env.CORS_ORIGIN, // Must match frontend URL
+}
+```
+
+**API URL Mismatch**:
+```bash
+# Frontend .env
+VITE_API_URL=http://localhost:5000  # Backend URL
+VITE_WS_URL=ws://localhost:5000     # WebSocket URL
+```
+
+**Network Connectivity**:
+```bash
+# Check if backend is running
+netstat -an | findstr :5000
+
+# Check Docker network
+docker network ls
+docker network inspect multi-domain
+```
+
+### 3. Real-time Updates Not Working
+
+**Symptoms**:
+- Dashboard data doesn't update automatically
+- WebSocket connection shows as disconnected
+- No toast notifications
+
+**Solutions**:
+
+**WebSocket Configuration**:
+```typescript
+// frontend/src/config/AppConfig.ts
+export const Config = {
+  api: {
+    wsUrl: getWebSocketUrl(), // Must be correct WebSocket URL
+    timeout: AppConstants.API.TIMEOUT
+  }
+};
+```
+
+**Connection Status Check**:
+```typescript
+// Check WebSocket context in browser dev tools
+// Look for connection status indicators
+// Verify WebSocket events in Network tab
+```
+
+**Backend WebSocket Setup**:
+```bash
+# Check backend WebSocket configuration
+grep -r "socket.io" backend/src/
+docker compose logs backend | grep -i websocket
+```
+
+### 4. Mock Data Toggle Issues
+
+**Symptoms**:
+- Toggle switch doesn't work
+- Mock data not generating
+- Settings not persisting
+
+**Solutions**:
+
+**Local Storage Check**:
+```javascript
+// Browser console
+localStorage.getItem('useMockData')
+localStorage.setItem('useMockData', 'true')
+```
+
+**Component State Debugging**:
+```typescript
+// MockDataToggle.tsx - Check state management
+const [isMockEnabled, setIsMockEnabled] = useState<boolean>(false);
+
+// Verify MockDataConfig service
+import { MockDataConfig } from '../services/MockDataConfig';
+// Debug mock data status  
+const mockStatus = MockDataConfig.isEnabled();
+console.log('Mock enabled:', mockStatus);
+```
+
+**Feature Flag Check**:
+```bash
+# Check if mock data feature is enabled
+grep VITE_ENABLE_MOCK_DATA frontend/.env
+```
+
+## Backend Issues
+
+### 1. Server Won't Start
+
+**Symptoms**:
+- `yarn dev` fails immediately
+- Environment validation errors
+- Port already in use errors
+
+**Diagnostic Steps**:
+```bash
+# Check Node.js and yarn versions
+node --version  # Should be 18+
+yarn --version
+
+# Check port usage
+netstat -an | findstr :5000
+# Kill process if needed: taskkill /PID <PID> /F
+
+# Environment validation
+cd backend
+yarn type-check
+```
+
+**Solutions**:
+
+**Environment Validation Errors**:
+```bash
+# Common validation failures
+❌ Environment validation failed:
+  - JWT_SECRET: Required
+  - MONGODB_URI: Required
+  - MQTT_BROKER_URL: Required
+
+# Fix by setting required variables in .env
+JWT_SECRET=your-secure-secret-key-here
+MONGODB_URI=mongodb://localhost:27017/greenhouse
+MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+```
+
+**Port Conflicts**:
+```bash
+# Change port in .env
+PORT=5001
+
+# Or kill existing process
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+```
+
+**TypeScript Compilation Errors**:
+```bash
+# Fix TypeScript errors
+yarn type-check
+yarn lint
+```
+
+### 2. Database Connection Issues
+
+**Symptoms**:
+- "MongooseServerSelectionError"
+- "Connection refused"
+- API endpoints returning 500 errors
+
+**Diagnostic Steps**:
+```bash
+# Check MongoDB status
+docker compose ps | findstr mongodb
+docker compose logs mongodb
+
+# Test MongoDB connection
+mongo mongodb://localhost:27017/greenhouse
+# Or use MongoDB Compass
+
+# Check MongoDB configuration
+cat backend/.env | grep MONGODB
+```
+
+**Solutions**:
+
+**MongoDB Not Running**:
+```bash
+# Start MongoDB service
+docker compose up -d mongodb
+
+# Check MongoDB logs
+docker compose logs mongodb
+
+# Restart if needed
+docker compose restart mongodb
+```
+
+**Connection String Issues**:
+```bash
+# Correct format for local development
+MONGODB_URI=mongodb://localhost:27017/greenhouse
+
+# For Docker containers
+MONGODB_URI=mongodb://mongodb:27017/greenhouse
+
+# With authentication
+MONGODB_URI=mongodb://username:password@localhost:27017/greenhouse
+```
+
+**Network Issues**:
+```bash
+# Check Docker network
+docker network ls
+docker network inspect multi-domain
+
+# Recreate network if needed
+docker network rm multi-domain
+./create-network.ps1
+```
+
+### 3. Redis Connection Issues
+
+**Symptoms**:
+- Session management not working
+- Rate limiting failures
+- Cache-related errors
+
+**Solutions**:
+
+**Redis Not Running**:
+```bash
+# Start Redis service
+docker compose up -d redis
+
+# Check Redis status
+docker compose exec redis redis-cli ping
+# Should return: PONG
+```
+
+**Connection Configuration**:
+```bash
+# Local development
+REDIS_URL=redis://localhost:6379
+
+# Docker environment
+REDIS_URL=redis://redis:6379
+
+# With password
+REDIS_URL=redis://:password@localhost:6379
+```
+
+### 4. MQTT Connection Issues
+
+**Symptoms**:
+- Device commands not working
+- Sensor data not updating
+- MQTT connection errors in logs
+
+**Solutions**:
+
+**Broker Connectivity**:
+```bash
+# Test MQTT broker connection
+# Install MQTT client: yarn install -g mqtt
+mqtt pub -h mqtt.noboroto.id.vn -p 1883 -t test/topic -m "test message"
+mqtt sub -h mqtt.noboroto.id.vn -p 1883 -t test/topic
+```
+
+**Configuration Check**:
+```bash
+# Verify MQTT settings in .env
+MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+MQTT_HOST=mqtt.noboroto.id.vn
+MQTT_PORT=1883
+```
+
+**Authentication Issues**:
+```bash
+# If broker requires authentication
+MQTT_USERNAME=your-username
+MQTT_PASSWORD=your-password
+```
+
+### 5. Authentication Issues
+
+**Symptoms**:
+- Login failures
+- JWT token errors
+- Session expired messages
+
+**Solutions**:
+
+**JWT Secret Configuration**:
+```bash
+# Ensure JWT_SECRET is set and consistent
+JWT_SECRET=your-very-secure-secret-key-minimum-32-characters
+
+# Check token generation
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"admin123"}'
+```
+
+**User Account Issues**:
+```bash
+# Create admin user
+cd backend
+node create-admin.js
+
+# Check user in database
+mongo mongodb://localhost:27017/greenhouse
+> db.users.find()
+```
+
+## Docker Issues
+
+### 1. Container Build Failures
+
+**Symptoms**:
+- `docker compose build` fails
+- Image build errors
+- Dependency installation failures
+
+**Solutions**:
+
+**Clear Docker Cache**:
+```bash
+# Remove all containers and images
+docker compose down --rmi all --volumes
+
+# Clean Docker system
+docker system prune -a
+
+# Rebuild from scratch
 docker compose build --no-cache
-
-# 4. Start services
 docker compose up -d
+```
 
-# 5. Initialize database
-node scripts/init-mongo.js
+**Node.js Build Issues**:
+```bash
+# Check Dockerfile configuration
+# Ensure correct Node.js version
+FROM node:18-alpine
 
-# 6. Create admin user
+# Clear npm cache in container
+RUN yarn cache clean
+```
+
+### 2. Container Communication Issues
+
+**Symptoms**:
+- Services can't reach each other
+- DNS resolution failures
+- Network timeouts
+
+**Solutions**:
+
+**Network Configuration**:
+```bash
+# Check Docker network
+docker network ls
+docker network inspect multi-domain
+
+# Recreate network
+docker network rm multi-domain
+./create-network.ps1
+docker compose up -d
+```
+
+**Service Discovery**:
+```yaml
+# Use service names in docker-compose.yml
+MONGODB_URI=mongodb://mongodb:27017/greenhouse
+REDIS_URL=redis://redis:6379
+```
+
+### 3. Volume and Data Persistence Issues
+
+**Symptoms**:
+- Data lost after container restart
+- Volume mount failures
+- Permission issues
+
+**Solutions**:
+
+**Volume Management**:
+```bash
+# Check volumes
+docker volume ls
+
+# Backup data before cleanup
+docker compose down
+docker volume ls
+
+# Create fresh volumes
+docker volume rm $(docker volume ls -q)
+docker compose up -d
+```
+
+**Permission Issues**:
+```bash
+# Fix file permissions
+chmod -R 755 ./logs
+chown -R $USER:$USER ./logs
+```
+
+## Performance Issues
+
+### 1. Slow API Responses
+
+**Symptoms**:
+- API calls taking > 5 seconds
+- Database query timeouts
+- High memory usage
+
+**Diagnostic Steps**:
+```bash
+# Check system resources
+docker stats
+
+# Monitor database performance
+docker compose exec mongodb mongostat
+
+# Check API response times
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:5000/api/sensors/latest
+```
+
+**Solutions**:
+
+**Database Optimization**:
+```javascript
+// Add database indexes
+db.sensorData.createIndex({ "timestamp": -1 })
+db.deviceStatus.createIndex({ "deviceId": 1, "lastUpdate": -1 })
+db.alerts.createIndex({ "createdAt": -1, "acknowledged": 1 })
+```
+
+**Query Optimization**:
+```typescript
+// Limit large queries
+const sensors = await SensorData.find()
+  .sort({ timestamp: -1 })
+  .limit(AppConstants.MAX_SENSOR_RECORDS_PER_QUERY)
+  .lean(); // Use lean() for read-only queries
+```
+
+**Memory Management**:
+```bash
+# Increase Node.js memory limit
+NODE_OPTIONS="--max-old-space-size=4096"
+```
+
+### 2. WebSocket Performance Issues
+
+**Symptoms**:
+- Delayed real-time updates
+- Connection drops
+- High CPU usage
+
+**Solutions**:
+
+**Connection Optimization**:
+```typescript
+// backend/src/services/WebSocketService.ts
+const io = new Server(server, {
+  pingTimeout: Config.websocket.pingTimeout,
+  pingInterval: Config.websocket.pingInterval,
+  transports: ['websocket'], // Disable polling
+});
+```
+
+**Event Throttling**:
+```typescript
+// Throttle high-frequency events
+const throttledBroadcast = throttle((event, data) => {
+  io.emit(event, data);
+}, 100); // Max 10 events per second
+```
+
+## Security Issues
+
+### 1. Authentication Bypass
+
+**Symptoms**:
+- Unauthorized API access
+- JWT token validation failures
+- Session hijacking
+
+**Solutions**:
+
+**Token Validation**:
+```typescript
+// Verify JWT middleware is properly configured
+app.use('/api', authenticateToken);
+
+// Check token expiration
+JWT_EXPIRES_IN=24h  // Adjust as needed
+```
+
+**CORS Configuration**:
+```typescript
+// Restrict CORS to specific origins
+CORS_ORIGIN=http://localhost:3000,https://yourdomain.com
+```
+
+### 2. Rate Limiting Issues
+
+**Symptoms**:
+- API abuse
+- DDoS-like behavior
+- Resource exhaustion
+
+**Solutions**:
+
+**Rate Limit Configuration**:
+```bash
+# Adjust rate limits in .env
+RATE_LIMIT_WINDOW_MS=900000    # 15 minutes
+AUTOMATION_RATE_LIMIT=100      # Max requests per window
+```
+
+**IP-based Limiting**:
+```typescript
+// Configure express-rate-limit
+const limiter = rateLimit({
+  windowMs: Config.rateLimit.windowMs,
+  max: Config.rateLimit.automationLimit,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+```
+
+## Monitoring and Debugging
+
+### 1. Log Analysis
+
+**Backend Logs**:
+```bash
+# View real-time logs
+docker compose logs -f backend
+
+# Search for specific errors
+docker compose logs backend | grep -i error
+
+# Check log files
+tail -f backend/logs/error.log
+tail -f backend/logs/combined.log
+```
+
+**Frontend Debugging**:
+```bash
+# Browser console for client-side issues
+# Network tab for API call debugging
+# Application tab for local storage inspection
+```
+
+### 2. Database Debugging
+
+**MongoDB**:
+```javascript
+// Connect to MongoDB shell
+mongo mongodb://localhost:27017/greenhouse
+
+// Check collection counts
+db.sensorData.count()
+db.users.count()
+db.alerts.count()
+
+// Find recent errors
+db.sensorData.find().sort({timestamp: -1}).limit(10)
+```
+
+**Redis**:
+```bash
+# Connect to Redis CLI
+docker compose exec redis redis-cli
+
+# Check keys and values
+KEYS *
+GET session:*
+INFO memory
+```
+
+### 3. Performance Monitoring
+
+**System Metrics**:
+```bash
+# Container resource usage
+docker stats
+
+# System resource usage
+htop
+iostat -x 1
+
+# Network statistics
+netstat -i
+ss -tuln
+```
+
+**Application Metrics**:
+```bash
+# API response times
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:5000/api/health
+
+# WebSocket connections
+# Check browser dev tools -> Network -> WS
+```
+
+## Emergency Procedures
+
+### 1. Complete System Reset
+
+```bash
+# Stop all services
+docker compose down --rmi all --volumes
+
+# Clean Docker system
+docker system prune -a -f
+
+# Remove all data
+rm -rf backend/logs/*
+docker volume prune -f
+
+# Restart from scratch
+./create-network.ps1
+docker compose up -d --build
+
+# Create admin user
 cd backend && node create-admin.js
 ```
 
-### Data Recovery
+### 2. Data Recovery
+
 ```bash
-# 1. Stop application
-docker compose stop backend frontend
+# Backup before recovery
+docker compose exec mongodb mongodump --out /backup
 
-# 2. Backup current database
-mongodump --uri=$MONGODB_URI --out=./backup-$(date +%Y%m%d-%H%M%S)
-
-# 3. Restore from backup
-mongorestore --uri=$MONGODB_URI --drop ./backup-directory/
-
-# 4. Restart services
-docker compose start backend frontend
+# Restore from backup
+docker compose exec mongodb mongorestore /backup
 ```
 
-### Emergency Contacts
-- **System Administrator**: admin@yourdomain.com
-- **MQTT Broker Support**: mqtt.noboroto.id.vn support
-- **Hosting Provider**: [Your hosting provider]
+### 3. Configuration Reset
 
----
+```bash
+# Reset to default configuration
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
-## 📖 Additional Resources
+# Edit with your specific values
+# Restart services
+docker compose restart
+```
 
-### Log Locations
-- **Backend Logs**: `backend/logs/`
-- **Docker Logs**: `docker compose logs [service]`
-- **Database Logs**: `docker logs aiot_greenhouse_db`
-- **Browser Logs**: F12 -> Console
+## Getting Help
 
-### Useful Links
-- [MongoDB Troubleshooting](https://docs.mongodb.com/manual/faq/diagnostics/)
-- [Redis Troubleshooting](https://redis.io/topics/problems)
-- [Docker Troubleshooting](https://docs.docker.com/config/troubleshooting/)
-- [Node.js Debugging](https://nodejs.org/en/docs/guides/debugging-getting-started/)
+### 1. Enable Debug Mode
 
-### Community Support
-- [GitHub Issues](https://github.com/nhnhu146/aiot-smart-greenhouse/issues)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/iot+greenhouse)
-- [Discord Community](#) (if available)
+```bash
+# Backend debugging
+DEBUG=greenhouse:* yarn dev
 
----
+# Frontend debugging
+VITE_ENABLE_DEBUG=true yarn dev
+```
 
-💡 **Pro Tip**: Tạo backup trước khi thực hiện bất kỳ major changes nào!
+### 2. Collect System Information
+
+```bash
+# System information script
+echo "=== System Information ===" > debug-info.txt
+echo "Node.js version: $(node --version)" >> debug-info.txt
+echo "Yarn version: $(yarn --version)" >> debug-info.txt
+echo "Docker version: $(docker --version)" >> debug-info.txt
+echo "Docker Compose version: $(docker compose version)" >> debug-info.txt
+echo "" >> debug-info.txt
+
+echo "=== Service Status ===" >> debug-info.txt
+docker compose ps >> debug-info.txt
+echo "" >> debug-info.txt
+
+echo "=== Recent Logs ===" >> debug-info.txt
+docker compose logs --tail=50 backend >> debug-info.txt
+```
+
+### 3. Common Support Resources
+
+- **Configuration Issues**: Check ENVIRONMENT_VARIABLES.md
+- **Setup Problems**: Review LOCAL_DEVELOPMENT_SETUP.md
+- **Architecture Questions**: See SYSTEM_OVERVIEW.md
+- **Feature Usage**: Consult USE_CASES.md
+
+### 4. Report Issues
+
+When reporting issues, include:
+1. **Environment**: OS, Node.js version, Docker version
+2. **Steps to reproduce**: Exact commands and actions
+3. **Expected vs actual behavior**: What should happen vs what happens
+4. **Error messages**: Complete error output
+5. **Configuration**: Relevant environment variables (without secrets)
+6. **Logs**: Recent log entries from affected services
+
+This troubleshooting guide should help resolve most common issues. For complex problems, systematic debugging using the diagnostic steps will help identify the root cause.# Troubleshooting Guide
+
+## Quick Diagnostics
+
+### System Health Check
+```bash
+# Check all services status
+docker compose ps
+
+# View service logs
+docker compose logs backend
+docker compose logs frontend
+docker compose logs mongodb
+docker compose logs redis
+
+# API health check
+curl http://localhost:5000/api/health
+```
+
+### Common Issues Quick Reference
+| Issue | Symptom | Quick Fix |
+|-------|---------|-----------|
+| Frontend won't load | Blank page, console errors | Check API_URL in .env |
+| API errors | 500 responses | Check MongoDB connection |
+| WebSocket disconnected | No real-time updates | Check CORS_ORIGIN setting |
+| Mock data not working | Toggle doesn't work | Check browser local storage |
+| Device control fails | Commands not executing | Check MQTT broker connection |
+
+## Frontend Issues
+
+### 1. Application Won't Start
+
+**Symptoms**:
+- `yarn dev` fails
+- Build errors during startup
+- Blank page in browser
+
+**Diagnostic Steps**:
+```bash
+# Check Node.js version
+node --version  # Should be 18+
+
+# Check package dependencies
+cd frontend
+yarn list --depth=0
+
+# Clear cache and reinstall
+rm -rf node_modules
+yarn install
+
+# Check environment configuration
+cat .env
+```
+
+**Common Solutions**:
+
+**Missing Environment Variables**:
+```bash
+# Create .env file with required variables
+VITE_API_URL=http://localhost:5000
+VITE_WS_URL=ws://localhost:5000
+VITE_APP_TITLE=Smart Greenhouse
+VITE_ENABLE_MOCK_DATA=true
+```
+
+**Node.js Version Issues**:
+```bash
+# Update to Node.js 18+
+nvm install 18
+nvm use 18
+yarn install
+```
+
+**Build Configuration Errors**:
+```bash
+# Check TypeScript configuration
+yarn type-check
+
+# Check Vite configuration
+yarn build --dry-run
+```
+
+### 2. API Connection Issues
+
+**Symptoms**:
+- "Network Error" messages
+- API calls timing out
+- Authentication failures
+
+**Diagnostic Steps**:
+```bash
+# Test API connectivity
+curl http://localhost:5000/api/health
+
+# Check frontend API configuration
+grep -r "API_URL" frontend/src/
+
+# Test WebSocket connection
+curl -i -N -H "Connection: Upgrade" \
+     -H "Upgrade: websocket" \
+     -H "Sec-WebSocket-Key: test" \
+     -H "Sec-WebSocket-Version: 13" \
+     http://localhost:5000/socket.io/
+```
+
+**Solutions**:
+
+**CORS Issues**:
+```typescript
+// backend/src/config/AppConfig.ts - Check CORS configuration
+cors: {
+  origin: env.CORS_ORIGIN, // Must match frontend URL
+}
+```
+
+**API URL Mismatch**:
+```bash
+# Frontend .env
+VITE_API_URL=http://localhost:5000  # Backend URL
+VITE_WS_URL=ws://localhost:5000     # WebSocket URL
+```
+
+**Network Connectivity**:
+```bash
+# Check if backend is running
+netstat -an | findstr :5000
+
+# Check Docker network
+docker network ls
+docker network inspect multi-domain
+```
+
+### 3. Real-time Updates Not Working
+
+**Symptoms**:
+- Dashboard data doesn't update automatically
+- WebSocket connection shows as disconnected
+- No toast notifications
+
+**Solutions**:
+
+**WebSocket Configuration**:
+```typescript
+// frontend/src/config/AppConfig.ts
+export const Config = {
+  api: {
+    wsUrl: getWebSocketUrl(), // Must be correct WebSocket URL
+    timeout: AppConstants.API.TIMEOUT
+  }
+};
+```
+
+**Connection Status Check**:
+```typescript
+// Check WebSocket context in browser dev tools
+// Look for connection status indicators
+// Verify WebSocket events in Network tab
+```
+
+**Backend WebSocket Setup**:
+```bash
+# Check backend WebSocket configuration
+grep -r "socket.io" backend/src/
+docker compose logs backend | grep -i websocket
+```
+
+### 4. Mock Data Toggle Issues
+
+**Symptoms**:
+- Toggle switch doesn't work
+- Mock data not generating
+- Settings not persisting
+
+**Solutions**:
+
+**Local Storage Check**:
+```javascript
+// Browser console
+localStorage.getItem('useMockData')
+localStorage.setItem('useMockData', 'true')
+```
+
+**Component State Debugging**:
+```typescript
+// MockDataToggle.tsx - Check state management
+const [isMockEnabled, setIsMockEnabled] = useState<boolean>(false);
+
+// Verify MockDataConfig service
+import { MockDataConfig } from '../services/MockDataConfig';
+// Debug mock data status  
+const mockStatus = MockDataConfig.isEnabled();
+console.log('Mock enabled:', mockStatus);
+```
+
+**Feature Flag Check**:
+```bash
+# Check if mock data feature is enabled
+grep VITE_ENABLE_MOCK_DATA frontend/.env
+```
+
+## Backend Issues
+
+### 1. Server Won't Start
+
+**Symptoms**:
+- `yarn dev` fails immediately
+- Environment validation errors
+- Port already in use errors
+
+**Diagnostic Steps**:
+```bash
+# Check Node.js and yarn versions
+node --version  # Should be 18+
+yarn --version
+
+# Check port usage
+netstat -an | findstr :5000
+# Kill process if needed: taskkill /PID <PID> /F
+
+# Environment validation
+cd backend
+yarn type-check
+```
+
+**Solutions**:
+
+**Environment Validation Errors**:
+```bash
+# Common validation failures
+❌ Environment validation failed:
+  - JWT_SECRET: Required
+  - MONGODB_URI: Required
+  - MQTT_BROKER_URL: Required
+
+# Fix by setting required variables in .env
+JWT_SECRET=your-secure-secret-key-here
+MONGODB_URI=mongodb://localhost:27017/greenhouse
+MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+```
+
+**Port Conflicts**:
+```bash
+# Change port in .env
+PORT=5001
+
+# Or kill existing process
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+```
+
+**TypeScript Compilation Errors**:
+```bash
+# Fix TypeScript errors
+yarn type-check
+yarn lint
+```
+
+### 2. Database Connection Issues
+
+**Symptoms**:
+- "MongooseServerSelectionError"
+- "Connection refused"
+- API endpoints returning 500 errors
+
+**Diagnostic Steps**:
+```bash
+# Check MongoDB status
+docker compose ps | findstr mongodb
+docker compose logs mongodb
+
+# Test MongoDB connection
+mongo mongodb://localhost:27017/greenhouse
+# Or use MongoDB Compass
+
+# Check MongoDB configuration
+cat backend/.env | grep MONGODB
+```
+
+**Solutions**:
+
+**MongoDB Not Running**:
+```bash
+# Start MongoDB service
+docker compose up -d mongodb
+
+# Check MongoDB logs
+docker compose logs mongodb
+
+# Restart if needed
+docker compose restart mongodb
+```
+
+**Connection String Issues**:
+```bash
+# Correct format for local development
+MONGODB_URI=mongodb://localhost:27017/greenhouse
+
+# For Docker containers
+MONGODB_URI=mongodb://mongodb:27017/greenhouse
+
+# With authentication
+MONGODB_URI=mongodb://username:password@localhost:27017/greenhouse
+```
+
+**Network Issues**:
+```bash
+# Check Docker network
+docker network ls
+docker network inspect multi-domain
+
+# Recreate network if needed
+docker network rm multi-domain
+./create-network.ps1
+```
+
+### 3. Redis Connection Issues
+
+**Symptoms**:
+- Session management not working
+- Rate limiting failures
+- Cache-related errors
+
+**Solutions**:
+
+**Redis Not Running**:
+```bash
+# Start Redis service
+docker compose up -d redis
+
+# Check Redis status
+docker compose exec redis redis-cli ping
+# Should return: PONG
+```
+
+**Connection Configuration**:
+```bash
+# Local development
+REDIS_URL=redis://localhost:6379
+
+# Docker environment
+REDIS_URL=redis://redis:6379
+
+# With password
+REDIS_URL=redis://:password@localhost:6379
+```
+
+### 4. MQTT Connection Issues
+
+**Symptoms**:
+- Device commands not working
+- Sensor data not updating
+- MQTT connection errors in logs
+
+**Solutions**:
+
+**Broker Connectivity**:
+```bash
+# Test MQTT broker connection
+# Install MQTT client: yarn install -g mqtt
+mqtt pub -h mqtt.noboroto.id.vn -p 1883 -t test/topic -m "test message"
+mqtt sub -h mqtt.noboroto.id.vn -p 1883 -t test/topic
+```
+
+**Configuration Check**:
+```bash
+# Verify MQTT settings in .env
+MQTT_BROKER_URL=mqtt://mqtt.noboroto.id.vn:1883
+MQTT_HOST=mqtt.noboroto.id.vn
+MQTT_PORT=1883
+```
+
+**Authentication Issues**:
+```bash
+# If broker requires authentication
+MQTT_USERNAME=your-username
+MQTT_PASSWORD=your-password
+```
+
+### 5. Authentication Issues
+
+**Symptoms**:
+- Login failures
+- JWT token errors
+- Session expired messages
+
+**Solutions**:
+
+**JWT Secret Configuration**:
+```bash
+# Ensure JWT_SECRET is set and consistent
+JWT_SECRET=your-very-secure-secret-key-minimum-32-characters
+
+# Check token generation
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"admin123"}'
+```
+
+**User Account Issues**:
+```bash
+# Create admin user
+cd backend
+node create-admin.js
+
+# Check user in database
+mongo mongodb://localhost:27017/greenhouse
+> db.users.find()
+```
+
+## Docker Issues
+
+### 1. Container Build Failures
+
+**Symptoms**:
+- `docker compose build` fails
+- Image build errors
+- Dependency installation failures
+
+**Solutions**:
+
+**Clear Docker Cache**:
+```bash
+# Remove all containers and images
+docker compose down --rmi all --volumes
+
+# Clean Docker system
+docker system prune -a
+
+# Rebuild from scratch
+docker compose build --no-cache
+docker compose up -d
+```
+
+**Node.js Build Issues**:
+```bash
+# Check Dockerfile configuration
+# Ensure correct Node.js version
+FROM node:18-alpine
+
+# Clear npm cache in container
+RUN yarn cache clean
+```
+
+### 2. Container Communication Issues
+
+**Symptoms**:
+- Services can't reach each other
+- DNS resolution failures
+- Network timeouts
+
+**Solutions**:
+
+**Network Configuration**:
+```bash
+# Check Docker network
+docker network ls
+docker network inspect multi-domain
+
+# Recreate network
+docker network rm multi-domain
+./create-network.ps1
+docker compose up -d
+```
+
+**Service Discovery**:
+```yaml
+# Use service names in docker-compose.yml
+MONGODB_URI=mongodb://mongodb:27017/greenhouse
+REDIS_URL=redis://redis:6379
+```
+
+### 3. Volume and Data Persistence Issues
+
+**Symptoms**:
+- Data lost after container restart
+- Volume mount failures
+- Permission issues
+
+**Solutions**:
+
+**Volume Management**:
+```bash
+# Check volumes
+docker volume ls
+
+# Backup data before cleanup
+docker compose down
+docker volume ls
+
+# Create fresh volumes
+docker volume rm $(docker volume ls -q)
+docker compose up -d
+```
+
+**Permission Issues**:
+```bash
+# Fix file permissions
+chmod -R 755 ./logs
+chown -R $USER:$USER ./logs
+```
+
+## Performance Issues
+
+### 1. Slow API Responses
+
+**Symptoms**:
+- API calls taking > 5 seconds
+- Database query timeouts
+- High memory usage
+
+**Diagnostic Steps**:
+```bash
+# Check system resources
+docker stats
+
+# Monitor database performance
+docker compose exec mongodb mongostat
+
+# Check API response times
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:5000/api/sensors/latest
+```
+
+**Solutions**:
+
+**Database Optimization**:
+```javascript
+// Add database indexes
+db.sensorData.createIndex({ "timestamp": -1 })
+db.deviceStatus.createIndex({ "deviceId": 1, "lastUpdate": -1 })
+db.alerts.createIndex({ "createdAt": -1, "acknowledged": 1 })
+```
+
+**Query Optimization**:
+```typescript
+// Limit large queries
+const sensors = await SensorData.find()
+  .sort({ timestamp: -1 })
+  .limit(AppConstants.MAX_SENSOR_RECORDS_PER_QUERY)
+  .lean(); // Use lean() for read-only queries
+```
+
+**Memory Management**:
+```bash
+# Increase Node.js memory limit
+NODE_OPTIONS="--max-old-space-size=4096"
+```
+
+### 2. WebSocket Performance Issues
+
+**Symptoms**:
+- Delayed real-time updates
+- Connection drops
+- High CPU usage
+
+**Solutions**:
+
+**Connection Optimization**:
+```typescript
+// backend/src/services/WebSocketService.ts
+const io = new Server(server, {
+  pingTimeout: Config.websocket.pingTimeout,
+  pingInterval: Config.websocket.pingInterval,
+  transports: ['websocket'], // Disable polling
+});
+```
+
+**Event Throttling**:
+```typescript
+// Throttle high-frequency events
+const throttledBroadcast = throttle((event, data) => {
+  io.emit(event, data);
+}, 100); // Max 10 events per second
+```
+
+## Security Issues
+
+### 1. Authentication Bypass
+
+**Symptoms**:
+- Unauthorized API access
+- JWT token validation failures
+- Session hijacking
+
+**Solutions**:
+
+**Token Validation**:
+```typescript
+// Verify JWT middleware is properly configured
+app.use('/api', authenticateToken);
+
+// Check token expiration
+JWT_EXPIRES_IN=24h  // Adjust as needed
+```
+
+**CORS Configuration**:
+```typescript
+// Restrict CORS to specific origins
+CORS_ORIGIN=http://localhost:3000,https://yourdomain.com
+```
+
+### 2. Rate Limiting Issues
+
+**Symptoms**:
+- API abuse
+- DDoS-like behavior
+- Resource exhaustion
+
+**Solutions**:
+
+**Rate Limit Configuration**:
+```bash
+# Adjust rate limits in .env
+RATE_LIMIT_WINDOW_MS=900000    # 15 minutes
+AUTOMATION_RATE_LIMIT=100      # Max requests per window
+```
+
+**IP-based Limiting**:
+```typescript
+// Configure express-rate-limit
+const limiter = rateLimit({
+  windowMs: Config.rateLimit.windowMs,
+  max: Config.rateLimit.automationLimit,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+```
+
+## Monitoring and Debugging
+
+### 1. Log Analysis
+
+**Backend Logs**:
+```bash
+# View real-time logs
+docker compose logs -f backend
+
+# Search for specific errors
+docker compose logs backend | grep -i error
+
+# Check log files
+tail -f backend/logs/error.log
+tail -f backend/logs/combined.log
+```
+
+**Frontend Debugging**:
+```bash
+# Browser console for client-side issues
+# Network tab for API call debugging
+# Application tab for local storage inspection
+```
+
+### 2. Database Debugging
+
+**MongoDB**:
+```javascript
+// Connect to MongoDB shell
+mongo mongodb://localhost:27017/greenhouse
+
+// Check collection counts
+db.sensorData.count()
+db.users.count()
+db.alerts.count()
+
+// Find recent errors
+db.sensorData.find().sort({timestamp: -1}).limit(10)
+```
+
+**Redis**:
+```bash
+# Connect to Redis CLI
+docker compose exec redis redis-cli
+
+# Check keys and values
+KEYS *
+GET session:*
+INFO memory
+```
+
+### 3. Performance Monitoring
+
+**System Metrics**:
+```bash
+# Container resource usage
+docker stats
+
+# System resource usage
+htop
+iostat -x 1
+
+# Network statistics
+netstat -i
+ss -tuln
+```
+
+**Application Metrics**:
+```bash
+# API response times
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:5000/api/health
+
+# WebSocket connections
+# Check browser dev tools -> Network -> WS
+```
+
+## Emergency Procedures
+
+### 1. Complete System Reset
+
+```bash
+# Stop all services
+docker compose down --rmi all --volumes
+
+# Clean Docker system
+docker system prune -a -f
+
+# Remove all data
+rm -rf backend/logs/*
+docker volume prune -f
+
+# Restart from scratch
+./create-network.ps1
+docker compose up -d --build
+
+# Create admin user
+cd backend && node create-admin.js
+```
+
+### 2. Data Recovery
+
+```bash
+# Backup before recovery
+docker compose exec mongodb mongodump --out /backup
+
+# Restore from backup
+docker compose exec mongodb mongorestore /backup
+```
+
+### 3. Configuration Reset
+
+```bash
+# Reset to default configuration
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# Edit with your specific values
+# Restart services
+docker compose restart
+```
+
+## Getting Help
+
+### 1. Enable Debug Mode
+
+```bash
+# Backend debugging
+DEBUG=greenhouse:* yarn dev
+
+# Frontend debugging
+VITE_ENABLE_DEBUG=true yarn dev
+```
+
+### 2. Collect System Information
+
+```bash
+# System information script
+echo "=== System Information ===" > debug-info.txt
+echo "Node.js version: $(node --version)" >> debug-info.txt
+echo "Yarn version: $(yarn --version)" >> debug-info.txt
+echo "Docker version: $(docker --version)" >> debug-info.txt
+echo "Docker Compose version: $(docker compose version)" >> debug-info.txt
+echo "" >> debug-info.txt
+
+echo "=== Service Status ===" >> debug-info.txt
+docker compose ps >> debug-info.txt
+echo "" >> debug-info.txt
+
+echo "=== Recent Logs ===" >> debug-info.txt
+docker compose logs --tail=50 backend >> debug-info.txt
+```
+
+### 3. Common Support Resources
+
+- **Configuration Issues**: Check ENVIRONMENT_VARIABLES.md
+- **Setup Problems**: Review LOCAL_DEVELOPMENT_SETUP.md
+- **Architecture Questions**: See SYSTEM_OVERVIEW.md
+- **Feature Usage**: Consult USE_CASES.md
+
+### 4. Report Issues
+
+When reporting issues, include:
+1. **Environment**: OS, Node.js version, Docker version
+2. **Steps to reproduce**: Exact commands and actions
+3. **Expected vs actual behavior**: What should happen vs what happens
+4. **Error messages**: Complete error output
+5. **Configuration**: Relevant environment variables (without secrets)
+6. **Logs**: Recent log entries from affected services
+
+This troubleshooting guide should help resolve most common issues. For complex problems, systematic debugging using the diagnostic steps will help identify the root cause.

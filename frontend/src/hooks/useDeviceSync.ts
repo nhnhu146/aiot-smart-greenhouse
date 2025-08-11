@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 import { deviceStateService, DeviceStates, DeviceStateUpdate } from '@/services/deviceStateService';
+import { AppConstants } from '../config/AppConfig';
 
 interface UseDeviceSyncProps {
 	onStatesSync?: (states: DeviceStates) => void;
@@ -32,7 +33,7 @@ export const useDeviceSync = ({
 		// Listen for various WebSocket events - standardized naming
 		socket.on('device:state:update', handleDeviceStateUpdate);
 		socket.on('device:state:sync', handleDeviceStatesSync);
-		socket.on('device:status', handleDeviceStateUpdate); // Legacy compatibility
+		socket.on('device:status', handleDeviceStateUpdate); // Backward compatibility
 
 		// Listen for individual device events
 		['light', 'pump', 'door', 'window'].forEach(deviceType => {
@@ -84,7 +85,7 @@ export const useDeviceSync = ({
 		if (isConnected && autoSync) {
 			const timer = setTimeout(() => {
 				deviceStateService.syncAllStates();
-			}, 1000); // Wait 1 second after connection
+			}, AppConstants.UI.DEBOUNCE_DELAY * 3); // Wait ~1 second after connection
 
 			return () => clearTimeout(timer);
 		}

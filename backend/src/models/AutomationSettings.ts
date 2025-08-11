@@ -1,49 +1,37 @@
 import mongoose, { Schema, Document } from 'mongoose';
-
 export interface IAutomationSettings extends Document {
 	// Automation enablement
-	automationEnabled: boolean;
-
+	automationEnabled: boolean
 	// Device control enablement
-	lightControlEnabled: boolean;
-	pumpControlEnabled: boolean;
-	doorControlEnabled: boolean;
-	windowControlEnabled: boolean;
-
+	lightControlEnabled: boolean
+	pumpControlEnabled: boolean
+	doorControlEnabled: boolean
+	windowControlEnabled: boolean
 	// Light automation thresholds (based on lightLevel sensor)
 	lightThresholds: {
 		turnOnWhenDark: number; // 0 = dark (turn on light), 1 = bright (turn off light)
-		turnOffWhenBright: number;
-	};
-
+		turnOffWhenBright: number
+	}
 	// Pump automation thresholds (based on soilMoisture sensor)
 	pumpThresholds: {
 		turnOnWhenDry: number; // 0 = dry (turn on pump), 1 = wet (turn off pump)
-		turnOffWhenWet: number;
-	};
-
+		turnOffWhenWet: number
+	}
 	// Temperature thresholds for window/door control
 	temperatureThresholds: {
 		windowOpenTemp: number; // Temperature to open window for ventilation
 		windowCloseTemp: number; // Temperature to close window
 		doorOpenTemp: number; // Emergency temperature to open door
 		doorCloseTemp: number; // Temperature to close door
-	};
-
+	}
 	// Rain detection settings
 	rainSettings: {
 		autoCloseWindowOnRain: boolean; // Close window when rain detected
 		autoOpenAfterRain: boolean; // Open window when rain stops
-	};
-
-	// Water level emergency settings
-	waterLevelSettings: {
-		autoTurnOffPumpOnFlood: boolean; // Turn off pump when water level = 1 (flooded)
-		autoOpenDoorOnFlood: boolean; // Open door for drainage when flooded
-	};
-
-	createdAt?: Date;
-	updatedAt?: Date;
+	}
+	// Water level emergency settings removed - no longer needed
+	createdAt?: Date
+	updatedAt?: Date
 }
 
 const AutomationSettingsSchema: Schema = new Schema({
@@ -129,21 +117,9 @@ const AutomationSettingsSchema: Schema = new Schema({
 			required: true,
 			default: false
 		}
-	},
-	waterLevelSettings: {
-		autoTurnOffPumpOnFlood: {
-			type: Boolean,
-			required: true,
-			default: true
-		},
-		autoOpenDoorOnFlood: {
-			type: Boolean,
-			required: true,
-			default: true
-		}
 	}
+	// Water level settings removed - no longer needed
 }, {
 	timestamps: true
 });
-
 export default mongoose.model<IAutomationSettings>('AutomationSettings', AutomationSettingsSchema);

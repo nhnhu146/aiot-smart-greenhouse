@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { Alert } from '../models/Alert';
+import { asyncHandler } from '../middleware';
+import { formatVietnamTimestamp } from '../utils/timezone';
 
 const router = Router();
-
 // GET /api/history/alerts - Get alert history with filters
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const {
 			page = 1,
@@ -17,9 +18,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 			type,
 			acknowledged
 		} = req.query;
-
 		const filters: any = {};
-
 		// Date range filter
 		if (dateFrom || dateTo) {
 			filters.createdAt = {};
@@ -42,11 +41,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 			filters.acknowledged = acknowledged === 'true';
 		}
 
-		const sortOptions: any = {};
+		const sortOptions: any = { createdAt: -1 };
 		sortOptions[sortBy as string] = sortOrder === 'asc' ? 1 : -1;
-
 		const skip = (Number(page) - 1) * Number(limit);
-
 		const [alerts, total] = await Promise.all([
 			Alert.find(filters)
 				.sort(sortOptions)
@@ -55,9 +52,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 				.lean(),
 			Alert.countDocuments(filters)
 		]);
-
 		const totalPages = Math.ceil(total / Number(limit));
-
 		res.json({
 			success: true,
 			data: alerts,
@@ -70,7 +65,6 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 				hasPrev: Number(page) > 1
 			}
 		});
-
 	} catch (error) {
 		console.error('Error fetching alert history:', error);
 		res.status(500).json({
@@ -78,23 +72,22 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 			message: 'Failed to fetch alert history'
 		});
 	}
-});
-
+}));
 // GET /api/history/alerts/export - Export alert history
-router.get('/export', async (req: Request, res: Response): Promise<void> => {
+router.get('/export', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
-		const {
+				const {
 			format = 'json',
 			dateFrom,
 			dateTo,
 			severity,
 			type,
 			acknowledged,
-			limit = 10000
+			limit = 10000,
+			sortBy = 'createdAt',
+			sortOrder = 'desc'
 		} = req.query;
-
 		const filters: any = {};
-
 		// Apply same filters as main endpoint
 		if (dateFrom || dateTo) {
 			filters.createdAt = {};
@@ -108,24 +101,50 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
 			filters.acknowledged = acknowledged === 'true';
 		}
 
+				// Apply sort parameters  
+		const sortCriteria: any = {};
+		sortCriteria[sortBy as string] = sortOrder === 'asc' ? 1 : -1;
+		
 		const alerts = await Alert.find(filters)
-			.sort({ createdAt: -1 })
+			.sort(sortCriteria)
 			.limit(Number(limit))
 			.lean();
-
 		if (format === 'csv') {
 			// Generate CSV
-			const csvHeader = 'Timestamp,Type,Level,Message,Value,Acknowledged\n';
-			const csvRows = alerts.map(alert =>
-				`"${alert.createdAt}","${alert.type}","${alert.level}","${alert.message}","${alert.value || ''}","${alert.acknowledged || false}"`
-			).join('\n');
+			// Helper function to format values for CSV
+			const formatValue = (value: any): string => {
+				if (value === null || value === undefined || value === '') {
+					return 'N/A';
+				}
+				if (value === 0) {
+					return '0';
+				}
+				return String(value);
+			};
 
-			res.setHeader('Content-Type', 'text/csv');
-			res.setHeader('Content-Disposition', 'attachment; filename="alert-history.csv"');
-			res.send(csvHeader + csvRows);
+						const csvHeader = 'Timestamp (UTC+7),Type,Level,Message,Value,Threshold,Acknowledged,Device Type,Resolved\n';
+			const csvRows = alerts.map(alert => {
+				const timestamp = formatVietnamTimestamp(alert.createdAt);
+				const type = formatValue(alert.type);
+				const level = formatValue(alert.level);
+				const message = formatValue(alert.message);
+				const value = formatValue(alert.value);
+				const threshold = formatValue(alert.threshold);
+								const acknowledged = alert.acknowledged ? 'Yes' : 'No';
+				const deviceType = formatValue(alert.deviceType);
+				const resolved = alert.resolved ? 'Yes' : 'No';
+				
+				return `"${timestamp}","${type.replace(/"/g, '""')}","${level.replace(/"/g, '""')}","${message.replace(/"/g, '""')}","${value.replace(/"/g, '""')}","${threshold.replace(/"/g, '""')}","${acknowledged}","${deviceType.replace(/"/g, '""')}","${resolved}"`;
+			}).join('\n');
+			const csvContent = csvHeader + csvRows;
+			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+			res.setHeader('Content-Disposition', 'attachment; filename=alert-history.csv');
+			res.send(csvContent);
 		} else {
-			// Return JSON
-			res.json(alerts);
+			// JSON format with proper download headers
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+			res.setHeader('Content-Disposition', 'attachment; filename=alert-history.json');
+			res.send(JSON.stringify(alerts, null, 2));
 		}
 
 	} catch (error) {
@@ -135,13 +154,11 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
 			message: 'Failed to export alert history'
 		});
 	}
-});
-
+}));
 // PUT /api/history/alerts/:id/acknowledge - Acknowledge alert
-router.put('/:id/acknowledge', async (req: Request, res: Response): Promise<void> => {
+router.put('/:id/acknowledge', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const { id } = req.params;
-
 		const alert = await Alert.findByIdAndUpdate(
 			id,
 			{
@@ -150,7 +167,6 @@ router.put('/:id/acknowledge', async (req: Request, res: Response): Promise<void
 			},
 			{ new: true }
 		);
-
 		if (!alert) {
 			res.status(404).json({
 				success: false,
@@ -164,7 +180,6 @@ router.put('/:id/acknowledge', async (req: Request, res: Response): Promise<void
 			message: 'Alert acknowledged successfully',
 			data: alert
 		});
-
 	} catch (error) {
 		console.error('Error acknowledging alert:', error);
 		res.status(500).json({
@@ -172,6 +187,5 @@ router.put('/:id/acknowledge', async (req: Request, res: Response): Promise<void
 			message: 'Failed to acknowledge alert'
 		});
 	}
-});
-
+}));
 export default router;

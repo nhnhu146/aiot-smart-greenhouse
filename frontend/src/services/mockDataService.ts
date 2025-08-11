@@ -19,7 +19,7 @@ class MockDataService {
 		MockDataConfig.setEnabled(enabled);
 	}
 
-	// Legacy method names for backward compatibility
+	// Backward compatibility method names
 	isUsingMockData(): boolean {
 		return this.enabled;
 	}
@@ -50,7 +50,7 @@ class MockDataService {
 		return () => clearInterval(intervalId);
 	}
 
-	// Legacy method for backward compatibility
+	// Backward compatibility method
 	async getSensorData(): Promise<{ data: SensorData | null; isMock: boolean }> {
 		if (!this.enabled) {
 			return { data: null, isMock: false };
@@ -62,7 +62,7 @@ class MockDataService {
 		};
 	}
 
-	// Legacy method for backward compatibility  
+	// Backward compatibility method  
 	startMockDataUpdates(intervalMs: number = 5000): () => void {
 		return this.startRealTimeData(() => { }, intervalMs);
 	}

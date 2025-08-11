@@ -39,14 +39,18 @@ export class ChartUtils {
 			}
 			return date.toISOString();
 		} catch (error) {
-						return new Date().toISOString();
+			console.error('Chart error:', error);
+			return new Date().toISOString();
 		}
 	}
 
 	/**
 	 * Filter out invalid data points (missing timestamps or invalid dates)
+	 * Also removes duplicate timestamps for better chart rendering
 	 */
 	static filterValidData(data: ChartDataPoint[]): ChartDataPoint[] {
+		const seenTimestamps = new Set<string>();
+
 		return data.filter(item => {
 			if (!item.timestamp) return false;
 
@@ -59,9 +63,19 @@ export class ChartUtils {
 			const isValid = !isNaN(date.getTime());
 
 			if (!isValid) {
+				// Skip invalid timestamps - continue with filter
+				return false;
 			}
 
-			return isValid;
+			// Remove duplicates based on timestamp string
+			const timestampStr = date.toISOString();
+			if (seenTimestamps.has(timestampStr)) {
+				console.log('🔄 Filtering duplicate timestamp in chart data:', timestampStr);
+				return false;
+			}
+
+			seenTimestamps.add(timestampStr);
+			return true;
 		});
 	}
 

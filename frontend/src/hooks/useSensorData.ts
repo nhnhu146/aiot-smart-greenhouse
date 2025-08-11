@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import apiClient from '@/lib/apiClient';
+import { useToast } from '@/contexts/ToastContext';
 
 export interface SensorData {
 	temperature?: number;
@@ -19,6 +20,7 @@ export const useSensorData = (persistentSensorData: any) => {
 	const [data, setData] = useState<SensorData | null>(null);
 	const [isUsingMockData, setIsUsingMockData] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const { showToast } = useToast();
 
 	// Track configuration for mock data usage
 	const [mockDataEnabled, setMockDataEnabled] = useState(false);
@@ -131,6 +133,10 @@ export const useSensorData = (persistentSensorData: any) => {
 					}
 				} catch (error) {
 					console.warn('API fetch failed, keeping existing data:', error);
+					// Only show toast for genuine network/server errors, not configuration issues
+					if (error instanceof Error && !error.message.includes('Configuration') && !error.message.includes('Mock data')) {
+						showToast('Failed to fetch latest sensor data', 'warning');
+					}
 				} finally {
 					setIsLoading(false);
 					setHasInitialFetch(true);

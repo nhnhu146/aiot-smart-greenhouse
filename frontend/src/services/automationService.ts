@@ -1,4 +1,5 @@
 // Frontend automation service - communicates with backend API
+import { Config } from '../config/AppConfig';
 import apiClient from '@/lib/apiClient';
 
 interface AutomationConfig {
@@ -49,6 +50,7 @@ class FrontendAutomationService {
 			this.notifyListeners();
 			return this.config;
 		} catch (error) {
+      console.error('Automation service error:', error);
 						return null;
 		}
 	}
@@ -91,6 +93,7 @@ class FrontendAutomationService {
 			this.notifyListeners();
 			return true;
 		} catch (error) {
+      console.error('Automation service error:', error);
 						return false;
 		}
 	}
@@ -123,6 +126,7 @@ class FrontendAutomationService {
 			const response = await apiClient.getAutomationStatus();
 			return response.data;
 		} catch (error) {
+      console.error('Automation service error:', error);
 						return null;
 		}
 	}
@@ -146,6 +150,7 @@ class FrontendAutomationService {
 
 			return success;
 		} catch (error) {
+      console.error('Automation service error:', error);
 						return false;
 		}
 	}
@@ -167,6 +172,7 @@ class FrontendAutomationService {
 			await response.json();
 			return true;
 		} catch (error) {
+      console.error('Automation service error:', error);
 						return false;
 		}
 	}
@@ -189,16 +195,18 @@ class FrontendAutomationService {
 			await response.json();
 			return true;
 		} catch (error) {
-			console.error(`Error triggering automation for ${sensorType}:`, error);
+      console.error('Automation service error:', error);
+
 			return false;
 		}
 	}
 
-	// Get API base URL
+	// Get API base URL from config
 	private getApiBaseUrl(): string {
-		return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+		return Config.api.baseUrl;
 	}
 }
 
+// Singleton instance
 const frontendAutomationService = new FrontendAutomationService();
 export default frontendAutomationService;

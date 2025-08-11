@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './HighlightWrapper.css';
+import { AppConstants } from '../../config/AppConfig';
 
 interface HighlightWrapperProps {
     trigger: any;
@@ -19,7 +20,7 @@ const HighlightWrapper: React.FC<HighlightWrapperProps> = ({
             setIsHighlighted(true);
             const timer = setTimeout(() => {
                 setIsHighlighted(false);
-            }, 1000);
+            }, AppConstants.UI.DEBOUNCE_DELAY * 3); // ~1 second
             return () => clearTimeout(timer);
         }
     }, [trigger]);

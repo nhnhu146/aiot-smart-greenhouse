@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { SensorData } from '../types';
-
-export interface ISensorData extends Omit<SensorData, '_id'>, Document { }
+export interface ISensorData extends Omit<SensorData, '_id'>, Document {}
 
 const SensorDataSchema: Schema = new Schema({
 	// Remove custom timestamp field to use MongoDB's default createdAt/updatedAt
@@ -69,7 +68,6 @@ const SensorDataSchema: Schema = new Schema({
 	timestamps: true, // This creates createdAt and updatedAt automatically
 	versionKey: false
 });
-
 // Optimized indexes for better query performance
 SensorDataSchema.index({ createdAt: -1 }); // Primary time-based queries
 SensorDataSchema.index({ deviceId: 1, createdAt: -1 }); // Device-specific time queries
@@ -81,7 +79,6 @@ SensorDataSchema.index({
 	createdAt: -1
 }, {
 	sparse: true, // Only index documents with these fields
-	name: "sensor_data_composite"
+	name: 'sensor_data_composite'
 });
-
 export default mongoose.model<ISensorData>('SensorData', SensorDataSchema);

@@ -1,19 +1,22 @@
-import { DataMergerService } from '../DataMergerService';
+import { DataMergerService, MergeOptions } from '../DataMergerService';
 import { SensorData } from '../../models';
 import { SensorData as SensorDataType } from './WebSocketTypes';
-
 export class WebSocketDataHandler {
 	// Merge sensor data before broadcasting
 	async prepareSensorDataForBroadcast(data: SensorDataType): Promise<number | undefined> {
 		try {
-			// Ensure data is merged before broadcasting
-			const dataMergerService = DataMergerService.getInstance();
+			// Trigger actual merge process for duplicate timestamps
+			const mergerService = DataMergerService.getInstance();
+			const mergeOptions: MergeOptions = {
+				exactDuplicatesOnly: false,
+				timeWindowMs: 5000
+			};
+			await mergerService.mergeSameTimestampData(mergeOptions);
 
 			// Get the latest merged sensor data from database
 			const latestData = await SensorData.findOne()
 				.sort({ createdAt: -1 })
 				.lean();
-
 			if (!latestData) {
 				console.warn('⚠️ No sensor data found in database');
 				return undefined;
@@ -21,7 +24,6 @@ export class WebSocketDataHandler {
 
 			// Extract the relevant sensor value from merged data
 			const sensorType = data.type;
-
 			// Use the merged value from database if available
 			switch (sensorType) {
 				case 'temperature':

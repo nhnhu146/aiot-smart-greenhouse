@@ -1,27 +1,23 @@
 import { Router, Request, Response } from 'express';
-import { DeviceStatus, DeviceHistory } from '../../models';
 import { validateBody, asyncHandler, AppError } from '../../middleware';
 import { DeviceControlSchema } from '../../schemas';
 import { mqttService, deviceStateService, webSocketService } from '../../services';
 import { APIResponse, DeviceControl } from '../../types';
-
+import { DeviceStatus } from '../../models';
 const router = Router();
-
 // POST /api/devices/control - Điều khiển thiết bị
 router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (req: Request, res: Response) => {
 	const { deviceType, action, duration }: DeviceControl = req.body;
-
 	// Validate action for specific device types
 	if (['door', 'window'].includes(deviceType) && !['open', 'close'].includes(action)) {
-		throw new AppError(`Invalid action for ${deviceType}. Use "open" or "close"`, 400);
+		throw new AppError(`Invalid action for ${deviceType}. Use 'open' or 'close'`, 400);
 	}
 
 	if (['light', 'pump'].includes(deviceType) && !['on', 'off'].includes(action)) {
-		throw new AppError(`Invalid action for ${deviceType}. Use "on" or "off"`, 400);
+		throw new AppError(`Invalid action for ${deviceType}. Use 'on' or 'off'`, 400);
 	}
 
 	const generatedControlId = `api_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
 	try {
 		// Convert action to MQTT format that ESP32 understands (0/1 values)
 		let mqttCommand = '0'; // Default to OFF/CLOSE
@@ -31,7 +27,6 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 
 		// Send simple MQTT command (0/1 values)
 		await mqttService.publishDeviceControl(deviceType, mqttCommand);
-
 		// Update device state using DeviceStateService with manual source
 		const status = (action === 'on' || action === 'open');
 		await deviceStateService.updateDeviceState(
@@ -41,7 +36,6 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			'manual', // source
 			'api-user' // userId
 		);
-
 		// Broadcast device control completion to WebSocket clients
 		webSocketService.broadcastDeviceControl({
 			controlId: generatedControlId,
@@ -52,7 +46,6 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			timestamp: new Date().toISOString(),
 			success: true
 		});
-
 		const response: APIResponse = {
 			success: true,
 			message: `${deviceType} ${action} command sent successfully`,
@@ -66,14 +59,11 @@ router.post('/control', validateBody(DeviceControlSchema), asyncHandler(async (r
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
-
 	} catch (error) {
 		throw new AppError(`Failed to control ${deviceType}: ${error}`, 500);
 	}
 }));
-
 // POST /api/devices/schedule - Lên lịch điều khiển thiết bị
 router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (req: Request, res: Response) => {
 	const { deviceType, action, duration } = req.body;
@@ -95,7 +85,6 @@ router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (
 
 			// Send simple MQTT command (1/0 values)
 			await mqttService.publishDeviceControl(deviceType, mqttCommand);
-
 			// Update device status in database
 			const status = (action === 'on' || action === 'open');
 			await DeviceStatus.findOneAndUpdate(
@@ -107,13 +96,11 @@ router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (
 				},
 				{ upsert: true, new: true }
 			);
-
 			console.log(`⏰ Scheduled command executed: ${deviceType} ${action}`);
 		} catch (error) {
 			console.error(`❌ Scheduled command failed: ${error}`);
 		}
 	}, delay * 1000);
-
 	const response: APIResponse = {
 		success: true,
 		message: `${deviceType} ${action} command scheduled successfully`,
@@ -126,8 +113,6 @@ router.post('/schedule', validateBody(DeviceControlSchema), asyncHandler(async (
 		},
 		timestamp: new Date().toISOString()
 	};
-
 	res.json(response);
 }));
-
 export default router;

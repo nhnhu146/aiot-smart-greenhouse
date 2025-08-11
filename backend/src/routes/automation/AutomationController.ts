@@ -2,9 +2,8 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AutomationSettings } from '../../models';
 import { APIResponse } from '../../types';
-import { AutomationConfigSchema, SensorTriggerSchema } from './AutomationValidation';
 import { webSocketService } from '../../services';
-
+import { AutomationConfigSchema } from './AutomationValidation';
 export class AutomationController {
 	/**
 	 * Get automation configuration
@@ -12,7 +11,6 @@ export class AutomationController {
 	static async getConfiguration(req: Request, res: Response) {
 		try {
 			let settings = await AutomationSettings.findOne();
-
 			// Create default settings if none exist
 			if (!settings) {
 				settings = new AutomationSettings();
@@ -22,14 +20,12 @@ export class AutomationController {
 			// Ensure AutomationService is loaded with latest config
 			const { automationService } = await import('../../services');
 			await automationService.reloadConfiguration();
-
 			const response: APIResponse = {
 				success: true,
 				data: settings,
 				message: 'Automation configuration retrieved successfully',
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-GET] Error:', error);
@@ -48,9 +44,7 @@ export class AutomationController {
 	static async updateConfiguration(req: Request, res: Response) {
 		try {
 			const validatedData = AutomationConfigSchema.parse(req.body);
-
 			let settings = await AutomationSettings.findOne();
-
 			if (!settings) {
 				settings = new AutomationSettings();
 			}
@@ -58,22 +52,17 @@ export class AutomationController {
 			// Update all fields
 			Object.assign(settings, validatedData);
 			await settings.save();
-
-			console.log(`⚙️ Automation configuration updated:`, validatedData);
-
+			console.log('⚙️ Automation configuration updated:', validatedData);
 			// Reload automation service and trigger immediate check
 			const { automationService } = await import('../../services');
 			await automationService.reloadConfiguration();
-
 			// Broadcast automation settings update via WebSocket
 			webSocketService.broadcastAutomationUpdate(settings);
-
 			// Broadcast database change
 			webSocketService.broadcastDatabaseChange('AutomationSettings', 'update', {
 				type: 'configuration',
 				data: settings
 			});
-
 			if (settings.automationEnabled) {
 				await automationService.processImmediateAutomationCheck();
 				console.log('⚡ Immediate automation check triggered after config update');
@@ -85,7 +74,6 @@ export class AutomationController {
 				message: 'Automation configuration updated successfully',
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-PUT] Error:', error);
@@ -105,17 +93,14 @@ export class AutomationController {
 		try {
 			const { automationService } = await import('../../services');
 			const success = await automationService.toggleAutomation();
-
 			if (success) {
 				const settings = await AutomationSettings.findOne();
-
 				const response: APIResponse = {
 					success: true,
 					data: { enabled: settings?.automationEnabled ?? false },
 					message: `Automation ${settings?.automationEnabled ? 'enabled' : 'disabled'} successfully`,
 					timestamp: new Date().toISOString()
 				};
-
 				res.json(response);
 			} else {
 				throw new Error('Failed to toggle automation');
@@ -138,14 +123,12 @@ export class AutomationController {
 		try {
 			const { automationService } = await import('../../services');
 			const status = automationService.getAutomationStatus();
-
 			const response: APIResponse = {
 				success: true,
 				data: status,
 				message: 'Automation status retrieved successfully',
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-STATUS] Error:', error);
@@ -163,14 +146,12 @@ export class AutomationController {
 	 */
 	static async resetToDefaults(req: Request, res: Response) {
 		try {
-			await AutomationSettings.deleteMany({});
+			await AutomationSettings.deleteMany({ /* TODO: Implement */ });
 			const defaultSettings = new AutomationSettings();
 			await defaultSettings.save();
-
 			// Reload the AutomationService with new configuration
 			const { automationService } = await import('../../services');
 			await automationService.reloadConfiguration();
-
 			// Trigger immediate automation check with reset settings
 			if (defaultSettings.automationEnabled) {
 				await automationService.processImmediateAutomationCheck();
@@ -182,7 +163,6 @@ export class AutomationController {
 				message: 'Automation settings reset to defaults',
 				timestamp: new Date().toISOString()
 			};
-
 			res.json(response);
 		} catch (error) {
 			console.error('[AUTOMATION-RESET] Error:', error);

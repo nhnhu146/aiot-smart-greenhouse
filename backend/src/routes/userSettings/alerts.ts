@@ -1,15 +1,13 @@
 import express, { Request, Response } from 'express';
 import { UserSettings } from '../../models';
-
+import { asyncHandler } from '../../middleware';
 const router = express.Router();
-
 // PUT /api/user-settings/alert-recipients - Update alert recipients
-router.put('/alert-recipients', async (req: Request, res: Response): Promise<void> => {
+router.put('/alert-recipients', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const userId = (req as any).user?.id;
 		const userEmail = (req as any).user?.email;
 		const { recipients } = req.body;
-
 		if (!userId) {
 			res.status(401).json({
 				success: false,
@@ -29,7 +27,6 @@ router.put('/alert-recipients', async (req: Request, res: Response): Promise<voi
 		// Validate all email addresses
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		const invalidEmails = recipients.filter(email => !emailRegex.test(email));
-
 		if (invalidEmails.length > 0) {
 			res.status(400).json({
 				success: false,
@@ -51,7 +48,6 @@ router.put('/alert-recipients', async (req: Request, res: Response): Promise<voi
 		const uniqueRecipients = Array.from(new Set([userEmail, ...recipients]));
 		settings.alertRecipients = uniqueRecipients;
 		await settings.save();
-
 		res.json({
 			success: true,
 			message: 'Alert recipients updated successfully',
@@ -64,15 +60,13 @@ router.put('/alert-recipients', async (req: Request, res: Response): Promise<voi
 			message: 'Internal server error'
 		});
 	}
-});
-
+}));
 // PUT /api/user-settings/alert-thresholds - Update alert thresholds
-router.put('/alert-thresholds', async (req: Request, res: Response): Promise<void> => {
+router.put('/alert-thresholds', asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	try {
 		const userId = (req as any).user?.id;
 		const userEmail = (req as any).user?.email;
 		const { temperature, humidity, soilMoisture, lightLevel } = req.body;
-
 		if (!userId) {
 			res.status(401).json({
 				success: false,
@@ -96,10 +90,8 @@ router.put('/alert-thresholds', async (req: Request, res: Response): Promise<voi
 		if (humidity) thresholds.humidity = humidity;
 		if (soilMoisture) thresholds.soilMoisture = soilMoisture;
 		if (lightLevel) thresholds.lightLevel = lightLevel;
-
 		settings.alertThresholds = thresholds;
 		await settings.save();
-
 		res.json({
 			success: true,
 			message: 'Alert thresholds updated successfully',
@@ -112,6 +104,5 @@ router.put('/alert-thresholds', async (req: Request, res: Response): Promise<voi
 			message: 'Internal server error'
 		});
 	}
-});
-
+}));
 export default router;

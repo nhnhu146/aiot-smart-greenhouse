@@ -1,22 +1,20 @@
 import axios from 'axios';
-
+import { Config } from '../config/AppConfig';
 // Simple cache to avoid sending duplicate notifications
 const sentMessages = new Map<string, number>();
 const PUSH_COOLDOWN = 5 * 60 * 1000; // 5 phút
 
 export async function sendPushNotification(title: string, message: string) {
-	const PUSHSAFER_PRIVATE_KEY = process.env.PUSHSAFER_PRIVATE_KEY;
-
+	const PUSHSAFER_PRIVATE_KEY = Config.pushNotifications.pushsaferPrivateKey;
 	// Check if PUSHSAFER is disabled or not configured
 	if (!PUSHSAFER_PRIVATE_KEY || PUSHSAFER_PRIVATE_KEY.toLowerCase() === 'off') {
-		console.log("ℹ️ Pushsafer notifications disabled (not configured or set to OFF)");
+		console.log('ℹ️ Pushsafer notifications disabled (not configured or set to OFF)');
 		return;
 	}
 
 	// Tạo key duy nhất từ title và message
 	const messageKey = `${title}|${message}`;
 	const now = Date.now();
-
 	// Kiểm tra xem thông báo này đã được gửi gần đây chưa
 	const lastSent = sentMessages.get(messageKey);
 	if (lastSent && (now - lastSent) < PUSH_COOLDOWN) {
@@ -27,7 +25,6 @@ export async function sendPushNotification(title: string, message: string) {
 	try {
 		// Đánh dấu đã gửi trước khi thực sự gửi để tránh race condition
 		sentMessages.set(messageKey, now);
-
 		await axios.post('https://www.pushsafer.com/api', null, {
 			params: {
 				k: PUSHSAFER_PRIVATE_KEY,

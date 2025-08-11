@@ -4,7 +4,10 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import './styles/globals.scss'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AutomationProvider } from './contexts/AutomationContext'
+import { ToastProvider } from './contexts/ToastContext'
+import ErrorHandlerInitializer from './components/ErrorHandlerInitializer'
 import authService from './lib/authService'
+import ApiErrorHandler from './components/Common/ApiErrorHandler'
 
 // Layout components
 import AuthLayout from './layouts/AuthLayout'
@@ -38,31 +41,37 @@ const RootRedirect: React.FC = () => {
 function App() {
 	return (
 		<Router>
-			<WebSocketProvider>
-				<AutomationProvider>
-					<Routes>
-						{/* Root redirect */}
-						<Route path="/" element={<RootRedirect />} />
+			<ToastProvider>
+				<ErrorHandlerInitializer>
+					<ApiErrorHandler>
+						<WebSocketProvider>
+						<AutomationProvider>
+						<Routes>
+							{/* Root redirect */}
+							<Route path="/" element={<RootRedirect />} />
 
-						{/* Auth routes */}
-						<Route path="/landing" element={<AuthLayout><LandingPage /></AuthLayout>} />
-						<Route path="/signin" element={<AuthLayout><SignInPage /></AuthLayout>} />
-						<Route path="/signup" element={<AuthLayout><SignUpPage /></AuthLayout>} />
-						<Route path="/forgot-password" element={<AuthLayout><ForgotPasswordPage /></AuthLayout>} />
-						<Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
+							{/* Auth routes */}
+							<Route path="/landing" element={<AuthLayout><LandingPage /></AuthLayout>} />
+							<Route path="/signin" element={<AuthLayout><SignInPage /></AuthLayout>} />
+							<Route path="/signup" element={<AuthLayout><SignUpPage /></AuthLayout>} />
+							<Route path="/forgot-password" element={<AuthLayout><ForgotPasswordPage /></AuthLayout>} />
+							<Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
 
-						{/* Protected routes */}
-						<Route path="/dashboard" element={<DefaultLayout><DashboardPage /></DefaultLayout>} />
-						<Route path="/history" element={<DefaultLayout><HistoryPage /></DefaultLayout>} />
-						<Route path="/automode" element={<DefaultLayout><AutoModePage /></DefaultLayout>} />
-						<Route path="/settings" element={<DefaultLayout><SettingsPage /></DefaultLayout>} />
-						<Route path="/examples" element={<DefaultLayout><ExamplesPage /></DefaultLayout>} />
+							{/* Protected routes */}
+							<Route path="/dashboard" element={<DefaultLayout><DashboardPage /></DefaultLayout>} />
+							<Route path="/history" element={<DefaultLayout><HistoryPage /></DefaultLayout>} />
+							<Route path="/automode" element={<DefaultLayout><AutoModePage /></DefaultLayout>} />
+							<Route path="/settings" element={<DefaultLayout><SettingsPage /></DefaultLayout>} />
+							<Route path="/examples" element={<DefaultLayout><ExamplesPage /></DefaultLayout>} />
 
-						{/* Catch all - redirect to home */}
-						<Route path="*" element={<Navigate to="/" replace />} />
-					</Routes>
-				</AutomationProvider>
-			</WebSocketProvider>
+							{/* Catch all - redirect to home */}
+							<Route path="*" element={<Navigate to="/" replace />} />
+						</Routes>
+						</AutomationProvider>
+					</WebSocketProvider>
+				</ApiErrorHandler>
+				</ErrorHandlerInitializer>
+			</ToastProvider>
 		</Router>
 	)
 }

@@ -1,11 +1,10 @@
 import winston from 'winston';
 import path from 'path';
-
 // Ensure logs directory exists
 const logsDir = path.join(process.cwd(), 'logs');
-
+import { Config } from '../config/AppConfig';
 const logger = winston.createLogger({
-	level: process.env.LOG_LEVEL || 'info',
+	level: Config.logging.level,
 	format: winston.format.combine(
 		winston.format.timestamp({
 			format: 'YYYY-MM-DD HH:mm:ss'
@@ -36,7 +35,6 @@ const logger = winston.createLogger({
 		})
 	]
 });
-
 // Create logs directory if it doesn't exist
 import fs from 'fs';
 if (!fs.existsSync(logsDir)) {

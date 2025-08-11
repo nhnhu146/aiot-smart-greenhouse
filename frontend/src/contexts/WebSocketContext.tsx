@@ -1,6 +1,15 @@
 import { createContext, useContext, ReactNode } from 'react';
 import useWebSocket from '@/hooks/useWebSocket';
 
+interface VoiceCommand {
+	id: string;
+	command: string;
+	confidence: number | null;
+	timestamp: string;
+	processed: boolean;
+	errorMessage?: string;
+}
+
 interface WebSocketContextType {
 	socket: any;
 	isConnected: boolean;
@@ -10,6 +19,7 @@ interface WebSocketContextType {
 	alerts: any[];
 	sendDeviceControl: (device: string, action: string, value?: any) => Promise<any>;
 	clearAlerts: () => void;
+	latestVoiceCommand: VoiceCommand | null;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);

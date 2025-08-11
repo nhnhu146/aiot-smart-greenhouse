@@ -1,321 +1,223 @@
-# 🚀 Local Development Setup Guide
+# Local Development Setup
+
+This guide will help you set up the AIoT Smart Greenhouse project for local development.
 
 ## Prerequisites
 
-Trước khi bắt đầu, đảm bảo máy tính của bạn đã cài đặt:
+### Required Software
+- **Node.js** (v18.0.0 or higher)
+- **Yarn** package manager
+- **MongoDB** (v5.0 or higher)
+- **Git**
+- **Python** (v3.8+ for scripts)
 
-- **Node.js** >= 18.0.0 ([Download](https://nodejs.org/))
-- **Docker & Docker Compose** ([Download](https://www.docker.com/get-started))
-- **Git** ([Download](https://git-scm.com/))
-- **Yarn** (npm install -g yarn)
+### Optional Software
+- **Docker** (for containerized setup)
+- **MQTT Broker** (Mosquitto recommended)
+- **VS Code** (recommended IDE)
 
-## 📁 Project Structure
+## Installation Steps
 
-```
-aiot-smart-greenhouse/
-├── backend/          # Node.js/TypeScript API server
-├── frontend/         # React/TypeScript web app
-├── embedded/         # ESP32 IoT firmware  
-├── scripts/          # Database & utility scripts
-├── docs/             # Documentation
-└── compose.yml       # Docker Compose configuration
-```
-
-## 🛠️ Quick Setup (Recommended)
-
-### 1. Clone Repository
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/nhnhu146/aiot-smart-greenhouse.git
+git clone https://github.com/your-username/aiot-smart-greenhouse.git
 cd aiot-smart-greenhouse
 ```
 
-### 2. Environment Setup
-Tạo file `.env` trong thư mục gốc:
-```bash
-# Copy from template
-cp .env.example .env
+### 2. Install Dependencies
 
-# Edit với editor của bạn
-nano .env  # hoặc code .env
-```
-
-### 3. Start All Services
-```bash
-# Khởi động tất cả services với Docker
-docker compose up -d
-
-# Hoặc chạy development servers
-npm run dev:all
-```
-
-### 4. Access Applications
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
-- **MongoDB**: localhost:27017
-- **Redis**: localhost:6379
-
-## 🔧 Manual Development Setup
-
-### Backend Setup
-
-1. **Navigate to backend directory**
+#### Backend Setup
 ```bash
 cd backend
-```
-
-2. **Install dependencies**
-```bash
 yarn install
 ```
 
-3. **Setup environment variables**
+#### Frontend Setup
 ```bash
-# Tạo file .env trong backend/
+cd ../frontend
+yarn install
+```
+
+### 3. Environment Configuration
+
+#### Create Backend Environment File
+```bash
+cd backend
 cp .env.example .env
-
-# Cấu hình các biến môi trường cần thiết
 ```
 
-4. **Start development server**
+Edit `.env` with your configuration:
 ```bash
-# Development mode với hot reload
-yarn dev
-
-# Production mode
-yarn build && yarn start
+MONGODB_URI=mongodb://localhost:27017/greenhouse
+JWT_SECRET=your-development-secret-key
+MQTT_BROKER_URL=mqtt://localhost:1883
+# Add other variables as needed
 ```
 
-### Frontend Setup
+#### Create Frontend Environment File
+```bash
+cd ../frontend
+cp .env.example .env
+```
 
-1. **Navigate to frontend directory**
+### 4. Database Setup
+
+#### Start MongoDB
+```bash
+# Using system service
+sudo systemctl start mongod
+
+# Or using Docker
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+```
+
+#### Initialize Database
+```bash
+cd backend
+yarn run init-db
+```
+
+### 5. MQTT Broker Setup (Optional)
+
+#### Install Mosquitto
+```bash
+# Ubuntu/Debian
+sudo apt-get install mosquitto mosquitto-clients
+
+# macOS
+brew install mosquitto
+
+# Windows
+# Download from https://mosquitto.org/download/
+```
+
+#### Start Mosquitto
+```bash
+mosquitto -c /usr/local/etc/mosquitto/mosquitto.conf
+```
+
+### 6. Development Server Startup
+
+#### Start Backend
+```bash
+cd backend
+yarn dev
+```
+
+#### Start Frontend (in new terminal)
 ```bash
 cd frontend
-```
-
-2. **Install dependencies**
-```bash
-yarn install
-```
-
-3. **Setup environment variables**
-```bash
-# Tạo file .env.local trong frontend/
-cp .env.example .env.local
-```
-
-4. **Start development server**
-```bash
-# Development mode
 yarn dev
-
-# Production build
-yarn build && yarn preview
 ```
 
-### Database Setup
+### 7. Verify Installation
 
-1. **Start MongoDB với Docker**
+1. **Backend API**: Visit `http://localhost:3001/api/health`
+2. **Frontend**: Visit `http://localhost:5173`
+3. **WebSocket**: Check browser console for connection status
+
+## Development Workflow
+
+### Code Style
+- Use ESLint and Prettier for code formatting
+- Follow TypeScript best practices
+- Write unit tests for new features
+
+### Git Workflow
 ```bash
-docker run -d \
-  --name greenhouse-mongo \
-  -p 27017:27017 \
-  -v mongodb_data:/data/db \
-  mongo:7.0
+# Create feature branch
+git checkout -b feature/your-feature-name
+
+# Make changes and commit
+git add .
+git commit -m "feat: description of changes"
+
+# Push and create PR
+git push origin feature/your-feature-name
 ```
 
-2. **Initialize database**
+### Testing
 ```bash
-# Run initialization script
-node scripts/init-mongo.js
+# Run backend tests
+cd backend
+yarn test
+
+# Run frontend tests
+cd frontend
+yarn test
+
+# Run linting
+yarn lint
 ```
 
-3. **Create admin user**
+### Database Management
 ```bash
-cd backend && node create-admin.js
+# Create admin user
+cd backend
+yarn run create-admin
+
+# Reset database
+yarn run reset-db
+
+# Backup database
+yarn run backup-db
 ```
 
-### Redis Setup
-
-1. **Start Redis với Docker**
-```bash
-docker run -d \
-  --name greenhouse-redis \
-  -p 6379:6379 \
-  -v redis_data:/data \
-  redis:7.2
-```
-
-## 🌐 Network Configuration
-
-### Docker Network Setup
-```bash
-# Tạo custom network cho inter-service communication
-docker network create multi-domain
-
-# Hoặc sử dụng script có sẵn
-./create-network.ps1  # Windows
-```
-
-### MQTT Broker Setup
-Dự án sử dụng external MQTT broker:
-- **Host**: mqtt.noboroto.id.vn
-- **Port**: 1883
-- **Topics**: Xem file `docs/MQTT_TOPICS.md`
-
-## 📱 IoT Device Setup
-
-### ESP32 Configuration
-
-1. **Install Arduino IDE & Libraries**
-   - ESP32 Board Package
-   - PubSubClient (MQTT)
-   - ArduinoJson
-   - WiFi library
-
-2. **Configure embedded/embedded.ino**
-```cpp
-// WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-
-// MQTT configuration
-const char* mqtt_server = "mqtt.noboroto.id.vn";
-const int mqtt_port = 1883;
-```
-
-3. **Upload firmware**
-```bash
-# Sử dụng Arduino IDE hoặc PlatformIO
-```
-
-## 🧪 Testing & Development
-
-### Running Tests
-```bash
-# Backend tests
-cd backend && yarn test
-
-# Frontend tests  
-cd frontend && yarn test
-
-# E2E tests
-yarn test:e2e
-```
-
-### Development Scripts
-```bash
-# Start all development servers
-yarn dev:all
-
-# Start only backend
-yarn dev:backend
-
-# Start only frontend
-yarn dev:frontend
-
-# Database operations
-yarn db:seed      # Seed test data
-yarn db:reset     # Reset database
-yarn db:migrate   # Run migrations
-```
-
-### Debugging
-
-1. **Backend Debugging**
-   - Logs: `backend/logs/`
-   - Debug mode: `DEBUG=* yarn dev`
-   - VSCode debugger supported
-
-2. **Frontend Debugging**
-   - Browser DevTools
-   - React DevTools extension
-   - Redux DevTools (if applicable)
-
-## 🔍 Health Checks
-
-### System Status
-```bash
-# Check all services
-docker compose ps
-
-# Check backend health
-curl http://localhost:5000/api/health
-
-# Check frontend
-curl http://localhost:3000
-```
-
-### Database Connectivity
-```bash
-# MongoDB
-docker exec -it greenhouse-mongo mongosh
-
-# Redis
-docker exec -it greenhouse-redis redis-cli ping
-```
-
-### MQTT Testing
-```bash
-# Sử dụng MQTT client để test
-mosquitto_pub -h mqtt.noboroto.id.vn -p 1883 -t "greenhouse/sensors/temperature" -m "25.5"
-```
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-1. **Port conflicts**
+#### Port Already in Use
 ```bash
-# Find và kill processes using ports
-lsof -ti:3000 | xargs kill -9  # Frontend
-lsof -ti:5000 | xargs kill -9  # Backend
+# Kill processes on specific ports
+lsof -ti:3001 | xargs kill -9
+lsof -ti:5173 | xargs kill -9
 ```
 
-2. **Docker issues**
+#### MongoDB Connection Issues
+- Ensure MongoDB is running
+- Check connection string in `.env`
+- Verify network connectivity
+
+#### MQTT Connection Issues
+- Start MQTT broker
+- Check broker URL configuration
+- Verify firewall settings
+
+#### Build Errors
 ```bash
-# Reset Docker containers
-docker compose down -v
-docker compose up -d --build
+# Clear node modules and reinstall
+rm -rf node_modules yarn.lock
+yarn install
+
+# Clear Vite cache (frontend)
+yarn vite --force
 ```
 
-3. **Database connection errors**
-```bash
-# Check MongoDB status
-docker logs greenhouse-mongo
+## IDE Configuration
 
-# Reset database
-docker compose down
-docker volume rm greenhouse_mongodb_data
-docker compose up -d
+### VS Code Extensions
+- TypeScript and JavaScript Language Features
+- ESLint
+- Prettier
+- MongoDB for VS Code
+- Thunder Client (for API testing)
+
+### VS Code Settings
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "typescript.preferences.importModuleSpecifier": "relative"
+}
 ```
 
-4. **MQTT connection issues**
-```bash
-# Test MQTT connectivity
-telnet mqtt.noboroto.id.vn 1883
-```
+## Next Steps
 
-### Log Locations
-- Backend: `backend/logs/`
-- Frontend: Browser console
-- Database: Docker logs
-- MQTT: Backend logs
-
-## 📚 Additional Resources
-
-- [API Documentation](./API_DOCUMENTATION.md)
-- [Environment Variables](./ENVIRONMENT_VARIABLES.md)
-- [Use Cases](./USE_CASES.md)
-- [Deployment Guide](./DEPLOYMENT_GUIDE.md)
-- [Contributing Guidelines](./CONTRIBUTING.md)
-
-## 🆘 Support
-
-Nếu gặp vấn đề:
-1. Kiểm tra [Troubleshooting Guide](./TROUBLESHOOTING.md)
-2. Xem [Issues trên GitHub](https://github.com/nhnhu146/aiot-smart-greenhouse/issues)
-3. Tạo issue mới với template phù hợp
-
----
-
-💡 **Tip**: Sử dụng `docker compose logs -f [service-name]` để theo dõi logs real-time của bất kỳ service nào!
+After setup is complete:
+1. Read the [System Overview](SYSTEM_OVERVIEW.md)
+2. Review the [API Reference](API_REFERENCE.md)
+3. Check the [WebSocket Reference](WEBSOCKET_REFERENCE.md)
+4. Explore [Use Cases](USE_CASES.md)

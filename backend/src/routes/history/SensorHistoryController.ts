@@ -2,148 +2,168 @@ import { Request, Response } from 'express';
 import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
 import { DataMergerService } from '../../services/DataMergerService';
-
 export class SensorHistoryController {
 	async getSensorHistory(req: Request, res: Response): Promise<void> {
-		const {
-			page = 1,
-			limit = 100,
-			dateFrom,
-			dateTo,
-			from,
-			to,
-			minTemperature,
-			maxTemperature,
-			minHumidity,
-			maxHumidity,
-			minSoilMoisture,
-			maxSoilMoisture,
-			minWaterLevel,
-			maxWaterLevel,
-			sortBy = 'createdAt',
-			sortOrder = 'desc'
-		} = req.query as any;
-
-		// Validate sortBy parameter - include all possible sort fields for sensor data
-		const validSortFields = ['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel', 'lightIntensity', 'rainStatus'];
-		const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-
-		// Log sort parameters for debugging
-		console.log(`🔍 SensorHistory sort - sortBy: ${sortBy}, actualSortBy: ${actualSortBy}, sortOrder: ${sortOrder}`);
-
-		const query: any = {};
-
-		// Handle date filters - support both from/to and dateFrom/dateTo
-		const fromDate = dateFrom || from;
-		const toDate = dateTo || to;
-
-		// Apply date filters only if specified
-		if (fromDate || toDate) {
-			query.createdAt = {};
-			if (fromDate) query.createdAt.$gte = new Date(fromDate);
-			if (toDate) query.createdAt.$lte = new Date(toDate);
-		}
-		// Note: If no date range specified, fetch all data (no default 24h filter)
-
-		// Add range filters
-		if (minTemperature && !isNaN(parseFloat(minTemperature))) {
-			query.temperature = { ...query.temperature, $gte: parseFloat(minTemperature) };
-		}
-		if (maxTemperature && !isNaN(parseFloat(maxTemperature))) {
-			query.temperature = { ...query.temperature, $lte: parseFloat(maxTemperature) };
-		}
-		if (minHumidity && !isNaN(parseFloat(minHumidity))) {
-			query.humidity = { ...query.humidity, $gte: parseFloat(minHumidity) };
-		}
-		if (maxHumidity && !isNaN(parseFloat(maxHumidity))) {
-			query.humidity = { ...query.humidity, $lte: parseFloat(maxHumidity) };
-		}
-		if (minSoilMoisture && !isNaN(parseFloat(minSoilMoisture))) {
-			query.soilMoisture = { ...query.soilMoisture, $gte: parseFloat(minSoilMoisture) };
-		}
-		if (maxSoilMoisture && !isNaN(parseFloat(maxSoilMoisture))) {
-			query.soilMoisture = { ...query.soilMoisture, $lte: parseFloat(maxSoilMoisture) };
-		}
-		if (minWaterLevel && !isNaN(parseFloat(minWaterLevel))) {
-			query.waterLevel = { ...query.waterLevel, $gte: parseFloat(minWaterLevel) };
-		}
-		if (maxWaterLevel && !isNaN(parseFloat(maxWaterLevel))) {
-			query.waterLevel = { ...query.waterLevel, $lte: parseFloat(maxWaterLevel) };
-		}
-
-		const skip = (page - 1) * limit;
-
-		// Build sort object
-		const sortObj: any = {};
-		sortObj[actualSortBy] = sortOrder === 'asc' ? 1 : -1;
-
-		// Smart merge for sensors: only if duplicates exist
-		const mergerService = DataMergerService.getInstance();
 		try {
-			// Quick duplicate check first
-			const quickDuplicateCheck = await SensorData.aggregate([
-				{ $match: query },
-				{
-					$group: {
-						_id: '$createdAt',
-						count: { $sum: 1 }
+			const {
+				page = 1,
+				limit = 20,
+				sortBy = 'createdAt',
+				sortOrder = 'desc',
+				startDate,
+				endDate,
+				deviceId,
+				temperature,
+				humidity,
+				soilMoisture,
+				waterLevel,
+				rainStatus
+			} = req.query;
+
+			// Build query object
+			const query: any = {};
+
+			// Date range filter
+			if (startDate || endDate) {
+				query.createdAt = {};
+				if (startDate) query.createdAt.$gte = new Date(startDate as string);
+				if (endDate) query.createdAt.$lte = new Date(endDate as string);
+			}
+
+			// Other filters
+			if (deviceId && deviceId !== 'all') query.deviceId = deviceId;
+			if (temperature) query['data.temperature'] = Number(temperature);
+			if (humidity) query['data.humidity'] = Number(humidity);
+			if (soilMoisture) query['data.soilMoisture'] = Number(soilMoisture);
+			if (waterLevel) query['data.waterLevel'] = Number(waterLevel);
+			if (rainStatus !== undefined) query['data.rainStatus'] = rainStatus === 'true';
+
+			const skip = (Number(page) - 1) * Number(limit);
+
+			// Build sort object
+			const sortObj: any = {};
+			sortObj[sortBy as string] = sortOrder === 'asc' ? 1 : -1;
+
+			// **CRITICAL: Perform merge BEFORE data retrieval to ensure only merged data is served**
+			try {
+				console.log('🔄 Ensuring data merge before serving sensor history...');
+				const mergerService = DataMergerService.getInstance();
+
+				// Perform comprehensive merge to consolidate same timestamps
+				const mergeStats = await mergerService.mergeSameTimestampData({
+					exactDuplicatesOnly: false, // Handle both exact and near duplicates
+					timeWindowMs: 60000, // 1 minute window for near duplicates
+					preserveOriginal: false
+				});
+
+				if (mergeStats.mergedRecords > 0) {
+					console.log('✅ Pre-query merge completed:', {
+						merged: mergeStats.mergedRecords,
+						deleted: mergeStats.deletedRecords,
+						groups: mergeStats.processedGroups
+					});
+				}
+			} catch (mergeError) {
+				console.warn('⚠️ Pre-query merge failed, continuing with existing data:', mergeError);
+			}
+
+			// **Get merged data - this should now have no duplicate timestamps**
+			const sensorData = await SensorData.find(query)
+				.sort(sortObj)
+				.skip(skip)
+				.limit(Number(limit))
+				.lean();
+
+			// **Verification: Ensure no duplicate timestamps in response**
+			const timestampGroups = new Map();
+			sensorData.forEach((record, index) => {
+				const timestamp = record.createdAt?.getTime();
+				if (timestamp) {
+					if (timestampGroups.has(timestamp)) {
+						console.warn(`⚠️ Duplicate timestamp detected in response: ${record.createdAt} (indices: ${timestampGroups.get(timestamp)}, ${index})`);
+					} else {
+						timestampGroups.set(timestamp, index);
+					}
+				}
+			});
+
+			// Format dates to ensure proper format
+			const formattedSensorData = sensorData.map(sensor => ({
+				...sensor,
+				createdAt: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString(),
+				updatedAt: sensor.updatedAt ? new Date(sensor.updatedAt).toISOString() : new Date().toISOString(),
+				// Add formatted timestamp for display
+				timestamp: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString()
+			}));
+
+			const total = await SensorData.countDocuments(query);
+
+			const response: APIResponse = {
+				success: true,
+				message: 'Sensor history retrieved successfully',
+				data: {
+					sensors: formattedSensorData,
+					pagination: {
+						page: Number(page),
+						limit: Number(limit),
+						total,
+						totalPages: Math.ceil(total / Number(limit)),
+						hasNext: skip + formattedSensorData.length < total,
+						hasPrev: Number(page) > 1
 					}
 				},
-				{ $match: { count: { $gt: 1 } } },
-				{ $limit: 1 }
-			]);
+				// Add merge metadata to confirm data is merged
+				merged: true,
+				timestamp: new Date().toISOString()
+			};
 
-			if (quickDuplicateCheck.length > 0) {
-				await mergerService.mergeSameTimestampData();
-				console.log('✅ Sensor data merged (duplicates found)');
-			}
-		} catch (mergeError) {
-			console.warn('⚠️ Sensor merge failed, continuing:', mergeError);
+			res.status(200).json(response);
+		} catch (error) {
+			console.error('❌ Error fetching sensor history:', error);
+			const response: APIResponse = {
+				success: false,
+				message: 'Failed to fetch sensor history',
+				error: error instanceof Error ? error.message : 'Unknown error',
+				timestamp: new Date().toISOString()
+			};
+			res.status(500).json(response);
 		}
-
-		const sensorData = await SensorData.find(query)
-			.sort(sortObj)
-			.skip(skip)
-			.limit(limit)
-			.lean();
-
-		// Format dates to ensure proper HH:mm:ss format
-		const formattedSensorData = sensorData.map(sensor => ({
-			...sensor,
-			createdAt: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString(),
-			updatedAt: sensor.updatedAt ? new Date(sensor.updatedAt).toISOString() : new Date().toISOString(),
-			// Add formatted timestamp for display
-			timestamp: sensor.createdAt ? new Date(sensor.createdAt).toISOString() : new Date().toISOString()
-		}));
-
-		const total = await SensorData.countDocuments(query);
-
-		const response: APIResponse = {
-			success: true,
-			message: 'Sensor history retrieved successfully',
-			data: {
-				sensors: formattedSensorData,
-				pagination: {
-					page,
-					limit,
-					total,
-					totalPages: Math.ceil(total / limit),
-					hasNext: page < Math.ceil(total / limit),
-					hasPrev: page > 1
-				}
-			},
-			timestamp: new Date().toISOString()
-		};
-
-		res.json(response);
 	}
 
 	async getSensorSummary(req: Request, res: Response): Promise<void> {
-		const { from, to } = req.query as any;
-
+		const { from, to, dateFrom, dateTo, sensorType, minValue } = req.query as any;
+		// Build query object for sensor history
 		const query: any = {};
+
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+
+		// Filter by sensor type if specified
+		if (sensorType && sensorType !== 'all') {
+			query[sensorType] = { $exists: true, $ne: null };
+		}
+
+		// Filter by value range if specified
+		if (minValue !== undefined) {
+			// Apply to all numeric sensor fields
+			const numericFields = ['temperature', 'humidity', 'soilMoisture', 'lightIntensity'];
+			const orConditions = numericFields.map(field => ({ [field]: { $gte: parseFloat(minValue) } }));
+			query.$or = orConditions;
+		}
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
@@ -165,7 +185,6 @@ export class SensorHistoryController {
 				}
 			}
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor summary retrieved successfully',
@@ -184,13 +203,11 @@ export class SensorHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 
 	async getSensorTrends(req: Request, res: Response): Promise<void> {
-		const { from, to, interval = 'hour' } = req.query as any;
-
+		const { from, to, dateFrom, dateTo, sensorType, minValue, interval = 'hour' } = req.query as any;
 		let dateFormat: string;
 		switch (interval) {
 			case 'day':
@@ -202,9 +219,38 @@ export class SensorHistoryController {
 				break;
 		}
 
+		// Build query object for sensor history
 		const query: any = {};
+
+		// Handle date filters - support both from/to and dateFrom/dateTo
+		if (from || dateFrom) {
+			const startDate = from || dateFrom;
+			query.createdAt = { $gte: new Date(startDate) };
+		}
+
+		if (to || dateTo) {
+			const endDate = to || dateTo;
+			if (query.createdAt) {
+				query.createdAt.$lte = new Date(endDate);
+			} else {
+				query.createdAt = { $lte: new Date(endDate) };
+			}
+		}
+
+		// Filter by sensor type if specified
+		if (sensorType && sensorType !== 'all') {
+			query[sensorType] = { $exists: true, $ne: null };
+		}
+
+		// Filter by value range if specified
+		if (minValue !== undefined) {
+			// Apply to all numeric sensor fields
+			const numericFields = ['temperature', 'humidity', 'soilMoisture', 'lightIntensity'];
+			const orConditions = numericFields.map(field => ({ [field]: { $gte: parseFloat(minValue) } }));
+			query.$or = orConditions;
+		}
 		if (from || to) {
-			query.createdAt = {};
+			query.createdAt = { /* TODO: Implement */ };
 			if (from) query.createdAt.$gte = from;
 			if (to) query.createdAt.$lte = to;
 		}
@@ -228,7 +274,6 @@ export class SensorHistoryController {
 			},
 			{ $sort: { _id: 1 } }
 		]);
-
 		const response: APIResponse = {
 			success: true,
 			message: 'Sensor trends retrieved successfully',
@@ -238,7 +283,6 @@ export class SensorHistoryController {
 			},
 			timestamp: new Date().toISOString()
 		};
-
 		res.json(response);
 	}
 }

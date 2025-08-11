@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 export const SensorDataSchema = z.object({
 	temperature: z.number().min(-50).max(100),
 	humidity: z.number().min(0).max(100),
@@ -10,13 +9,11 @@ export const SensorDataSchema = z.object({
 	rainStatus: z.number().min(0).max(1), // Binary: 0=no rain, 1=raining
 	timestamp: z.date().optional()
 });
-
 export const DeviceControlSchema = z.object({
 	deviceType: z.enum(['light', 'pump', 'door', 'window']),
 	action: z.enum(['on', 'off', 'open', 'close']),
 	duration: z.number().min(1).max(3600).optional() // max 1 hour
 });
-
 export const SettingsSchema = z.object({
 	temperatureThreshold: z.object({
 		min: z.number().min(-50).max(50),
@@ -45,7 +42,6 @@ export const SettingsSchema = z.object({
 		emailRecipients: z.array(z.string().email()).optional().default([])
 	})
 });
-
 export const AlertCreateSchema = z.object({
 	type: z.enum(['warning', 'error', 'info']),
 	message: z.string().min(1).max(500),
@@ -53,7 +49,6 @@ export const AlertCreateSchema = z.object({
 	value: z.number().optional(),
 	threshold: z.number().optional()
 });
-
 export const QueryParamsSchema = z.object({
 	page: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1)).optional(),
 	limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().min(1).max(10000)).optional(),
@@ -82,9 +77,8 @@ export const QueryParamsSchema = z.object({
 	sortBy: z.enum(['createdAt', 'timestamp', 'temperature', 'humidity', 'soilMoisture', 'waterLevel', 'deviceType', 'action', 'status']).optional(),
 	sortOrder: z.enum(['asc', 'desc']).optional()
 });
-
-export type SensorDataInput = z.infer<typeof SensorDataSchema>;
-export type DeviceControlInput = z.infer<typeof DeviceControlSchema>;
-export type SettingsInput = z.infer<typeof SettingsSchema>;
-export type AlertCreateInput = z.infer<typeof AlertCreateSchema>;
-export type QueryParams = z.infer<typeof QueryParamsSchema>;
+export type SensorDataInput = z.infer<typeof SensorDataSchema>
+export type DeviceControlInput = z.infer<typeof DeviceControlSchema>
+export type SettingsInput = z.infer<typeof SettingsSchema>
+export type AlertCreateInput = z.infer<typeof AlertCreateSchema>
+export type QueryParams = z.infer<typeof QueryParamsSchema>

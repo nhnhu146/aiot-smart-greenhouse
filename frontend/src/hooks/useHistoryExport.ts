@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import apiClient from '@/lib/apiClient';
 import { FilterState } from '@/types/history';
+import { AppConstants } from '../config/AppConfig';
 
 export const useHistoryExport = () => {
 	// Removed isExporting state to eliminate loading effects
@@ -41,11 +42,12 @@ export const useHistoryExport = () => {
 			}
 
 			// Build query parameters with filters
-			const params = new URLSearchParams();
-			params.append('format', format);
-			params.append('sortBy', 'createdAt');
-			params.append('sortOrder', 'desc');
-			params.append('limit', '10000'); // Higher limit for export
+			const queryParams: Record<string, any> = {
+				format,
+				sortBy: 'createdAt',
+				sortOrder: 'desc',
+				limit: AppConstants.MAX_EXPORT_RECORDS.toString()
+			};
 
 			// Apply filters if provided - only add non-empty values
 			if (filters) {
@@ -53,21 +55,20 @@ export const useHistoryExport = () => {
 					if (value && typeof value === 'string' && value.trim() !== '') {
 						// Map filter keys to API parameter names
 						const paramName = key === 'deviceType' ? 'device' : key;
-						params.append(paramName, value);
+						queryParams[paramName] = value;
 					}
 				});
 			}
 
-			// Use apiClient.get to properly handle authentication and API format
-			const response = await apiClient.get(`${endpoint}?${params.toString()}`);
+			// Use appropriate method based on response type
+			const response = format === 'csv' 
+				? await apiClient.getRaw(endpoint, { params: queryParams })
+				: await apiClient.get(endpoint, { params: queryParams });
 
 			// Handle response based on format
 			if (format === 'csv') {
-				// For CSV, the response should be the CSV content directly
-				const csvData = typeof response === 'string' ? response :
-					(response.data && typeof response.data === 'string') ? response.data :
-						(response.success && response.data) ? JSON.stringify(response.data, null, 2) :
-							JSON.stringify(response, null, 2);
+				// For CSV, response is raw text from getRaw method
+				const csvData = typeof response === 'string' ? response : String(response);
 
 				const blob = new Blob([csvData], { type: 'text/csv; charset=utf-8' });
 				const url = window.URL.createObjectURL(blob);
