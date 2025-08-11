@@ -20,7 +20,7 @@ interface SensorDataPoint {
 interface SensorDataTableProps {
 	data: SensorDataPoint[];
 	sortState: SortState;
-	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice') => void;
+	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice' | 'alerts') => void;
 }
 
 const SensorDataTable: React.FC<SensorDataTableProps> = ({ data, sortState, onSort }) => {

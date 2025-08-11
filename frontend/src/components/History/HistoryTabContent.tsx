@@ -11,7 +11,7 @@ interface HistoryTabContentProps {
 	data: any[];
 	pagination: PaginationInfo;
 	sortState: SortState;
-	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice') => void;
+	onSort: (field: string, tab: 'sensors' | 'controls' | 'voice' | 'alerts') => void;
 	onPageChange: (page: number) => void;
 	loading: boolean;
 	onRefresh: () => void;
