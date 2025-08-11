@@ -83,7 +83,7 @@ export class EmailService {
 		}
 	}
 
-	async sendBatchAlertEmail(alerts?: any[]): Promise<boolean> {
+	async sendBatchAlertEmail(alerts?: any[], recipients?: string[]): Promise<boolean> {
 		if (!this.emailSender) {
 			console.log('📧 Email service not configured - simulating batch alert email');
 			return true;
@@ -111,11 +111,16 @@ export class EmailService {
 				timestamp: new Date().toISOString()
 			});
 
-			// Get recipients from first alert or use a global recipient list
-			const recipients = process.env.EMAIL_RECIPIENTS?.split(',') || ['admin@greenhouse.com'];
+			// Use provided recipients or fallback to environment variable
+			const emailRecipients = recipients || 
+				process.env.EMAIL_RECIPIENTS?.split(',').map(email => email.trim()) || 
+				['admin@greenhouse.com'];
+			
+			console.log(`📧 Sending batch alert email to: ${emailRecipients.join(', ')}`);
+			console.log(`📧 Alert summary: ${alerts.length} alerts of types: ${alerts.map(a => a.type).join(', ')}`);
 			
 			return await this.emailSender.sendEmail({
-				to: recipients,
+				to: emailRecipients,
 				subject: `🚨 Smart Greenhouse - ${alerts.length} Alert(s) Summary`,
 				htmlContent: processedTemplate
 			});

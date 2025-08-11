@@ -44,12 +44,24 @@ export class AlertBatchProcessor {
 			console.log(`📧 Processing ${this.pendingAlerts.length} batched alerts`);
 			const emailRecipients = this.config.getEmailRecipients();
 			
-			// Send batch alert email with the actual alert data
-			await emailService.sendBatchAlertEmail(this.pendingAlerts);
-
-			console.log(`📧 Batch alert email sent to ${emailRecipients.length} recipients`);
-			// Clear pending alerts after sending
-			this.pendingAlerts = [];
+			if (emailRecipients.length === 0) {
+				console.warn('⚠️ No email recipients configured - batch alerts will not be sent');
+				this.pendingAlerts = []; // Clear alerts to prevent buildup
+				return;
+			}
+			
+			console.log(`📧 Sending batch alert to recipients: ${emailRecipients.join(', ')}`);
+			
+			// Send batch alert email with recipients from config
+			const emailSent = await emailService.sendBatchAlertEmail(this.pendingAlerts, emailRecipients);
+			
+			if (emailSent) {
+				console.log(`✅ Batch alert email successfully sent to ${emailRecipients.length} recipients`);
+				// Clear pending alerts after successful sending
+				this.pendingAlerts = [];
+			} else {
+				console.error('❌ Failed to send batch alert email - alerts will be retried in next batch');
+			}
 		} catch (error) {
 			console.error('❌ Error processing batched alerts:', error);
 		}
