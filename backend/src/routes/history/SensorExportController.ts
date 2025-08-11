@@ -3,17 +3,75 @@ import { SensorData } from '../../models';
 import { APIResponse } from '../../types';
 import { formatVietnamTimestamp, formatVietnamTimestampISO } from '../../utils/timezone';
 import { DataMergerService } from '../../services/DataMergerService';
+
 export class SensorExportController {
 	async exportSensorData(req: Request, res: Response): Promise<void> {
-		const { from, to, format = 'json' } = req.query as any;
+		const {
+			from,
+			to,
+			format = 'json',
+			minTemperature,
+			maxTemperature,
+			minHumidity,
+			maxHumidity,
+			minSoilMoisture,
+			maxSoilMoisture,
+			minWaterLevel,
+			maxWaterLevel,
+			soilMoisture,
+			waterLevel,
+			rainStatus,
+			sortBy = 'createdAt',
+			sortOrder = 'desc'
+		} = req.query as any;
+		
 		const query: any = {};
+		
+		// Date range filters
 		if (from || to) {
 			query.createdAt = {};
 			if (from) query.createdAt.$gte = new Date(from);
 			if (to) query.createdAt.$lte = new Date(to);
 		}
 
-			// **CRITICAL: Ensure data merge before export**
+		// Temperature range filters
+		if (minTemperature !== undefined || maxTemperature !== undefined) {
+			query.temperature = {};
+			if (minTemperature !== undefined) query.temperature.$gte = Number(minTemperature);
+			if (maxTemperature !== undefined) query.temperature.$lte = Number(maxTemperature);
+		}
+
+		// Humidity range filters
+		if (minHumidity !== undefined || maxHumidity !== undefined) {
+			query.humidity = {};
+			if (minHumidity !== undefined) query.humidity.$gte = Number(minHumidity);
+			if (maxHumidity !== undefined) query.humidity.$lte = Number(maxHumidity);
+		}
+
+		// Soil moisture range filters
+		if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
+			query.soilMoisture = {};
+			if (minSoilMoisture !== undefined) query.soilMoisture.$gte = Number(minSoilMoisture);
+			if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = Number(maxSoilMoisture);
+		}
+
+		// Water level range filters
+		if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
+			query.waterLevel = {};
+			if (minWaterLevel !== undefined) query.waterLevel.$gte = Number(minWaterLevel);
+			if (maxWaterLevel !== undefined) query.waterLevel.$lte = Number(maxWaterLevel);
+		}
+
+		// Exact value filters
+		if (soilMoisture !== undefined) query.soilMoisture = Number(soilMoisture);
+		if (waterLevel !== undefined) query.waterLevel = Number(waterLevel);
+		if (rainStatus !== undefined) query.rainStatus = rainStatus;
+
+		// Sort criteria
+		const sortCriteria: any = {};
+		sortCriteria[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+		// **CRITICAL: Ensure data merge before export**
 		try {
 			console.log('🔄 Ensuring data merge before sensor export...');
 			const mergerService = DataMergerService.getInstance();
@@ -35,7 +93,8 @@ export class SensorExportController {
 		}
 
 		const sensorData = await SensorData.find(query)
-			.sort({ createdAt: -1 })
+			.sort(sortCriteria)
+			.limit(10000) // Performance limit
 			.lean();
 		
 		// Helper function to format values for CSV
@@ -51,7 +110,7 @@ export class SensorExportController {
 		
 		if (format === 'csv') {
 			// Generate CSV with UTC+7 formatted timestamps
-			let csvContent = 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status\n';
+			let csvContent = 'Timestamp (UTC+7),Temperature (°C),Humidity (%),Soil Moisture,Water Level,Plant Height (cm),Light Level,Rain Status,Data Quality\n';
 			csvContent += sensorData.map(data => {
 				const timestamp = formatVietnamTimestamp(data.createdAt);
 				const temperature = formatValue(data.temperature);
@@ -61,7 +120,8 @@ export class SensorExportController {
 				const plantHeight = formatValue(data.plantHeight);
 				const lightLevel = formatValue(data.lightLevel);
 				const rainStatus = formatValue(data.rainStatus);
-				return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus}`;
+				const dataQuality = formatValue(data.dataQuality);
+				return `'${timestamp}',${temperature},${humidity},${soilMoisture},${waterLevel},${plantHeight},${lightLevel},${rainStatus},${dataQuality}`;
 			}).join('\n');
 			res.setHeader('Content-Type', 'text/csv; charset=utf-8');
 			res.setHeader('Content-Disposition', 'attachment; filename=sensor-data.csv');
@@ -89,5 +149,68 @@ export class SensorExportController {
 			res.setHeader('Content-Disposition', 'attachment; filename=sensor-data.json');
 			res.send(JSON.stringify(response, null, 2));
 		}
+	}
+
+	async getSensorCount(req: Request, res: Response): Promise<void> {
+		const { 
+			from, 
+			to, 
+			minTemperature, 
+			maxTemperature,
+			minHumidity,
+			maxHumidity,
+			minSoilMoisture,
+			maxSoilMoisture,
+			minWaterLevel,
+			maxWaterLevel,
+			soilMoisture,
+			waterLevel,
+			rainStatus
+		} = req.query as any;
+		
+		const query: any = {};
+		
+		if (from || to) {
+			query.createdAt = {};
+			if (from) query.createdAt.$gte = new Date(from);
+			if (to) query.createdAt.$lte = new Date(to);
+		}
+
+		if (minTemperature !== undefined || maxTemperature !== undefined) {
+			query.temperature = {};
+			if (minTemperature !== undefined) query.temperature.$gte = Number(minTemperature);
+			if (maxTemperature !== undefined) query.temperature.$lte = Number(maxTemperature);
+		}
+
+		if (minHumidity !== undefined || maxHumidity !== undefined) {
+			query.humidity = {};
+			if (minHumidity !== undefined) query.humidity.$gte = Number(minHumidity);
+			if (maxHumidity !== undefined) query.humidity.$lte = Number(maxHumidity);
+		}
+
+		if (minSoilMoisture !== undefined || maxSoilMoisture !== undefined) {
+			query.soilMoisture = {};
+			if (minSoilMoisture !== undefined) query.soilMoisture.$gte = Number(minSoilMoisture);
+			if (maxSoilMoisture !== undefined) query.soilMoisture.$lte = Number(maxSoilMoisture);
+		}
+
+		if (minWaterLevel !== undefined || maxWaterLevel !== undefined) {
+			query.waterLevel = {};
+			if (minWaterLevel !== undefined) query.waterLevel.$gte = Number(minWaterLevel);
+			if (maxWaterLevel !== undefined) query.waterLevel.$lte = Number(maxWaterLevel);
+		}
+
+		if (soilMoisture !== undefined) query.soilMoisture = Number(soilMoisture);
+		if (waterLevel !== undefined) query.waterLevel = Number(waterLevel);
+		if (rainStatus !== undefined) query.rainStatus = rainStatus;
+
+		const count = await SensorData.countDocuments(query);
+		const response: APIResponse = {
+			success: true,
+			message: 'Sensor data count retrieved successfully',
+			data: { count },
+			timestamp: formatVietnamTimestampISO(new Date())
+		};
+		res.json(response);
 	}
 }

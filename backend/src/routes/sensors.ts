@@ -3,7 +3,7 @@ import { validateQuery, asyncHandler } from '../middleware';
 import { QueryParamsSchema } from '../schemas';
 import { SensorDataController } from './sensors/SensorDataController';
 import { SensorStatsController } from './sensors/SensorStatsController';
-import { SensorExportController } from './sensors/SensorExportController';
+import { SensorExportController } from './history/SensorExportController';
 import { DataMergerService } from '../services/DataMergerService';
 const router = Router();
 // Initialize controllers

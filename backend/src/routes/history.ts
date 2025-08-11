@@ -23,7 +23,6 @@ router.get('/device-controls', validateQuery(QueryParamsSchema), asyncHandler(de
 router.get('/device-controls/count', validateQuery(QueryParamsSchema), asyncHandler(deviceHistoryController.getDeviceControlCount.bind(deviceHistoryController)));
 // Export routes
 router.get('/export', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportAllData.bind(exportController)));
-router.get('/export/sensors', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportSensorData.bind(exportController)));
 router.get('/export/device-controls', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportDeviceControls.bind(exportController)));
 router.get('/export/voice-commands', validateQuery(QueryParamsSchema), asyncHandler(exportController.exportVoiceCommands.bind(exportController)));
 export default router;
