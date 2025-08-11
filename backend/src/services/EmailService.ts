@@ -1,6 +1,7 @@
 import { EmailTransporter } from './email/EmailTransporter';
 import { TemplateLoader } from './email/TemplateLoader';
 import { EmailSender } from './email/EmailSender';
+import { timeStamp } from 'console';
 export interface AlertEmailData {
 	alertType: string
 	deviceType: string
@@ -40,7 +41,9 @@ export class EmailService {
 			const processedTemplate = await this.templateLoader.processTemplateWithCSS(template, {
 				recipientEmail: recipients.join(', '),
 				currentTime: new Date().toISOString(),
-				systemVersion: '2.1.0'
+				systemVersion: '2.1.0',
+				testMessage: 'This is a test email for the Smart Greenhouse system.',
+				timestamp: new Date().toISOString()
 			});
 			return await this.emailSender.sendEmail({
 				to: recipients,
